@@ -10,8 +10,11 @@ interface OpportunityQueryResult {
   description: string | null;
   status: string; // Assuming status is a string in the query result
   estimated_value: number | null;
+  probability: number | null; // Added probability
   requested_completion_date: string | null; // Assuming date is returned as string
-  assigned_user_id: string | null;
+  expected_close_date: string | null; // Added expected_close_date
+  source: string | null; // Added source
+  assigned_user_id: string | null; // Reverted to assigned_user_id
   created_by_user_id: string | null;
   created_at: string; // Assuming timestamp is returned as string
   updated_at: string; // Assuming timestamp is returned as string
@@ -23,6 +26,8 @@ interface OpportunityQueryResult {
     email: string | null;
     phone: string | null;
     person_type: string; // Assuming person_type is a string
+    name: string; // Added name
+    type: string; // Added type (mapping from person_type)
   }; // Not nullable because person_id is not nullable in opportunities table
 }
 
@@ -30,6 +35,7 @@ export type Opportunity = Database["public"]["Tables"]["opportunities"]["Row"]
 export type NewOpportunity = Database["public"]["Tables"]["opportunities"]["Insert"]
 export type UpdateOpportunity = Database["public"]["Tables"]["opportunities"]["Update"] & {
   requested_completion_date?: Date | string | null; // Allow Date object input
+  expected_close_date?: Date | string | null; // Added expected_close_date
 };
 
 // Redefine OpportunityWithPerson to match the query result structure more directly
@@ -40,8 +46,11 @@ export interface OpportunityWithPerson {
   description: string | null;
   status: string; // Assuming status is a string in the query result
   estimated_value: number | null;
+  probability: number | null; // Added probability
   requested_completion_date: string | null; // Assuming date is returned as string
-  assigned_user_id: string | null;
+  expected_close_date: string | null; // Added expected_close_date
+  source: string | null; // Added source
+  assigned_user_id: string | null; // Reverted to assigned_user_id
   created_by_user_id: string | null;
   created_at: string; // Assuming timestamp is returned as string
   updated_at: string; // Assuming timestamp is returned as string
@@ -53,20 +62,10 @@ export interface OpportunityWithPerson {
     email: string | null;
     phone: string | null;
     person_type: string; // Assuming person_type is a string
+    name: string; // Added name
+    type: string; // Added type (mapping from person_type)
   }; // Not nullable because person_id is not nullable in opportunities table
 }
-
-// Keep the original OpportunityWithPerson definition for clarity if needed elsewhere,
-// but the one above will be used for the getOpportunities return type.
-// export type OriginalOpportunityWithPerson = Opportunity & {
-//   person: {
-//     id: string
-//     name: string
-//     email?: string | null
-//     phone?: string | null
-//     type: string
-//   }
-// }
 
 // Update the OpportunityWithRelations type to include estimates
 export type OpportunityWithRelations = OpportunityWithPerson & {
@@ -120,21 +119,6 @@ function isValidUUID(uuid: string) {
 export const opportunityService = {
   async getOpportunities(filters?: OpportunityFilters): Promise<OpportunityWithPerson[]> {
     try {
-      const { data: opportunities, error } = await supabase
-        .from("opportunities")
-        .select(`
-          id,
-          opportunity_name, 
-          description,
-          status,
-          estimated_value,
-          requested_completion_date,
-          person:person_id (id, first_name, last_name, business_name, email, phone, person_type)
-        `)
-        .order("updated_at", { ascending: false })
-
-      if (error) throw error
-
       // Apply filters
       let query = supabase
         .from("opportunities")
@@ -145,7 +129,9 @@ export const opportunityService = {
           description,
           status,
           estimated_value,
+          probability,
           requested_completion_date,
+          source,
           assigned_user_id,
           created_by_user_id,
           created_at,
@@ -191,13 +177,15 @@ export const opportunityService = {
       // Cast data to the expected query result type
       const typedData = data as unknown as OpportunityQueryResult[];
 
-      // Transform the data to match OpportunityWithPerson type
+      // Transform the data to match OpportunityWithPerson type, mapping assigned_user_id and requested_completion_date
       return typedData.map((opportunity) => {
         // Workaround for potential incorrect type inference of nested person as array
         const personData = Array.isArray(opportunity.person) ? opportunity.person[0] : opportunity.person;
 
         return {
           ...opportunity,
+          assigned_to: opportunity.assigned_user_id, // Map assigned_user_id to assigned_to
+          expected_close_date: opportunity.requested_completion_date, // Map requested_completion_date to expected_close_date
           person: personData || {
             id: "",
             first_name: null,
@@ -244,9 +232,10 @@ export const opportunityService = {
 
       if (!data) return null
 
-      // Transform the data to match OpportunityWithPerson type
+      // Transform the data to match OpportunityWithPerson type, mapping assigned_user_id to assigned_to
       const opportunity = {
         ...data,
+        assigned_to: data.assigned_user_id, // Map assigned_user_id to assigned_to
         person: data.person
           ? {
               id: data.person.id,
@@ -385,4 +374,3 @@ export const opportunityService = {
     return opportunity.estimated_value || 0
   },
 }
-

@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase"
+import { supabase } from "./supabase"
 import type {
   Conversation,
   NewConversation,
@@ -18,8 +18,6 @@ import type {
 } from "@/types/communications"
 
 export async function getConversations(userId: string, limit = 20, offset = 0): Promise<ConversationWithDetails[]> {
-  const supabase = createClient()
-
   // Get conversations where the user is a participant
   const { data: participations, error: participationsError } = await supabase
     .from("conversation_participants")
@@ -68,14 +66,14 @@ export async function getConversations(userId: string, limit = 20, offset = 0): 
     const messages = conversation.messages || []
     const lastMessage =
       messages.length > 0
-        ? messages.sort((a, b) => new Date(b.sent_at || 0).getTime() - new Date(a.sent_at || 0).getTime())[0]
+        ? messages.sort((a: { sent_at: any }, b: { sent_at: any }) => new Date(b.sent_at || 0).getTime() - new Date(a.sent_at || 0).getTime())[0]
         : undefined
 
-    const userLastRead = conversation.participants?.find((p) => p.user_id === userId)?.last_read_at
+    const userLastRead = conversation.participants?.find((p: { user_id: string }) => p.user_id === userId)?.last_read_at
 
     const unreadCount = userLastRead
-      ? messages.filter((m) => m.sender_id !== userId && new Date(m.sent_at || 0) > new Date(userLastRead)).length
-      : messages.filter((m) => m.sender_id !== userId).length
+      ? messages.filter((m: { sender_id: string; sent_at: any }) => m.sender_id !== userId && new Date(m.sent_at || 0) > new Date(userLastRead)).length
+      : messages.filter((m: { sender_id: string }) => m.sender_id !== userId).length
 
     return {
       ...conversation,
@@ -86,8 +84,6 @@ export async function getConversations(userId: string, limit = 20, offset = 0): 
 }
 
 export async function getConversation(conversationId: string): Promise<ConversationWithDetails | null> {
-  const supabase = createClient()
-
   const { data, error } = await supabase
     .from("conversations")
     .select(`
@@ -114,8 +110,6 @@ export async function getConversation(conversationId: string): Promise<Conversat
 }
 
 export async function getMessages(conversationId: string, limit = 50, before?: string): Promise<MessageWithDetails[]> {
-  const supabase = createClient()
-
   let query = supabase
     .from("messages")
     .select(`
@@ -145,8 +139,6 @@ export async function createConversation(
   newConversation: NewConversation,
   participants: NewParticipant[],
 ): Promise<Conversation> {
-  const supabase = createClient()
-
   // Start a transaction
   const { data, error } = await supabase.from("conversations").insert(newConversation).select().single()
 
@@ -168,8 +160,6 @@ export async function createConversation(
 }
 
 export async function sendMessage(newMessage: NewMessage, attachments?: NewMessageAttachment[]): Promise<Message> {
-  const supabase = createClient()
-
   // Send the message
   const { data, error } = await supabase.from("messages").insert(newMessage).select().single()
 
@@ -200,8 +190,6 @@ export async function sendMessage(newMessage: NewMessage, attachments?: NewMessa
 }
 
 export async function markConversationAsRead(conversationId: string, userId: string): Promise<void> {
-  const supabase = createClient()
-
   const { error } = await supabase
     .from("conversation_participants")
     .update({ last_read_at: new Date().toISOString() })
@@ -212,8 +200,6 @@ export async function markConversationAsRead(conversationId: string, userId: str
 }
 
 export async function createCall(newCall: NewCall): Promise<Call> {
-  const supabase = createClient()
-
   const { data, error } = await supabase.from("calls").insert(newCall).select().single()
 
   if (error) throw error
@@ -222,8 +208,6 @@ export async function createCall(newCall: NewCall): Promise<Call> {
 }
 
 export async function updateCall(callId: string, updates: UpdateCall): Promise<Call> {
-  const supabase = createClient()
-
   const { data, error } = await supabase.from("calls").update(updates).eq("id", callId).select().single()
 
   if (error) throw error
@@ -232,8 +216,6 @@ export async function updateCall(callId: string, updates: UpdateCall): Promise<C
 }
 
 export async function createVideoSession(newSession: NewVideoSession): Promise<VideoSession> {
-  const supabase = createClient()
-
   const { data, error } = await supabase.from("video_sessions").insert(newSession).select().single()
 
   if (error) throw error
@@ -242,8 +224,6 @@ export async function createVideoSession(newSession: NewVideoSession): Promise<V
 }
 
 export async function getCallHistory(userId: string, limit = 20, offset = 0): Promise<CallWithDetails[]> {
-  const supabase = createClient()
-
   const { data, error } = await supabase
     .from("calls")
     .select(`
@@ -265,8 +245,6 @@ export async function searchConversations(
   query: string,
   limit = 20,
 ): Promise<ConversationWithDetails[]> {
-  const supabase = createClient()
-
   // Get conversations where the user is a participant
   const { data: participations, error: participationsError } = await supabase
     .from("conversation_participants")
@@ -317,8 +295,6 @@ export async function searchConversations(
 }
 
 export async function getUnreadCount(userId: string): Promise<number> {
-  const supabase = createClient()
-
   // Get conversations where the user is a participant
   const { data: participations, error: participationsError } = await supabase
     .from("conversation_participants")
@@ -350,8 +326,6 @@ export async function getUnreadCount(userId: string): Promise<number> {
 }
 
 export async function getEmailIntegrations(userId: string) {
-  const supabase = createClient()
-
   const { data, error } = await supabase
     .from("email_integrations")
     .select("*")
@@ -364,8 +338,6 @@ export async function getEmailIntegrations(userId: string) {
 }
 
 export async function getSmsIntegrations(userId: string) {
-  const supabase = createClient()
-
   const { data, error } = await supabase
     .from("sms_integrations")
     .select("*")
@@ -378,8 +350,6 @@ export async function getSmsIntegrations(userId: string) {
 }
 
 export async function getCommunicationTemplates(userId: string, type?: MessageType) {
-  const supabase = createClient()
-
   let query = supabase.from("communication_templates").select("*").or(`user_id.eq.${userId},is_global.eq.true`)
 
   if (type) {

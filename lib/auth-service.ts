@@ -280,17 +280,28 @@ export const authService = {
     }
   },
 
-  async getUserById(id: string): Promise<User> {
+  async getUserById(id: string): Promise<User | null> {
     try {
-      const { data, error } = await supabase.from("users").select("*").eq("id", id).single()
+      const { data, error } = await supabase.from("users").select("*").eq("id", id)
 
       if (error) {
         throw error
       }
 
-      return data
+      // If no data or empty array, return null
+      if (!data || data.length === 0) {
+        return null;
+      }
+
+      // If multiple users are returned, log a warning and return the first one
+      if (data.length > 1) {
+        console.warn(`Multiple users found for ID: ${id}. Returning the first one.`);
+      }
+
+      return data[0];
     } catch (error) {
-      throw new Error(handleSupabaseError(error))
+      console.error("Error getting user by ID:", error);
+      throw new Error(handleSupabaseError(error));
     }
   },
 

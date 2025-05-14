@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation"
 import Link from "next/link"
 import { personService } from "@/lib/people"
-import { formatPhoneNumber, formatDate } from "@/lib/utils"
+import { formatPhoneNumber, formatDate, formatCurrency } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -27,6 +27,15 @@ import {
   Tag,
 } from "lucide-react"
 
+// Add imports at the top
+import { opportunityService } from "@/lib/opportunities";
+import { projectService } from "@/lib/projects";
+import { appointmentService } from "@/lib/appointments";
+import { documentService } from "@/lib/documents";
+import { authService } from "@/lib/auth-service";
+import { AppointmentSummary } from "@/lib/opportunities"; // Import AppointmentSummary
+import { DocumentWithRelations } from "@/types/documents"; // Import DocumentWithRelations
+
 export default async function PersonPage({ params }: { params: { id: string } }) {
   // Check if the ID is "new" and redirect to the new person page
   if (params.id === "new") {
@@ -39,7 +48,26 @@ export default async function PersonPage({ params }: { params: { id: string } })
     notFound()
   }
 
-  // TODO: Fetch real data for counts, key metrics, opportunities, projects, appointments, documents, activities, assigned user, and related contacts from the backend.
+  // Fetch related data
+  const opportunities = await opportunityService.getOpportunities({ personId: person.id });
+  const projects = await projectService.getProjects({ customerId: person.id });
+  const appointments = await appointmentService.getAppointments({ personId: person.id }) as unknown as AppointmentSummary[];
+  const documents = await documentService.getDocuments({ personId: person.id });
+  const assignedUser = person.id ? await authService.getUserById(person.id) : null;
+
+  // Update counts
+  const opportunitiesCount = opportunities.length;
+  const projectsCount = projects.length;
+  const appointmentsCount = appointments.length;
+  const documentsCount = documents.length;
+  const activitiesCount = 0; // Still a placeholder
+
+  // Calculate key metric (e.g., total estimated value of opportunities)
+  const totalOpportunityValue = opportunities.reduce((sum, opp) => sum + (opp.estimated_value || 0), 0);
+  const keyMetric = {
+    label: "Opportunity Value", // Changed label
+    value: formatCurrency(totalOpportunityValue),
+  };
 
   // Helper function to get type badge
   function getTypeBadge(type: string) {
@@ -87,20 +115,7 @@ export default async function PersonPage({ params }: { params: { id: string } })
   const displayName = personService.getDisplayName(person)
   const personType = person.person_type.toLowerCase()
 
-  // TODO: Replace with real data from backend
-  const opportunitiesCount = 0
-  const projectsCount = 0
-  const appointmentsCount = 0
-  const documentsCount = 0
-  const activitiesCount = 0
-
-  // TODO: Replace with real data from backend
-  const keyMetric = {
-    label: "Value",
-    value: "$0",
-  }
-
-  return (
+   return (
     <div className="space-y-6">
       {/* Header Area */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -285,25 +300,24 @@ export default async function PersonPage({ params }: { params: { id: string } })
               {/* Opportunities Tab */}
               <TabsContent value="opportunities" className="p-0">
                 <div className="p-6">
-                  {/* TODO: Fetch and render real opportunities data */}
-                  {opportunitiesCount > 0 ? (
+                  {opportunities.length > 0 ? (
                     <div className="space-y-4">
-                      {/* This would be a real list in production */}
-                      {/* Example structure for a real opportunity item: */}
-                      {/*
-                      <div className="bg-muted/50 p-4 rounded-md flex items-center justify-between">
-                        <div>
-                          <h4 className="font-medium">{opportunity.name}</h4>
-                          <div className="flex items-center gap-2 mt-1">
-                            <Badge variant="outline">{opportunity.status}</Badge>
-                            <span className="text-sm text-muted-foreground">{opportunity.value}</span>
+                      {opportunities.map((opportunity) => (
+                        <div key={opportunity.id} className="bg-muted/50 p-4 rounded-md flex items-center justify-between">
+                          <div>
+                            <h4 className="font-medium">{opportunity.opportunity_name}</h4>
+                            <div className="flex items-center gap-2 mt-1">
+                              <Badge variant="outline">{opportunity.status}</Badge>
+                              {opportunity.estimated_value !== null && (
+                                <span className="text-sm text-muted-foreground">{formatCurrency(opportunity.estimated_value)}</span>
+                              )}
+                            </div>
                           </div>
+                          <Button variant="ghost" size="sm" asChild>
+                            <Link href={`/opportunities/${opportunity.id}`}>View</Link>
+                          </Button>
                         </div>
-                        <Button variant="ghost" size="sm" asChild>
-                          <Link href={`/opportunities/${opportunity.id}`}>View</Link>
-                        </Button>
-                      </div>
-                      */}
+                      ))}
                     </div>
                   ) : (
                     <div className="text-center py-8">
@@ -324,25 +338,24 @@ export default async function PersonPage({ params }: { params: { id: string } })
               {/* Projects Tab */}
               <TabsContent value="projects" className="p-0">
                 <div className="p-6">
-                  {/* TODO: Fetch and render real projects data */}
-                  {projectsCount > 0 ? (
+                  {projects.length > 0 ? (
                     <div className="space-y-4">
-                      {/* This would be a real list in production */}
-                       {/* Example structure for a real project item: */}
-                      {/*
-                      <div className="bg-muted/50 p-4 rounded-md flex items-center justify-between">
-                        <div>
-                          <h4 className="font-medium">{project.name}</h4>
-                          <div className="flex items-center gap-2 mt-1">
-                            <Badge variant="outline">{project.status}</Badge>
-                            <span className="text-sm text-muted-foreground">Due: {formatDate(project.due_date)}</span>
+                      {projects.map((project) => (
+                        <div key={project.id} className="bg-muted/50 p-4 rounded-md flex items-center justify-between">
+                          <div>
+                            <h4 className="font-medium">{project.project_name}</h4>
+                            <div className="flex items-center gap-2 mt-1">
+                              <Badge variant="outline">{project.status}</Badge>
+                              {project.budget_amount !== null && (
+                                <span className="text-sm text-muted-foreground">{formatCurrency(project.budget_amount)}</span>
+                              )}
+                            </div>
                           </div>
+                          <Button variant="ghost" size="sm" asChild>
+                            <Link href={`/projects/${project.id}`}>View</Link>
+                          </Button>
                         </div>
-                        <Button variant="ghost" size="sm" asChild>
-                          <Link href={`/projects/${project.id}`}>View</Link>
-                        </Button>
-                      </div>
-                      */}
+                      ))}
                     </div>
                   ) : (
                     <div className="text-center py-8">
@@ -363,25 +376,22 @@ export default async function PersonPage({ params }: { params: { id: string } })
               {/* Appointments Tab */}
               <TabsContent value="appointments" className="p-0">
                 <div className="p-6">
-                  {/* TODO: Fetch and render real appointments data */}
-                  {appointmentsCount > 0 ? (
+                  {appointments.length > 0 ? (
                     <div className="space-y-4">
-                      {/* This would be a real list in production */}
-                       {/* Example structure for a real appointment item: */}
-                      {/*
-                      <div className="bg-muted/50 p-4 rounded-md flex items-center justify-between">
-                        <div>
-                          <h4 className="font-medium">{appointment.title}</h4>
-                          <div className="flex items-center gap-2 mt-1">
-                            <Badge variant="outline">{appointment.status}</Badge>
-                            <span className="text-sm text-muted-foreground">{formatDate(appointment.date)} - {appointment.time}</span>
+                      {appointments.map((appointment) => (
+                        <div key={appointment.id} className="bg-muted/50 p-4 rounded-md flex items-center justify-between">
+                          <div>
+                            <h4 className="font-medium">{appointment.title}</h4>
+                            <div className="flex items-center gap-2 mt-1">
+                              <Badge variant="outline">{appointment.status}</Badge>
+                              <span className="text-sm text-muted-foreground">{appointment.formatted_date} - {appointment.formatted_time}</span>
+                            </div>
                           </div>
+                          <Button variant="ghost" size="sm" asChild>
+                            <Link href={`/appointments/${appointment.id}`}>View</Link>
+                          </Button>
                         </div>
-                        <Button variant="ghost" size="sm" asChild>
-                          <Link href={`/appointments/${appointment.id}`}>View</Link>
-                        </Button>
-                      </div>
-                      */}
+                      ))}
                     </div>
                   ) : (
                     <div className="text-center py-8">
@@ -402,25 +412,22 @@ export default async function PersonPage({ params }: { params: { id: string } })
               {/* Documents Tab */}
               <TabsContent value="documents" className="p-0">
                 <div className="p-6">
-                  {/* TODO: Fetch and render real documents data */}
-                  {documentsCount > 0 ? (
+                  {documents.length > 0 ? (
                     <div className="space-y-4">
-                      {/* This would be a real list in production */}
-                       {/* Example structure for a real document item: */}
-                      {/*
-                      <div className="bg-muted/50 p-4 rounded-md flex items-center justify-between">
-                        <div>
-                          <h4 className="font-medium">{document.name}</h4>
-                          <div className="flex items-center gap-2 mt-1">
-                            <Badge variant="outline">{document.type}</Badge>
-                            <span className="text-sm text-muted-foreground">Uploaded: {formatDate(document.uploaded_at)}</span>
+                      {documents.map((document) => (
+                        <div key={document.id} className="bg-muted/50 p-4 rounded-md flex items-center justify-between">
+                          <div>
+                            <h4 className="font-medium">{document.name}</h4>
+                            <div className="flex items-center gap-2 mt-1">
+                              <Badge variant="outline">{document.document_type}</Badge>
+                              <span className="text-sm text-muted-foreground">Uploaded: {formatDate(document.created_at)}</span>
+                            </div>
                           </div>
+                          <Button variant="ghost" size="sm">
+                            View
+                          </Button>
                         </div>
-                        <Button variant="ghost" size="sm">
-                          View
-                        </Button>
-                      </div>
-                      */}
+                      ))}
                     </div>
                   ) : (
                     <div className="text-center py-8">

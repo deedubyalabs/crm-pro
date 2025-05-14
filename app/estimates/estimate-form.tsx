@@ -551,7 +551,6 @@ export function EstimateForm({
                                       <SelectValue placeholder="Type" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      <SelectItem value="">None</SelectItem>
                                       <SelectItem value="percentage">
                                         <div className="flex items-center">
                                           <Percent className="mr-2 h-4 w-4" />

@@ -24,13 +24,9 @@ export const documentService = {
           ),
           opportunity:opportunity_id (
             id,
-            title
+            opportunity_name
           ),
-          created_by:created_by_user_id (
-            id,
-            first_name,
-            last_name
-          )
+          created_by
         `)
         .order("updated_at", { ascending: false })
 

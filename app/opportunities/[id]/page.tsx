@@ -24,14 +24,14 @@ import { RelatedProjects } from "./related-projects"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { RelatedEstimates } from "./related-estimates"
 
-export default async function OpportunityDetailPage({ params }: { params: { id: string } }) {
+export default async function OpportunityDetailPage({ params: { id } }: { params: { id: string } }) {
   // Check if the ID is "new" and redirect to the new opportunity page
-  if (params.id === "new") {
+  if (id === "new") {
     notFound() // This will trigger the not-found.tsx page
   }
 
   try {
-    const opportunity = await opportunityService.getOpportunityById(params.id)
+    const opportunity = await opportunityService.getOpportunityById(id)
 
     if (!opportunity) {
       notFound()
@@ -229,7 +229,7 @@ export default async function OpportunityDetailPage({ params }: { params: { id: 
                       </div>
                       <div>
                         <h3 className="text-sm font-medium">Assigned To</h3>
-                        <p>{opportunity.assigned_to || "Unassigned"}</p>
+                        <p>{opportunity.assigned_user_id || "Unassigned"}</p>
                       </div>
                     </div>
 
