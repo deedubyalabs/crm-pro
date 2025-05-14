@@ -1,3 +1,5 @@
+"use client" // Convert to client component
+
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -15,6 +17,7 @@ import {
   Mail,
   MessageSquare,
   History,
+  Copy, // Import Copy icon
 } from "lucide-react"
 import { opportunityService } from "@/lib/opportunities"
 import { formatCurrency, formatDate } from "@/lib/utils"
@@ -24,22 +27,71 @@ import { RelatedProjects } from "./related-projects"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { RelatedEstimates } from "./related-estimates"
 
-export default async function OpportunityDetailPage({ params: { id } }: { params: { id: string } }) {
+// Import dropdown menu components
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+
+// Import modal components
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea" // Assuming Textarea is needed for modal
+import { Label } from "@/components/ui/label" // Assuming Label is needed for modal
+
+import { useState, useEffect } from "react" // Import useState and useEffect
+import { toast } from "@/components/ui/use-toast" // Import toast
+import type { OpportunityWithRelations } from "@/lib/opportunities" // Import OpportunityWithRelations type
+
+export default function OpportunityDetailPage({ params: { id } }: { params: { id: string } }) {
+  // State for opportunity data
+  const [opportunity, setOpportunity] = useState<OpportunityWithRelations | null>(null);
+  // State for AI email draft modal
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [draftedEmailText, setDraftedEmailText] = useState("");
+  const [isDraftingEmail, setIsDraftingEmail] = useState(false);
+
   // Check if the ID is "new" and redirect to the new opportunity page
   if (id === "new") {
     notFound() // This will trigger the not-found.tsx page
   }
 
-  try {
-    const opportunity = await opportunityService.getOpportunityById(id)
+  useEffect(() => {
+    const fetchOpportunityData = async () => {
+      try {
+        const fetchedOpportunity = await opportunityService.getOpportunityById(id);
+        if (fetchedOpportunity) {
+          setOpportunity(fetchedOpportunity);
+        } else {
+          notFound();
+        }
+      } catch (error) {
+        console.error("Error fetching opportunity:", error);
+        notFound();
+      }
+    };
+    fetchOpportunityData();
+  }, [id]); // Dependency array includes id
 
-    if (!opportunity) {
-      notFound()
-    }
+  // Show loading state if opportunity data is not yet loaded
+  if (!opportunity) {
+    return <div>Loading...</div>; // Or a more sophisticated loading spinner
+  }
 
-    // Helper function to get status badge
-    function getStatusBadge(status: string) {
-      switch (status.toLowerCase()) {
+
+  // Helper function to get status badge
+  function getStatusBadge(status: string) {
+    switch (status?.toLowerCase()) { // Use optional chaining
         case "new lead":
           return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">New Lead</Badge>
         case "contact attempted":
@@ -53,22 +105,23 @@ export default async function OpportunityDetailPage({ params: { id } }: { params
         case "needs estimate":
           return <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-100">Needs Estimate</Badge>
         case "estimate sent":
-          return <Badge className="bg-cyan-100 text-cyan-800 hover:bg-cyan-100">Estimate Sent</Badge>
+          return <Badge className="bg-cyan-100 text-cyan-800 hover:bg-cyan-800">Estimate Sent</Badge> // Corrected hover color
         case "estimate accepted":
-          return <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100">Estimate Accepted</Badge>
+          return <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-800">Estimate Accepted</Badge> // Corrected hover color
         case "estimate rejected":
-          return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Estimate Rejected</Badge>
+          return <Badge className="bg-red-100 text-red-800 hover:bg-red-800">Estimate Rejected</Badge> // Corrected hover color
         case "on hold":
-          return <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-100">On Hold</Badge>
+          return <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-800">On Hold</Badge> // Corrected hover color
         case "lost":
-          return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Lost</Badge>
+          return <Badge className="bg-red-100 text-red-800 hover:bg-red-800">Lost</Badge> // Corrected hover color
         default:
           return <Badge variant="outline">{status}</Badge>
       }
     }
 
     // Get initials for avatar
-    function getInitials(name: string) {
+    function getInitials(name: string | null | undefined) { // Allow null/undefined
+      if (!name) return "";
       return name
         .split(" ")
         .map((part) => part[0])
@@ -81,6 +134,48 @@ export default async function OpportunityDetailPage({ params: { id } }: { params
     const appointmentsCount = opportunity.appointments?.length || 0
     const projectsCount = opportunity.projects?.length || 0
     const estimatesCount = opportunity.estimates?.length || 0
+
+    // Handle drafting follow-up email
+    const handleDraftFollowUpEmail = async () => {
+      setIsDraftingEmail(true);
+      setDraftedEmailText(""); // Clear previous draft
+      setIsEmailModalOpen(true); // Open modal immediately
+
+      try {
+        const response = await fetch("/api/ai/draft-communication", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            opportunityId: opportunity.id,
+            communicationType: "estimate_follow_up",
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Failed to draft email");
+        }
+
+        const data = await response.json();
+        setDraftedEmailText(data.draftedEmailText);
+
+      } catch (error) {
+        console.error("Error drafting email:", error);
+        setDraftedEmailText(`Error drafting email: ${error instanceof Error ? error.message : String(error)}`);
+      } finally {
+        setIsDraftingEmail(false);
+      }
+    };
+
+    // Handle copying email text to clipboard
+    const handleCopyToClipboard = () => {
+      navigator.clipboard.writeText(draftedEmailText);
+      toast({
+        title: "Copied!",
+        description: "Email draft copied to clipboard.",
+      });
+    };
+
 
     return (
       <div className="flex flex-col space-y-8">
@@ -102,6 +197,23 @@ export default async function OpportunityDetailPage({ params: { id } }: { params
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
+            {/* AI Actions Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline">
+                  <MessageSquare className="mr-2 h-4 w-4" /> AI Actions
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>AI Actions</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleDraftFollowUpEmail} disabled={isDraftingEmail}>
+                  {isDraftingEmail ? "Drafting..." : "Draft Follow-Up Email"}
+                </DropdownMenuItem>
+                {/* Add other AI actions here */}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             {opportunity.status !== "Estimate Accepted" && opportunity.status !== "Lost" && (
               <Button variant="outline" asChild>
                 <Link href={`/opportunities/${opportunity.id}/convert`}>Convert to Project</Link>
@@ -128,9 +240,13 @@ export default async function OpportunityDetailPage({ params: { id } }: { params
                 <CardContent>
                   <div className="flex items-center">
                     <User className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <Link href={`/people/${opportunity.person.id}`} className="hover:underline">
-                      {opportunity.person.name}
-                    </Link>
+                    {opportunity.person ? (
+                      <Link href={`/people/${opportunity.person.id}`} className="hover:underline">
+                        {opportunity.person.name}
+                      </Link>
+                    ) : (
+                      <span className="text-muted-foreground">No contact linked</span>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -354,17 +470,21 @@ export default async function OpportunityDetailPage({ params: { id } }: { params
               <CardContent className="space-y-4">
                 <div className="flex items-center space-x-4">
                   <Avatar className="h-10 w-10">
-                    <AvatarFallback>{getInitials(opportunity.person.name)}</AvatarFallback>
+                    <AvatarFallback>{getInitials(opportunity.person?.name)}</AvatarFallback>
                   </Avatar>
                   <div>
-                    <Link href={`/people/${opportunity.person.id}`} className="font-medium hover:underline">
-                      {opportunity.person.name}
-                    </Link>
-                    <p className="text-sm text-muted-foreground">{opportunity.person.type}</p>
+                    {opportunity.person ? (
+                      <Link href={`/people/${opportunity.person.id}`} className="font-medium hover:underline">
+                        {opportunity.person.name}
+                      </Link>
+                    ) : (
+                      <span className="text-muted-foreground">No contact linked</span>
+                    )}
+                    <p className="text-sm text-muted-foreground">{opportunity.person?.type}</p>
                   </div>
                 </div>
 
-                {opportunity.person.email && (
+                {opportunity.person?.email && (
                   <div className="flex items-center">
                     <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
                     <a href={`mailto:${opportunity.person.email}`} className="hover:underline">
@@ -373,7 +493,7 @@ export default async function OpportunityDetailPage({ params: { id } }: { params
                   </div>
                 )}
 
-                {opportunity.person.phone && (
+                {opportunity.person?.phone && (
                   <div className="flex items-center">
                     <Phone className="h-4 w-4 mr-2 text-muted-foreground" />
                     <a href={`tel:${opportunity.person.phone}`} className="hover:underline">
@@ -383,9 +503,11 @@ export default async function OpportunityDetailPage({ params: { id } }: { params
                 )}
 
                 <div className="flex justify-end">
-                  <Button variant="outline" size="sm" asChild>
-                    <Link href={`/people/${opportunity.person.id}`}>View Contact</Link>
-                  </Button>
+                  {opportunity.person && (
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href={`/people/${opportunity.person.id}`}>View Contact</Link>
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -403,9 +525,9 @@ export default async function OpportunityDetailPage({ params: { id } }: { params
                   </Link>
                 </Button>
                 <Button className="w-full justify-start" variant="outline" asChild>
-                  <Link href={`/estimates/new?opportunityId=${opportunity.id}`}>
+                  <Link href={`/estimates/new?opportunityId=${opportunity.id}&personId=${opportunity.person?.id}`}>
                     <FileText className="mr-2 h-4 w-4" />
-                    Create Estimate
+                    Create AI Estimate
                   </Link>
                 </Button>
                 {opportunity.status !== "Estimate Accepted" && opportunity.status !== "Lost" && (
@@ -527,9 +649,4 @@ export default async function OpportunityDetailPage({ params: { id } }: { params
         </div>
       </div>
     )
-  } catch (error) {
-    // If there's an error with the UUID format, redirect to the not-found page
-    console.error("Error fetching opportunity:", error)
-    notFound()
-  }
 }

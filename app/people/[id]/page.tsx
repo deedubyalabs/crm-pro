@@ -497,6 +497,13 @@ export default async function PersonPage({ params }: { params: { id: string } })
               </Button>
 
               <Button className="w-full justify-start" variant="outline" asChild>
+                <Link href={`/estimates/new?personId=${person.id}`}>
+                  <FileText className="mr-2 h-4 w-4" />
+                  Create AI Estimate
+                </Link>
+              </Button>
+
+              <Button className="w-full justify-start" variant="outline" asChild>
                 <Link href={`/appointments/new?personId=${person.id}`}>
                   <CalendarClock className="mr-2 h-4 w-4" />
                   Schedule Appointment

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react" // Keep useEffect
 import { useRouter } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
@@ -17,12 +17,19 @@ import { CalendarIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { type NewProject, projectService } from "@/lib/projects"
 import { toast } from "@/components/ui/use-toast"
+import type { EstimateWithDetails } from "@/types/estimates" // Import EstimateWithDetails
+import type { Person } from "@/lib/people" // Import Person type
+import { formatCurrency } from "@/lib/utils" // Import formatCurrency
+
+// Define ProjectStatus type based on Supabase enum
+export type ProjectStatus = "Pending Start" | "Planning" | "In Progress" | "On Hold" | "Awaiting Change Order Approval" | "Nearing Completion" | "Completed" | "Canceled";
 
 const projectFormSchema = z.object({
   name: z.string().min(1, "Project name is required"),
   description: z.string().optional(),
   status: z.string().min(1, "Status is required"),
   customer_id: z.string().optional(),
+  opportunity_id: z.string().optional(), // Add opportunity_id to schema
   start_date: z.date().optional().nullable(),
   end_date: z.date().optional().nullable(),
   budget: z.coerce.number().optional().nullable(),
@@ -38,27 +45,30 @@ type ProjectFormValues = z.infer<typeof projectFormSchema>
 interface ProjectFormProps {
   initialData?: NewProject
   projectId?: string
+  initialEstimate?: EstimateWithDetails | null; // Add initialEstimate prop
+  initialPerson?: Person | null; // Add initialPerson prop
 }
 
-export default function ProjectForm({ initialData, projectId }: ProjectFormProps) {
+export default function ProjectForm({ initialData, projectId, initialEstimate, initialPerson }: ProjectFormProps) {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
 
   const form = useForm<ProjectFormValues>({
     resolver: zodResolver(projectFormSchema),
     defaultValues: {
-      name: initialData?.name || "",
-      description: initialData?.description || "",
-      status: initialData?.status || "pending",
-      customer_id: initialData?.customer_id || undefined,
-      start_date: initialData?.start_date ? new Date(initialData.start_date) : null,
-      end_date: initialData?.end_date ? new Date(initialData.end_date) : null,
-      budget: initialData?.budget || null,
-      address: initialData?.address || "",
-      city: initialData?.city || "",
-      state: initialData?.state || "",
-      zip: initialData?.zip || "",
-      notes: initialData?.notes || "",
+      name: initialEstimate?.opportunity?.opportunity_name || initialData?.project_name || "", // Pre-fill from estimate opportunity name or initialData project_name
+      description: initialEstimate?.notes || initialData?.description || "", // Pre-fill from estimate notes or initialData description
+      status: initialData?.status || "Pending Start", // Default to Pending Start
+      customer_id: initialEstimate?.person_id || initialData?.person_id || undefined, // Pre-fill from estimate person_id or initialData person_id
+      opportunity_id: initialEstimate?.opportunity_id || initialData?.opportunity_id || undefined, // Pre-fill from estimate opportunity_id or initialData opportunity_id
+      start_date: initialData?.planned_start_date ? new Date(initialData.planned_start_date) : null, // Use planned_start_date from initialData
+      end_date: initialData?.planned_end_date ? new Date(initialData.planned_end_date) : null, // Use planned_end_date from initialData
+      budget: initialEstimate?.total_amount || initialData?.budget_amount || null, // Pre-fill from estimate total_amount or initialData budget_amount
+      address: initialPerson?.address_line1 || initialData?.project_address_line1 || "", // Pre-fill from initialPerson address or initialData project_address_line1
+      city: initialPerson?.city || initialData?.project_city || "", // Pre-fill from initialPerson city or initialData project_city
+      state: initialPerson?.state_province || initialData?.project_state_province || "", // Pre-fill from initialPerson state or initialData project_state_province
+      zip: initialPerson?.postal_code || initialData?.project_postal_code || "", // Pre-fill from initialPerson zip or initialData project_postal_code
+      notes: initialData?.notes || "", // Keep existing notes logic or decide if estimate notes should append
     },
   })
 
@@ -66,23 +76,34 @@ export default function ProjectForm({ initialData, projectId }: ProjectFormProps
     try {
       setIsLoading(true)
 
-      // Format dates for API
-      const formattedValues = {
-        ...values,
-        start_date: values.start_date ? values.start_date.toISOString() : null,
-        end_date: values.end_date ? values.end_date.toISOString() : null,
+      // Format dates for API and map to NewProject type
+      const projectData: NewProject = {
+        person_id: values.customer_id!, // customer_id in form maps to person_id in NewProject
+        opportunity_id: values.opportunity_id,
+        project_name: values.name, // name in form maps to project_name in NewProject
+        status: values.status as NewProject['status'], // Cast status
+        planned_start_date: values.start_date ? values.start_date.toISOString() : null, // Map start_date
+        planned_end_date: values.end_date ? values.end_date.toISOString() : null, // Map end_date
+        budget_amount: values.budget, // Map budget
+        project_address_line1: values.address, // Map address
+        project_city: values.city, // Map city
+        project_state_province: values.state, // Map state
+        project_postal_code: values.zip, // Map zip
+        description: values.description, // Map description
+        notes: values.notes, // Map notes
+        estimate_id: initialEstimate?.id || undefined, // Include estimate_id if creating from an estimate
       }
 
       if (projectId) {
         // Update existing project
-        await projectService.updateProject(projectId, formattedValues)
+        await projectService.updateProject(projectId, projectData) // Use projectData
         toast({
           title: "Project updated",
           description: "Your project has been updated successfully.",
         })
       } else {
         // Create new project
-        const newProject = await projectService.createProject(formattedValues as NewProject)
+        const newProject = await projectService.createProject(projectData) // Use projectData
         toast({
           title: "Project created",
           description: "Your new project has been created successfully.",

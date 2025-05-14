@@ -22,6 +22,7 @@ import { EstimateLineItemRow } from "./estimate-line-item"
 import { PaymentScheduleItem } from "./payment-schedule-item"
 import type { EstimateLineItem, EstimateWithDetails, EstimatePaymentSchedule } from "@/types/estimates"
 import type { CostItem } from "@/types/cost-items"
+import { Checkbox } from "@/components/ui/checkbox"
 
 // Define the form schema
 const formSchema = z.object({
@@ -34,6 +35,9 @@ const formSchema = z.object({
   notes: z.string().optional(),
   discount_type: z.enum(["percentage", "fixed", ""]).optional(),
   discount_value: z.coerce.number().min(0).optional(),
+  tax_rate_percentage: z.coerce.number().min(0).max(100).optional(),
+  deposit_required: z.boolean().optional(),
+  deposit_percentage: z.coerce.number().min(0).max(100).optional(),
 })
 
 type FormValues = z.infer<typeof formSchema>
@@ -145,19 +149,23 @@ export function EstimateForm({
     }
   }, [form.watch("opportunity_id"), opportunities, form]); // Added dependencies
 
-  // Calculate subtotal and total amount when line items or discount change (depends on lineItems prop)
+  // Calculate subtotal, tax, and total amount when line items, discount, or tax change
   const subtotalAmount = lineItems.reduce((sum, item) => sum + (item.total || 0), 0);
 
   const discountType = form.watch("discount_type");
   const discountValue = form.watch("discount_value") || 0;
+  const taxRatePercentage = form.watch("tax_rate_percentage") || 0;
 
-  let totalAmount = subtotalAmount;
+  let discountedSubtotal = subtotalAmount;
   if (discountType === "percentage") {
-    totalAmount = subtotalAmount * (1 - discountValue / 100);
+    discountedSubtotal = subtotalAmount * (1 - discountValue / 100);
   } else if (discountType === "fixed") {
-    totalAmount = subtotalAmount - discountValue;
+    discountedSubtotal = subtotalAmount - discountValue;
   }
-  totalAmount = Math.max(0, totalAmount); // Ensure total is not negative
+  discountedSubtotal = Math.max(0, discountedSubtotal); // Ensure discounted subtotal is not negative
+
+  const taxAmount = discountedSubtotal * (taxRatePercentage / 100);
+  const totalAmount = discountedSubtotal + taxAmount; // Update total calculation to include tax
 
 
   // Handle adding a new line item (uses onLineItemsChange prop)
@@ -475,6 +483,80 @@ export function EstimateForm({
                       </FormItem>
                     )}
                   />
+
+                  {/* Added Tax Rate Field */}
+                  <FormField
+                    control={form.control}
+                    name="tax_rate_percentage"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Tax Rate (%)</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="0.01"
+                            placeholder="0.00"
+                            {...field}
+                            value={field.value ?? ""}
+                          />
+                        </FormControl>
+                        <FormDescription>The percentage of tax applied to the estimate subtotal.</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Added Deposit Required Checkbox */}
+                   <FormField
+                    control={form.control}
+                    name="deposit_required"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel>
+                            Require Deposit
+                          </FormLabel>
+                          <FormDescription>
+                            Check this box if a deposit is required for this estimate.
+                          </FormDescription>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Added Deposit Percentage Field */}
+                  {form.watch("deposit_required") && ( // Only show if deposit is required
+                    <FormField
+                      control={form.control}
+                      name="deposit_percentage"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Deposit Percentage (%)</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              min="0"
+                              max="100"
+                              step="0.01"
+                              placeholder="0.00"
+                              {...field}
+                              value={field.value ?? ""}
+                            />
+                          </FormControl>
+                          <FormDescription>The percentage of the total amount required as a deposit.</FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>

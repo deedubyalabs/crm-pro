@@ -10,7 +10,7 @@ import { costItemService } from "@/lib/cost-items"
 import { opportunityService } from "@/lib/opportunities"
 import { personService } from "@/lib/people"
 import type { EstimateLineItem, EstimatePaymentSchedule, EstimateWithDetails } from "@/types/estimates"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation" // Import useSearchParams
 import { createEstimateAction, EstimateActionResult, updateEstimateAction } from "./actions"
 
 interface UnifiedEstimateClientPageProps {
@@ -19,18 +19,14 @@ interface UnifiedEstimateClientPageProps {
 
 export default function UnifiedEstimateClientPage({ estimate }: UnifiedEstimateClientPageProps) {
   const router = useRouter();
+  const searchParams = useSearchParams(); // Get search params
 
-  const [messages, setMessages] = useState<Message[]>(
-    estimate?.ai_conversation_history ? JSON.parse(estimate.ai_conversation_history) : [
-    {
-      id: uuidv4(),
-      role: "assistant",
-      content: estimate
-        ? `Hello! We are currently looking at Estimate ${estimate.estimate_number || '(Draft)'} for ${estimate.person.name}. The current total is ${estimate.total_amount}. How can I help you update this estimate?`
-        : "Hello! I'm HomePro AI. Describe the project you'd like to estimate, including scope, materials, and dimensions. I'll help you build an estimate.",
-      timestamp: new Date().toISOString(),
-    },
-  ]);
+  const personIdFromUrl = searchParams.get('personId');
+  const opportunityIdFromUrl = searchParams.get('opportunityId');
+
+  const [initialEstimateData, setInitialEstimateData] = useState<EstimateWithDetails | undefined>(estimate);
+
+  const [messages, setMessages] = useState<Message[]>([]); // Initialize as empty, will set in useEffect
   const [isProcessing, setIsProcessing] = useState(false);
   const [activeTab, setActiveTab] = useState('details');
   // State for line items and payment schedules, managed in parent
@@ -73,10 +69,86 @@ export default function UnifiedEstimateClientPage({ estimate }: UnifiedEstimateC
         name: person.business_name || `${person.first_name || ""} ${person.last_name || ""}`.trim(),
       }))
       setPeopleOptions(peopleOptionsData)
+
+      // Handle pre-filling from URL parameters
+      let prefilledPersonId = personIdFromUrl;
+      let prefilledOpportunityId = opportunityIdFromUrl;
+      let initialGreeting = "Hello! I'm HomePro AI. Describe the project you'd like to estimate, including scope, materials, and dimensions. I'll help you build an estimate.";
+      let prefilledEstimate: Partial<EstimateWithDetails> = {};
+
+      if (opportunityIdFromUrl) {
+        const opportunity = await opportunityService.getOpportunityById(opportunityIdFromUrl);
+        if (opportunity) {
+          prefilledOpportunityId = opportunity.id;
+          prefilledPersonId = opportunity.person_id; // Ensure personId is also set from opportunity
+          initialGreeting = `Hello! I'm HomePro AI. Let's create an estimate for ${opportunity.person.name}'s opportunity: '${opportunity.opportunity_name}'. Can you describe the scope?`;
+          prefilledEstimate = {
+            opportunity_id: opportunity.id,
+            person_id: opportunity.person_id,
+            opportunity: { id: opportunity.id, opportunity_name: opportunity.opportunity_name }, // Provide necessary opportunity properties
+            person: {
+              id: opportunity.person.id,
+              first_name: opportunity.person.first_name,
+              last_name: opportunity.person.last_name,
+              business_name: opportunity.person.business_name,
+              email: opportunity.person.email,
+              phone: opportunity.person.phone,
+              name: opportunity.person.business_name || `${opportunity.person.first_name || ""} ${opportunity.person.last_name || ""}`.trim(), // Derived name
+            },
+          };
+        }
+      } else if (personIdFromUrl) {
+        const person = await personService.getPersonById(personIdFromUrl);
+        if (person) {
+          initialGreeting = `Hello! I'm HomePro AI. I see we're starting an estimate for ${person.business_name || `${person.first_name || ""} ${person.last_name || ""}`.trim()}. What project are they looking to do?`;
+          prefilledEstimate = {
+            person_id: person.id,
+            person: {
+              id: person.id,
+              first_name: person.first_name,
+              last_name: person.last_name,
+              business_name: person.business_name,
+              email: person.email,
+              phone: person.phone,
+              name: person.business_name || `${person.first_name || ""} ${person.last_name || ""}`.trim(), // Derived name
+            },
+          };
+        }
+      }
+
+      // Set initial messages
+      setMessages(
+        estimate?.ai_conversation_history ? JSON.parse(estimate.ai_conversation_history) : [
+          {
+            id: uuidv4(),
+            role: "assistant",
+            content: estimate
+              ? `Hello! We are currently looking at Estimate ${estimate.estimate_number || '(Draft)'} for ${estimate.person.name}. The current total is ${estimate.total_amount}. How can I help you update this estimate?`
+              : initialGreeting, // Use contextual greeting for new estimates
+            timestamp: new Date().toISOString(),
+          },
+        ]
+      );
+
+      // Update initial estimate data state for the form
+      if (!estimate && (prefilledPersonId || prefilledOpportunityId)) {
+         setInitialEstimateData({
+           ...prefilledEstimate,
+           lineItems: [],
+           paymentSchedules: [],
+           ai_conversation_history: null, // No history for new estimates
+           id: '', // Placeholder, will be generated on save
+           created_at: '',
+           updated_at: '',
+           status: 'Draft',
+           total_amount: 0,
+           // person and opportunity are now provided in prefilledEstimate
+         } as any); // Cast to any to bypass type error for now
+      }
     }
 
     loadData()
-  }, []) // Empty dependency array means this runs once on mount
+  }, [estimate, personIdFromUrl, opportunityIdFromUrl]); // Add dependencies for URL params and estimate
 
   const handleSendMessage = async (text: string, attachments?: Attachment[]) => {
     const userMessage: Message = {
@@ -191,7 +263,7 @@ export default function UnifiedEstimateClientPage({ estimate }: UnifiedEstimateC
         {/* Right Pane: Estimate Form with Tabs */}
         <div className="lg:w-2/3">
            <EstimateForm
-            estimate={estimate} // Pass existing estimate data to form
+            estimate={initialEstimateData} // Pass initialEstimateData to form
             costItems={costItems}
             opportunities={opportunityOptions}
             people={peopleOptions}
