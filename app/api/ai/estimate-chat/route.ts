@@ -18,7 +18,7 @@ if (!GEMINI_API_KEY) {
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY || ""); // Fallback to empty string if not set, though SDK might error
 
 const model = genAI.getGenerativeModel({
-  model: "gemini-2.0-flash-lite", // Using a cost-effective and fast model
+  model: "gemini-2.0-flash-lite", // Using gemini-2.0-flash-lite for better text generation
   // systemInstruction is now preferred for setting the role of the model
   systemInstruction: `You are Pro, an expert residential construction estimator. Your primary role is to assist solo contractors in creating accurate and detailed project estimates.
 
@@ -34,8 +34,8 @@ const model = genAI.getGenerativeModel({
       -   \`lineItemsSuggestedByAI\`: An array of objects, where each object represents a potential line item. Each line item object should have the following keys:
           -   \`aiSuggestionId\`: A string, a temporary unique ID for this suggestion.
           -   \`description\`: A string describing the item (e.g., "Supply and install new toilet", "Supply and install ceramic floor tile").
-          -   \`suggestedQuantity\`: A number representing the suggested quantity.
-          -   \`suggestedUnit\`: A string representing the suggested unit (e.g., "each", "sq ft", "linear ft").
+          -   \`suggestedQuantity\`: A number representing the suggested quantity. **This is important, try to extract or infer this.**
+          -   \`suggestedUnit\`: A string representing the suggested unit (e.g., "each", "sq ft", "linear ft"). **This is important, try to extract or infer this.**
           -   \`notesFromAI\`: A string containing any specific notes about this item (optional).
           -   \`matchedCostItemId\`: A string, the ID from the \`cost_items\` table if a match is found (nullable).
           -   \`suggestedUnitCost\`: A number, the suggested unit cost (nullable).
@@ -172,9 +172,11 @@ export async function POST(request: Request) {
 
           structuredEstimateData.lineItems = await Promise.all(structuredEstimateData.lineItemsSuggestedByAI.map(async (item: any) => {
             let matchedCostItemId = null;
-            let unitCost = 0;
-            let markup = 0;
+            let unitCost = item.suggestedUnitCost || 0; // Use suggested cost if provided
+            let markup = item.suggestedMarkup || 0; // Use suggested markup if provided
             let notes = item.notesFromAI || ""; // Start with AI's notes
+            let quantity = item.suggestedQuantity || 1; // Use suggested quantity if provided
+            let unit = item.suggestedUnit || "EA"; // Use suggested unit if provided
 
             // Attempt to match with existing cost items (basic keyword match for now)
             const matchedCostItem = costItems.find(costItem =>
@@ -184,8 +186,10 @@ export async function POST(request: Request) {
 
             if (matchedCostItem) {
               matchedCostItemId = matchedCostItem.id;
-              unitCost = matchedCostItem.unit_cost;
-              markup = matchedCostItem.default_markup;
+              // Prioritize AI's suggestions if provided, otherwise use cost item defaults
+              unitCost = item.suggestedUnitCost ?? matchedCostItem.unit_cost;
+              markup = item.suggestedMarkup ?? matchedCostItem.default_markup;
+              unit = item.suggestedUnit ?? matchedCostItem.unit; // Use cost item unit if AI doesn't suggest one
             } else {
               // Implement BigBox lookup if cost item not found and item is a material
               // Assuming item.description can be used as a search query for BigBox
@@ -198,8 +202,8 @@ export async function POST(request: Request) {
                 // Check if search_results array exists and has elements
                 if (bigBoxResults && bigBoxResults.search_results && bigBoxResults.search_results.length > 0) {
                   // Use the price of the first relevant result
-                  unitCost = bigBoxResults.search_results[0].offers?.primary?.price || 0; // Access price safely
-                  markup = 0; // Default markup for BigBox items
+                  unitCost = bigBoxResults.search_results[0].offers?.primary?.price || unitCost; // Use BigBox price if available, otherwise keep current unitCost
+                  markup = markup; // Keep current markup (either AI suggested or default 0)
                   notes += (notes ? " | " : "") + "Price from BigBox API, please review and add to Cost Library if needed.";
                 }
               } catch (bigboxError) {
@@ -209,7 +213,6 @@ export async function POST(request: Request) {
             }
 
             // Calculate total with markup
-            const quantity = item.suggestedQuantity || 1;
             const costWithMarkup = unitCost * (1 + markup / 100);
             const total = quantity * costWithMarkup;
 
@@ -219,7 +222,7 @@ export async function POST(request: Request) {
               aiSuggestionId: item.aiSuggestionId || uuidv4(), // Use AI's ID or generate new
               description: item.description || "Untitled Item",
               quantity: quantity,
-              unit: item.suggestedUnit || "EA",
+              unit: unit,
               unit_cost: unitCost, // Use found cost or 0
               markup: markup, // Use found markup or 0
               total: total,
@@ -241,6 +244,7 @@ export async function POST(request: Request) {
         console.error("Error parsing JSON from Gemini response:", parseError);
         // Continue with just the conversational reply if JSON parsing fails
         structuredEstimateData = {}; // Ensure structured data is empty on parse error
+        structuredEstimateData.lineItems = []; // Ensure lineItems is an empty array
       }
     } else {
        // If no JSON block is found, structured data remains empty

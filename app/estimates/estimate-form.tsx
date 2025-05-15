@@ -126,6 +126,27 @@ export function EstimateForm({
         },
   });
 
+  // Effect to update form values when the estimate prop changes (for pre-filling)
+  useEffect(() => {
+    if (estimate) {
+      form.reset({
+        opportunity_id: estimate.opportunity_id || "",
+        person_id: estimate.person_id || "",
+        estimate_number: estimate.estimate_number ?? undefined,
+        status: estimate.status || "Draft",
+        issue_date: estimate.issue_date ? new Date(estimate.issue_date) : null,
+        expiration_date: estimate.expiration_date ? new Date(estimate.expiration_date) : null,
+        notes: estimate.notes || "",
+        discount_type: estimate.discount_type || "",
+        discount_value: estimate.discount_value || 0,
+        tax_rate_percentage: estimate.tax_rate_percentage || 0, // Include tax rate
+        deposit_required: estimate.deposit_required || false, // Include deposit required
+        deposit_percentage: estimate.deposit_percentage || 0, // Include deposit percentage
+      });
+       setSelectedOpportunityId(estimate.opportunity_id || ""); // Also update selected opportunity state
+    }
+  }, [estimate, form]); // Depend on estimate and form instance
+
   // Extract unique sections from line items (depends on lineItems prop)
   useEffect(() => {
     const uniqueSections = Array.from(

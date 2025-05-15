@@ -14,6 +14,7 @@ export const bigboxService = {
   ): Promise<BigBoxSearchResult> {
     try {
       const url = new URL(`${BIGBOX_API_URL}/request`)
+      url.searchParams.append("api_key", BIGBOX_API_KEY) // Use api_key query parameter
       url.searchParams.append("type", "search")
       url.searchParams.append("search_term", query)
 
@@ -34,7 +35,7 @@ export const bigboxService = {
       const response = await fetch(url.toString(), {
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${BIGBOX_API_KEY}`,
+          // Remove Authorization header
         },
       })
 
@@ -53,6 +54,7 @@ export const bigboxService = {
   async getProductById(productId: string, storeId?: string): Promise<BigBoxProduct> {
     try {
       const url = new URL(`${BIGBOX_API_URL}/request`)
+      url.searchParams.append("api_key", BIGBOX_API_KEY) // Use api_key query parameter
       url.searchParams.append("type", "product")
       url.searchParams.append("product_id", productId)
       if (storeId) {
@@ -62,7 +64,7 @@ export const bigboxService = {
       const response = await fetch(url.toString(), {
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${BIGBOX_API_KEY}`,
+          // Remove Authorization header
         },
       })
 
@@ -82,12 +84,13 @@ export const bigboxService = {
   async getProductCategories(): Promise<string[]> {
     try {
       const url = new URL(`${BIGBOX_API_URL}/request`)
+      url.searchParams.append("api_key", BIGBOX_API_KEY) // Use api_key query parameter
       url.searchParams.append("type", "categories")
 
       const response = await fetch(url.toString(), {
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${BIGBOX_API_KEY}`,
+          // Remove Authorization header
         },
       })
 
@@ -107,12 +110,13 @@ export const bigboxService = {
   async getProductBrands(): Promise<string[]> {
     try {
       const url = new URL(`${BIGBOX_API_URL}/request`)
+      url.searchParams.append("api_key", BIGBOX_API_KEY) // Use api_key query parameter
       url.searchParams.append("type", "brands")
 
       const response = await fetch(url.toString(), {
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${BIGBOX_API_KEY}`,
+          // Remove Authorization header
         },
       })
 
@@ -132,6 +136,7 @@ export const bigboxService = {
   async getNearbyStores(zipCode: string, radius = 25): Promise<BigBoxStore[]> {
     try {
       const url = new URL(`${BIGBOX_API_URL}/request`)
+      url.searchParams.append("api_key", BIGBOX_API_KEY) // Use api_key query parameter
       url.searchParams.append("type", "stores")
       url.searchParams.append("zip_code", zipCode)
       url.searchParams.append("radius", radius.toString())
@@ -139,7 +144,7 @@ export const bigboxService = {
       const response = await fetch(url.toString(), {
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${BIGBOX_API_KEY}`,
+          // Remove Authorization header
         },
       })
 

@@ -12,6 +12,7 @@ import { personService } from "@/lib/people"
 import type { EstimateLineItem, EstimatePaymentSchedule, EstimateWithDetails } from "@/types/estimates"
 import { useRouter, useSearchParams } from "next/navigation" // Import useSearchParams
 import { createEstimateAction, EstimateActionResult, updateEstimateAction } from "./actions"
+import { Button } from "@/components/ui/button"; // Import Button component
 
 interface UnifiedEstimateClientPageProps {
   estimate?: EstimateWithDetails; // Optional existing estimate data
@@ -32,6 +33,16 @@ export default function UnifiedEstimateClientPage({ estimate }: UnifiedEstimateC
   // State for line items and payment schedules, managed in parent
   const [lineItems, setLineItems] = useState<Partial<EstimateLineItem>[]>(estimate?.lineItems || []);
   const [paymentSchedules, setPaymentSchedules] = useState<Partial<EstimatePaymentSchedule>[]>(estimate?.paymentSchedules || []);
+
+  const [showCreateProjectButton, setShowCreateProjectButton] = useState(false); // State to control button visibility
+
+  useEffect(() => {
+    if (estimate && estimate.status === 'Accepted') {
+      setShowCreateProjectButton(true);
+    } else {
+      setShowCreateProjectButton(false);
+    }
+  }, [estimate]); // Update button visibility when estimate changes
 
   // Get cost items for the line item selector
   const [costItems, setCostItems] = React.useState<Array<{
@@ -245,11 +256,24 @@ export default function UnifiedEstimateClientPage({ estimate }: UnifiedEstimateC
     }
   }
 
+  const handleCreateProject = () => {
+    if (estimate?.id) {
+      router.push(`/projects/new?estimateId=${estimate.id}`);
+    }
+  };
+
   return (
     <div className="container mx-auto py-6 space-y-8 text-sm">
-      <h2 className="text-2xl font-semibold tracking-tight mb-4">
-        {estimate ? `Edit Estimate ${estimate.estimate_number || '(Draft)'}` : "AI-Assisted Estimate Creation"}
-      </h2>
+      <div className="flex justify-between items-center mb-4"> {/* Flex container for heading and button */}
+        <h2 className="text-2xl font-semibold tracking-tight">
+          {estimate ? `Edit Estimate ${estimate.estimate_number || '(Draft)'}` : "AI-Assisted Estimate Creation"}
+        </h2>
+        {showCreateProjectButton && (
+          <Button onClick={handleCreateProject}>
+            Create Project from this Estimate
+          </Button>
+        )}
+      </div>
       <div className="flex flex-col lg:flex-row gap-8">
         {/* Left Pane: Conversation Interface */}
         <div className="lg:w-1/3 h-[600px] max-h-[70vh]">

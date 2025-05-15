@@ -165,6 +165,7 @@ export interface EstimateWithDetails extends Estimate {
   lineItems: EstimateLineItem[]
   paymentSchedules?: EstimatePaymentSchedule[]
   ai_conversation_history?: string | null // Added for saving conversation history
+  tax_rate_percentage?: number | null; // Added tax rate percentage
 }
 
 export interface EstimateFilters {

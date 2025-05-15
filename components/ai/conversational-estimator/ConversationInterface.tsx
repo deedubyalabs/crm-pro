@@ -24,23 +24,21 @@ const ConversationInterface: React.FC<ConversationInterfaceProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // Check if the user is near the bottom before scrolling
     const container = messagesContainerRef.current;
     if (container) {
       const isNearBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 100; // 100px threshold
 
       if (isNearBottom || messages.length <= 1) { // Also scroll for the very first message
-        scrollToBottom();
+        // Use scrollTop for potentially more reliable scrolling
+        container.scrollTop = container.scrollHeight;
       }
     } else {
-       // If container ref is not available, just scroll to bottom (fallback)
-       scrollToBottom();
+       // Fallback to scrollIntoView if container ref is not available
+       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages]);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  // Removed the separate scrollToBottom function as scrolling is now handled directly in useEffect
 
   const handleSendMessage = () => {
     if (inputValue.trim() || attachments.length > 0) {
