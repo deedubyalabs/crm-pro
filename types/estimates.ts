@@ -67,6 +67,7 @@ export interface UpdateEstimate {
 }
 
 export interface EstimateLineItem {
+  name: any
   id: string
   estimate_id: string
   cost_item_id: string | null
@@ -149,6 +150,7 @@ export interface UpdateEstimatePaymentSchedule {
 }
 
 export interface EstimateWithDetails extends Estimate {
+  title: string; // Added title property
   person: {
     id: string
     first_name: string | null

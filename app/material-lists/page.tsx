@@ -5,7 +5,7 @@ import { PlusCircle } from "lucide-react"
 import MaterialListsTable from "./material-lists-table"
 
 export const metadata = {
-  title: "Material Lists | HomePro OS",
+  title: "Material Lists | PROActive OS",
   description: "Manage material lists for your projects",
 }
 
@@ -14,10 +14,13 @@ export default async function MaterialListsPage({
 }: {
   searchParams: { [key: string]: string | string[] | undefined }
 }) {
+  // Await search parameters
+  const awaitedSearchParams = await searchParams;
+
   // Parse search parameters
-  const search = typeof searchParams.search === "string" ? searchParams.search : undefined
-  const status = typeof searchParams.status === "string" ? searchParams.status : undefined
-  const projectId = typeof searchParams.projectId === "string" ? searchParams.projectId : undefined
+  const search = typeof awaitedSearchParams.search === "string" ? awaitedSearchParams.search : undefined
+  const status = typeof awaitedSearchParams.status === "string" ? awaitedSearchParams.status : undefined
+  const projectId = typeof awaitedSearchParams.projectId === "string" ? awaitedSearchParams.projectId : undefined
 
   // Fetch material lists with filters
   const materialLists = await materialListService.getMaterialLists({

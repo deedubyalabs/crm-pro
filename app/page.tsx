@@ -7,7 +7,7 @@ export default function Home() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col space-y-4">
-        <h1 className="text-3xl font-bold tracking-tight">Welcome to HomePro OS</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Welcome to PROActive OS</h1>
         <p className="text-muted-foreground">
           Agent-optimized business operations platform for home service professionals
         </p>

@@ -76,8 +76,9 @@ export type OpportunityWithRelations = OpportunityWithPerson & {
 
 // Add the EstimateSummary type
 export type EstimateSummary = {
+  created_at: string | number | Date;
+  estimate_number: string | null; // Changed from title to estimate_number
   id: string
-  estimate_number: string | null
   status: string
   issue_date: string | null
   expiration_date: string | null
@@ -204,14 +205,14 @@ export const opportunityService = {
   },
 
   // Update the getOpportunityById method to fetch estimates
-  async getOpportunityById(id: string): Promise<OpportunityWithRelations | null> {
+  async getOpportunityById(id: string, supabaseClient = supabase): Promise<OpportunityWithRelations | null> {
     try {
       // Validate UUID format before querying the database
       if (!isValidUUID(id)) {
         throw new Error(`Invalid UUID format: ${id}`)
       }
 
-      const { data, error } = await supabase
+      const { data, error } = await supabaseClient
         .from("opportunities")
         .select(`
         *,
@@ -223,6 +224,15 @@ export const opportunityService = {
           email,
           phone,
           person_type
+        ),
+        estimates:estimates (
+          id,
+          estimate_number,
+          status,
+          issue_date,
+          expiration_date,
+          total_amount,
+          created_at
         )
       `)
         .eq("id", id)
@@ -232,8 +242,8 @@ export const opportunityService = {
 
       if (!data) return null
 
-      // Transform the data to match OpportunityWithPerson type, mapping assigned_user_id to assigned_to
-      const opportunity = {
+      // Transform the data to match OpportunityWithRelations type
+      const opportunity: OpportunityWithRelations = {
         ...data,
         assigned_to: data.assigned_user_id, // Map assigned_user_id to assigned_to
         person: data.person
@@ -250,59 +260,62 @@ export const opportunityService = {
               name: "Unknown",
               type: "",
             },
+        estimates: data.estimates || [], // Include fetched estimates
       }
 
-      // Fetch related appointments
-      const { data: appointmentsData, error: appointmentsError } = await supabase
+      // Fetch related appointments (if not already fetched by the main query)
+      // Note: The main query above now fetches estimates directly.
+      // If appointments/projects are also needed, they should be added to the main select or fetched separately.
+      // For now, assuming appointments/projects are fetched elsewhere or not strictly needed in this specific service call context.
+
+      // If appointments are needed, fetch them here:
+      const { data: appointmentsData, error: appointmentsError } = await supabaseClient
         .from("appointments")
         .select("*")
         .eq("opportunity_id", id)
-        .order("start_time", { ascending: true })
+        .order("start_time", { ascending: true });
 
-      if (appointmentsError) throw appointmentsError
+      if (appointmentsError) {
+        console.error("Error fetching related appointments:", appointmentsError);
+        opportunity.appointments = []; // Set to empty array on error
+      } else {
+         // Format appointments for display
+        opportunity.appointments = appointmentsData.map((appointment) => {
+          const startDate = new Date(appointment.start_time);
+          const endDate = new Date(appointment.end_time);
 
-      // Fetch related projects
-      const { data: projectsData, error: projectsError } = await supabase
+          return {
+            id: appointment.id,
+            title: appointment.title,
+            status: appointment.status,
+            start_time: appointment.start_time,
+            end_time: appointment.end_time,
+            formatted_date: formatDateUtil(startDate.toISOString()),
+            formatted_time: `${startDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} - ${endDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`,
+          };
+        });
+      }
+
+       // Fetch related projects (if not already fetched by the main query)
+       const { data: projectsData, error: projectsError } = await supabaseClient
         .from("projects")
         .select("id, project_number, project_name, status, budget_amount")
         .eq("opportunity_id", id)
-        .order("created_at", { ascending: false })
+        .order("created_at", { ascending: false });
 
-      if (projectsError) throw projectsError
-
-      // Fetch related estimates
-      const { data: estimatesData, error: estimatesError } = await supabase
-        .from("estimates")
-        .select("id, estimate_number, status, issue_date, expiration_date, total_amount")
-        .eq("opportunity_id", id)
-        .order("created_at", { ascending: false })
-
-      if (estimatesError) throw estimatesError
-
-      // Format appointments for display
-      const appointments = appointmentsData.map((appointment) => {
-        const startDate = new Date(appointment.start_time)
-        const endDate = new Date(appointment.end_time)
-
-        return {
-          id: appointment.id,
-          title: appointment.title,
-          status: appointment.status,
-          start_time: appointment.start_time,
-          end_time: appointment.end_time,
-          formatted_date: formatDateUtil(startDate.toISOString()),
-          formatted_time: `${startDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} - ${endDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`,
-        }
-      })
-
-      return {
-        ...opportunity,
-        appointments,
-        projects: projectsData,
-        estimates: estimatesData,
+      if (projectsError) {
+        console.error("Error fetching related projects:", projectsError);
+        opportunity.projects = []; // Set to empty array on error
+      } else {
+        opportunity.projects = projectsData;
       }
+
+
+      return opportunity;
+
     } catch (error) {
-      throw new Error(handleSupabaseError(error))
+      console.error("Error fetching opportunity by ID:", error);
+      throw new Error(handleSupabaseError(error));
     }
   },
 

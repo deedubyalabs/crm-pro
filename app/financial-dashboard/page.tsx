@@ -21,9 +21,11 @@ export default async function FinancialDashboardPage({
 }: {
   searchParams: { startDate?: string; endDate?: string }
 }) {
+  const awaitedSearchParams = await searchParams;
+
   // Default to current year if no date range is provided
-  const startDate = searchParams.startDate || new Date(new Date().getFullYear(), 0, 1).toISOString().split("T")[0] // Start of current year
-  const endDate = searchParams.endDate || new Date().toISOString().split("T")[0] // Current date
+  const startDate = awaitedSearchParams.startDate || new Date(new Date().getFullYear(), 0, 1).toISOString().split("T")[0] // Start of current year
+  const endDate = awaitedSearchParams.endDate || new Date().toISOString().split("T")[0] // Current date
 
   return (
     <div className="container mx-auto py-6">

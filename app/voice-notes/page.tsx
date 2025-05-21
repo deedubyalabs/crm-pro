@@ -4,7 +4,7 @@ import { VoiceRecorder } from "@/components/voice-recorder"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export const metadata: Metadata = {
-  title: "Voice Notes | HomePro OS",
+  title: "Voice Notes | PROActive OS",
   description: "Record, transcribe, and manage voice notes",
 }
 

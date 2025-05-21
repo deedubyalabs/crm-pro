@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense } from "react"
+import { useState, useEffect, Suspense } from "react" // Import useState and useEffect
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -9,6 +9,8 @@ import { format, startOfMonth, endOfMonth } from "date-fns"
 import CalendarView from "./calendar-view"
 import CalendarViewSkeleton from "./calendar-view-skeleton"
 import { useRouter } from "next/navigation"
+import { appointmentService, type AppointmentWithRelations } from "@/lib/appointments" // Import appointmentService and type
+import { toast } from "@/components/ui/use-toast" // Import toast
 
 export default function CalendarPageClient({
   searchParams,
@@ -29,6 +31,34 @@ export default function CalendarPageClient({
   const startDate = startOfMonth(selectedDate)
   const endDate = endOfMonth(selectedDate)
   const router = useRouter()
+
+  const [appointments, setAppointments] = useState<AppointmentWithRelations[]>([]); // State for appointments
+  const [isLoading, setIsLoading] = useState(true); // State for loading
+
+  useEffect(() => {
+    async function fetchAppointments() {
+      setIsLoading(true);
+      try {
+        const fetchedAppointments = await appointmentService.getAppointmentsByDateRange(
+          format(startDate, "yyyy-MM-dd"),
+          format(endDate, "yyyy-MM-dd")
+        );
+        setAppointments(fetchedAppointments);
+      } catch (error) {
+        console.error("Error fetching appointments:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load appointments. Please try again.",
+          variant: "destructive",
+        });
+        setAppointments([]); // Set to empty array on error
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchAppointments();
+  }, [year, month]); // Refetch appointments when year or month changes
 
   return (
     <div className="space-y-6">
@@ -83,14 +113,15 @@ export default function CalendarPageClient({
           </div>
         </CardHeader>
         <CardContent>
-          <Suspense fallback={<CalendarViewSkeleton />}>
+          {isLoading ? (
+            <CalendarViewSkeleton />
+          ) : (
             <CalendarView
               year={year}
               month={month}
-              startDate={format(startDate, "yyyy-MM-dd")}
-              endDate={format(endDate, "yyyy-MM-dd")}
+              appointments={appointments} // Pass appointments as prop
             />
-          </Suspense>
+          )}
         </CardContent>
       </Card>
     </div>

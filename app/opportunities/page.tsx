@@ -9,7 +9,7 @@ import OpportunityListSkeleton from "./opportunity-list-skeleton"
 import OpportunityStatusFilter from "./opportunity-status-filter"
 
 export const metadata: Metadata = {
-  title: "Opportunities | HomePro OS",
+  title: "Opportunities | PROActive OS",
   description: "Manage your sales opportunities and leads",
 }
 
@@ -18,10 +18,13 @@ export default async function OpportunitiesPage({
 }: {
   searchParams: { [key: string]: string | string[] | undefined }
 }) {
+  // Await search parameters
+  const awaitedSearchParams = await searchParams;
+
   // Extract search parameters
-  const search = typeof searchParams.search === "string" ? searchParams.search : undefined
-  const status = typeof searchParams.status === "string" ? searchParams.status : undefined
-  const personId = typeof searchParams.personId === "string" ? searchParams.personId : undefined
+  const search = typeof awaitedSearchParams.search === "string" ? awaitedSearchParams.search : undefined
+  const status = typeof awaitedSearchParams.status === "string" ? awaitedSearchParams.status : undefined
+  const personId = typeof awaitedSearchParams.personId === "string" ? awaitedSearchParams.personId : undefined
 
   return (
     <div className="flex flex-col space-y-4 p-8">

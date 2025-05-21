@@ -2,18 +2,19 @@
 
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { FileSpreadsheet } from "lucide-react"
+import { PlusCircle } from "lucide-react" // Changed icon
 
-interface CreateBidButtonProps {
+interface CreateProjectButtonProps { // Renamed interface
   estimateId: string
 }
 
-export function CreateBidButton({ estimateId }: CreateBidButtonProps) {
+// Renamed component and updated functionality
+export function CreateProjectButton({ estimateId }: CreateProjectButtonProps) {
   return (
-    <Button variant="outline" asChild>
-      <Link href={`/estimates/${estimateId}/create-bid`}>
-        <FileSpreadsheet className="mr-2 h-4 w-4" />
-        Create Bid Request
+    <Button asChild> {/* Removed variant="outline" to make it a primary action */}
+      <Link href={`/projects/new?estimateId=${estimateId}`}> {/* Changed link destination and added query param */}
+        <PlusCircle className="mr-2 h-4 w-4" /> {/* Changed icon */}
+        Create Project from this Estimate {/* Changed button text */}
       </Link>
     </Button>
   )

@@ -16,12 +16,12 @@ export async function generateMetadata({ params }: DocumentPageProps): Promise<M
   try {
     const document = await getDocumentById(params.id)
     return {
-      title: `${document.title || "Document"} | HomePro OS`,
+      title: `${document.title || "Document"} | PROActive OS`,
       description: document.description || "Document details",
     }
   } catch (error) {
     return {
-      title: "Document Not Found | HomePro OS",
+      title: "Document Not Found | PROActive OS",
       description: "The requested document could not be found",
     }
   }

@@ -10,7 +10,8 @@ import { appointmentService } from "@/lib/appointments"
 import { formatDateTime } from "@/lib/utils"
 
 export default async function AppointmentDetailPage({ params }: { params: { id: string } }) {
-  const appointment = await appointmentService.getAppointmentById(params.id)
+  // Await params before accessing its properties
+  const appointment = await appointmentService.getAppointmentById((await params).id)
 
   if (!appointment) {
     notFound()
@@ -25,10 +26,12 @@ export default async function AppointmentDetailPage({ params }: { params: { id: 
         return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Confirmed</Badge>
       case "completed":
         return <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-100">Completed</Badge>
-      case "cancelled":
-        return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Cancelled</Badge>
+      case "canceled": // Corrected typo from 'cancelled'
+        return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Canceled</Badge>
       case "rescheduled":
         return <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">Rescheduled</Badge>
+      case "no show": // Added missing enum value
+        return <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-100">No Show</Badge>
       default:
         return <Badge variant="outline">{status}</Badge>
     }
@@ -49,11 +52,11 @@ export default async function AppointmentDetailPage({ params }: { params: { id: 
               <span className="sr-only">Back</span>
             </Link>
           </Button>
-          <h1 className="text-3xl font-bold tracking-tight">{appointment.title}</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{appointment.appointment_type}</h1> {/* Use appointment_type */}
           {getStatusBadge(appointment.status)}
         </div>
         <div className="flex space-x-2">
-          {appointment.status !== "completed" && appointment.status !== "cancelled" && (
+          {appointment.status !== "Completed" && appointment.status !== "Canceled" && ( // Use correct enum values
             <>
               <Button variant="outline" asChild>
                 <Link href={`/appointments/${appointment.id}/reschedule`}>Reschedule</Link>
@@ -73,7 +76,7 @@ export default async function AppointmentDetailPage({ params }: { params: { id: 
         </div>
       </div>
 
-      {appointment.description && <p className="text-muted-foreground">{appointment.description}</p>}
+      {appointment.notes && <p className="text-muted-foreground">{appointment.notes}</p>} {/* Use notes for description */}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
@@ -125,8 +128,8 @@ export default async function AppointmentDetailPage({ params }: { params: { id: 
           <CardContent>
             <div className="flex items-center">
               <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-              {appointment.location ? (
-                <span>{appointment.location}</span>
+              {appointment.address ? ( // Use address
+                <span>{appointment.address}</span>
               ) : (
                 <span className="text-muted-foreground">No location</span>
               )}
@@ -155,7 +158,8 @@ export default async function AppointmentDetailPage({ params }: { params: { id: 
                 </div>
                 <div>
                   <h3 className="text-sm font-medium">Assigned To</h3>
-                  <p>{appointment.assigned_to || "Unassigned"}</p>
+                  {/* assigned_to is not in Supabase schema, remove or map to created_by_user_id if needed */}
+                  <p>{appointment.created_by_user_id || "Unassigned"}</p> {/* Mapped to created_by_user_id */}
                 </div>
               </div>
 

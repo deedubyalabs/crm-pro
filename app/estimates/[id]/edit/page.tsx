@@ -4,7 +4,7 @@ import UnifiedEstimateClientPage from "../../UnifiedEstimateClientPage" // Impor
 import type { EstimateWithDetails } from "@/types/estimates" // Import EstimateWithDetails type
 
 export const metadata = {
-  title: "Edit Estimate | HomePro OS",
+  title: "Edit Estimate | PROActive OS",
   description: "Edit an estimate",
 }
 

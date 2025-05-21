@@ -3,8 +3,8 @@ import Link from "next/link"
 import { SignUpForm } from "./signup-form"
 
 export const metadata: Metadata = {
-  title: "Sign Up | HomePro OS",
-  description: "Create a new HomePro OS account",
+  title: "Sign Up | PROActive OS",
+  description: "Create a new PROActive OS account",
 }
 
 export default function SignUpPage() {

@@ -17,12 +17,12 @@ export async function generateMetadata({ params }: ProjectPageProps): Promise<Me
   try {
     const project = await getProjectById(params.id)
     return {
-      title: `${project.project_name} | HomePro OS`,
+      title: `${project.project_name} | PROActive OS`,
       description: `View details for project ${project.project_name}`,
     }
   } catch (error) {
     return {
-      title: "Project Not Found | HomePro OS",
+      title: "Project Not Found | PROActive OS",
       description: "The requested project could not be found",
     }
   }

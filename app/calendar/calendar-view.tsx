@@ -1,29 +1,20 @@
 import React from "react"
-import { appointmentService } from "@/lib/appointments"
+import { type AppointmentWithRelations } from "@/lib/appointments" // Import AppointmentWithRelations type
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { format, parseISO, getDay, getDaysInMonth, startOfMonth } from "date-fns"
 
-export default async function CalendarView({
+// Removed async keyword and data fetching logic
+export default function CalendarView({
   year,
   month,
-  startDate,
-  endDate,
+  appointments, // Receive appointments as a prop
 }: {
   year: number
   month: number
-  startDate: string
-  endDate: string
+  appointments: AppointmentWithRelations[] // Define type for appointments prop
 }) {
-  // Wrap the appointments fetch in a try/catch to handle potential errors
-  let appointments = []
-  try {
-    appointments = await appointmentService.getAppointmentsByDateRange(startDate, endDate)
-  } catch (error) {
-    console.error("Error fetching appointments for calendar:", error)
-    // Continue with an empty appointments array
-  }
 
   // Create a map of dates to appointments
   const appointmentsByDate = appointments.reduce(
@@ -43,18 +34,19 @@ export default async function CalendarView({
   const firstDayOfMonth = getDay(startOfMonth(new Date(year, month)))
 
   // Create array of day numbers with empty slots for the start of the month
-  const days = Array.from({ length: firstDayOfMonth }, () => null).concat(
-    Array.from({ length: daysInMonth }, (_, i) => i + 1),
-  )
+  let days: (number | null)[] = [...Array.from({ length: firstDayOfMonth }, () => null),
+    ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
+  ]
 
   // Fill out the grid to complete the last week
-  const remainingDays = 7 - (days.length % 7)
-  if (remainingDays < 7) {
-    days.push(...Array.from({ length: remainingDays }, () => null))
+  const remainingDaysCount = 7 - (days.length % 7)
+  if (remainingDaysCount < 7) {
+    const remainingDays = new Array(remainingDaysCount).fill(null); // Use fill(null)
+    days = [...days, ...remainingDays]; // Use spread syntax for concatenation
   }
 
   // Split days into weeks
-  const weeks = []
+  const weeks: (number | null)[][] = []
   for (let i = 0; i < days.length; i += 7) {
     weeks.push(days.slice(i, i + 7))
   }
@@ -68,10 +60,12 @@ export default async function CalendarView({
         return "bg-green-100 text-green-800 hover:bg-green-100"
       case "completed":
         return "bg-purple-100 text-purple-800 hover:bg-purple-100"
-      case "cancelled":
+      case "canceled": // Corrected typo from 'cancelled'
         return "bg-red-100 text-red-800 hover:bg-red-100"
       case "rescheduled":
-        return "bg-amber-100 text-amber-800 hover:bg-amber-100"
+        return "bg-amber-100 text-amber-800 hover:bg-amber-800"
+      case "no show": // Added missing enum value
+        return "bg-gray-100 text-gray-800 hover:bg-gray-800"
       default:
         return ""
     }
@@ -116,7 +110,7 @@ export default async function CalendarView({
                           <Badge className={getStatusColor(appointment.status)}>
                             {format(parseISO(appointment.start_time), "h:mm a")}
                           </Badge>{" "}
-                          {appointment.title}
+                          {appointment.appointment_type} {/* Use appointment_type */}
                         </div>
                       </Link>
                     ))}

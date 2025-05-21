@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Input } from "@/components/ui/input" // Import Input
+import QualifyLeadButton  from "@/components/crm/QualifyLeadButton" // Import QualifyLeadButton
+import LeadAISection from "@/components/crm/LeadAISection" // Import LeadAISection
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { getInitials } from "@/lib/utils"
 import {
@@ -25,7 +28,17 @@ import {
   MessageSquare,
   Edit,
   Tag,
+  MoreHorizontal, // Added for dropdown menu
 } from "lucide-react"
+
+// Added for dropdown menu
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu"
 
 // Add imports at the top
 import { opportunityService } from "@/lib/opportunities";
@@ -36,13 +49,24 @@ import { authService } from "@/lib/auth-service";
 import { AppointmentSummary } from "@/lib/opportunities"; // Import AppointmentSummary
 import { DocumentWithRelations } from "@/types/documents"; // Import DocumentWithRelations
 
+// Server Action to handle lead qualification callback
+async function handleLeadQualified(assessment: { qualificationAssessment: string; suggestedNextSteps: string[] }) {
+  'use server';
+  console.log("Lead Qualification Assessment (Server Action):", assessment);
+  // TODO: Implement logic to store or display this assessment.
+  // For now, QualifyLeadButton shows a toast, and this logs to the server.
+  // To update the "AI Insights & Suggestions" panel, further work is needed
+  // (e.g., revalidating path, client-side state management, or dedicated component).
+}
+
 export default async function PersonPage({ params }: { params: { id: string } }) {
   // Check if the ID is "new" and redirect to the new person page
-  if (params.id === "new") {
+  const awaitedParams = await params;
+  if (awaitedParams.id === "new") {
     redirect("/people/new")
   }
 
-  const person = await personService.getPersonById(params.id).catch(() => null)
+  const person = await personService.getPersonById(awaitedParams.id).catch(() => null)
 
   if (!person) {
     notFound()
@@ -134,6 +158,12 @@ export default async function PersonPage({ params }: { params: { id: string } })
                   Source: {person.lead_source}
                 </Badge>
               )}
+              {/* Display Lead Stage */}
+              {person.lead_stage && (
+                <Badge variant="outline" className="text-xs">
+                  Stage: {person.lead_stage}
+                </Badge>
+              )}
               {person.tags && person.tags.length > 0 && (
                 <div className="flex items-center gap-1">
                   <Tag className="h-3 w-3 text-muted-foreground" />
@@ -153,23 +183,42 @@ export default async function PersonPage({ params }: { params: { id: string } })
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {personType === "lead" && (
-            <Button asChild variant="default">
-              <Link href={`/people/${person.id}/convert`}>Convert to Customer</Link>
-            </Button>
-          )}
-          <Button asChild variant="outline">
-            <Link href={`/people/${person.id}/edit`}>
-              <Edit className="mr-2 h-4 w-4" />
-              Edit Contact
-            </Link>
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8">
+                <MoreHorizontal className="h-4 w-4" />
+                <span className="sr-only">Actions</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem asChild>
+                <Link href={`/people/${person.id}/edit`}>Edit Contact</Link>
+              </DropdownMenuItem>
+              {personType === "lead" && (
+                <DropdownMenuItem asChild>
+                  <Link href={`/people/${person.id}/convert`}>Convert to Customer</Link>
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem>Log Activity</DropdownMenuItem> {/* Placeholder */}
+              <DropdownMenuItem asChild>
+                <Link href={`/opportunities/new?personId=${person.id}`}>Create Opportunity</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href={`/appointments/new?personId=${person.id}`}>Schedule Appointment</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem>Add Job</DropdownMenuItem> {/* Placeholder */}
+              <DropdownMenuItem>Create AI Estimate</DropdownMenuItem> {/* Placeholder */}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="text-red-600">Delete Contact</DropdownMenuItem> {/* Placeholder */}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
       {/* Main Content Area */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6"> {/* Adjusted grid columns */}
+        <div className="lg:col-span-3"> {/* Adjusted column span for left column */}
           <Card>
             <CardContent className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -219,6 +268,13 @@ export default async function PersonPage({ params }: { params: { id: string } })
                 <div>
                   <h3 className="text-lg font-medium mb-4">Key Information</h3>
                   <div className="space-y-4">
+                    {/* Display Lead Stage in Key Information */}
+                    {personType === "lead" && person.lead_stage && (
+                       <div className="flex items-center">
+                         <ClipboardList className="h-5 w-5 mr-3 text-muted-foreground" />
+                         <span>Stage: {person.lead_stage}</span>
+                       </div>
+                    )}
                     <div className="flex items-center">
                       <Calendar className="h-5 w-5 mr-3 text-muted-foreground" />
                       <span>Added on {formatDate(person.created_at)}</span>
@@ -540,6 +596,32 @@ export default async function PersonPage({ params }: { params: { id: string } })
                   Request Bid
                 </Button>
               )}
+            </CardContent>
+          </Card>
+
+          {/* AI Insights & Suggestions Panel */}
+          <Card>
+            <CardHeader className="pb-3">
+              <h3 className="text-lg font-medium">AI Insights & Suggestions</h3>
+            </CardHeader>
+            <CardContent>
+              {/* TODO: Populate with actual AI suggestions later */}
+              <p className="text-sm text-muted-foreground">Proactive AI suggestions will appear here.</p>
+            </CardContent>
+          </Card>
+
+          {/* AI Chat & Interactions Section */}
+          <Card>
+            <CardHeader className="pb-3">
+              <h3 className="text-lg font-medium">AI Chat & Interactions</h3>
+            </CardHeader>
+            <CardContent>
+              {personType === "lead" && (
+                <QualifyLeadButton leadId={person.id} onQualified={handleLeadQualified} />
+              )}
+              <LeadAISection personId={person.id} personType={person.person_type} />
+              {/* Note: To "Increase the size of the chat input and the area for displaying chat history",
+                   the LeadAISection component itself will need to be modified. */}
             </CardContent>
           </Card>
 

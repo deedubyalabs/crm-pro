@@ -9,7 +9,7 @@ import { ClientPortalUsersList } from "./client-portal-users-list"
 import { ClientPortalSettingsForm } from "./client-portal-settings-form"
 
 export const metadata: Metadata = {
-  title: "Client Portal Admin | HomePro OS",
+  title: "Client Portal Admin | PROActive OS",
   description: "Manage your client portal settings and users",
 }
 

@@ -1,275 +1,156 @@
 import { NextResponse } from 'next/server';
 import type { Message } from '@/components/ai/conversational-estimator/types';
-import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
-import { v4 as uuidv4 } from 'uuid'; // Import uuid for temporary IDs
-// Import services for cost item lookup
-import { costItemService } from '@/lib/cost-items';
-// Import bigbox service (assuming it exists and has a searchProducts function)
-// import { bigboxService } from '@/lib/bigbox-service';
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
+import { personService } from '@/lib/people';
+import { opportunityService } from '@/lib/opportunities';
 
-
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-
-if (!GEMINI_API_KEY) {
-  console.error("GEMINI_API_KEY is not set. Please set it in your environment variables.");
-  // Potentially throw an error or handle this case more gracefully depending on deployment strategy
+// Define the expected response structure from the Agent Server
+interface AgentServerResponse {
+  conversationalReply: string;
+  structuredEstimate: {
+    projectType?: string;
+    dimensions?: string; // Or more structured
+    lineItems: Array<{
+      aiSuggestionId: string;
+      description: string;
+      quantity: number;
+      unit: string;
+      unitCost?: number;
+      markup?: number;
+      total?: number;
+      source?: string; // e.g., "Internal Library", "BigBox API", "AI Estimate"
+      notesFromAI?: string;
+      // Add other fields from your estimate_line_items table as needed
+    }>;
+    summary?: { [key: string]: number }; // e.g., subtotalMaterials, subtotalLabor, contingency, grandTotal
+  };
+  materialsToAddToLibrary: Array<{
+    name: string;
+    price: number;
+    unit: string;
+    sourceUrl?: string;
+    // Add other fields needed to create a cost_item
+  }>;
+  sessionId: string; // Return the session ID used/generated
 }
 
-const genAI = new GoogleGenerativeAI(GEMINI_API_KEY || ""); // Fallback to empty string if not set, though SDK might error
-
-const model = genAI.getGenerativeModel({
-  model: "gemini-2.0-flash-lite", // Using gemini-2.0-flash-lite for better text generation
-  // systemInstruction is now preferred for setting the role of the model
-  systemInstruction: `You are Pro, an expert residential construction estimator. Your primary role is to assist solo contractors in creating accurate and detailed project estimates.
-
-  Key Responsibilities:
-  1.  Understand Project Scope: Carefully analyze the user's description of the project. Identify the type of work (e.g., bathroom remodel, kitchen renovation, deck construction, painting, plumbing repair).
-  2.  Identify Materials & Quantities: Extract specific materials mentioned (e.g., "ceramic tile," "quartz countertops," "pressure-treated lumber"). If quantities or dimensions are provided (e.g., "10x12 room," "300 sq ft of flooring," "two windows"), note them.
-  3.  Clarify Ambiguities: If the user's input is vague or missing critical details (like dimensions, material choices, specific tasks), ask clear, concise clarifying questions. For example: "What are the approximate dimensions of the bathroom?", "What type of flooring are you considering?", "Could you specify the model of the toilet?".
-  4.  Break Down Tasks: Mentally (or by suggesting to the user) break down the project into logical tasks or line items.
-  5.  Professional Interaction: Maintain a helpful, professional, and conversational tone.
-  6.  Structured Output (Goal): In addition to your conversational reply, you MUST include a JSON block in your response, enclosed in triple backticks (\`\`\`) and labeled \`json\`. This JSON block should contain structured data about the estimate. The JSON object should have the following keys:
-      -   \`projectType\`: A string identifying the type of project (e.g., "Bathroom Remodel", "Deck Construction").
-      -   \`dimensions\`: A string or object describing the project dimensions.
-      -   \`lineItemsSuggestedByAI\`: An array of objects, where each object represents a potential line item. Each line item object should have the following keys:
-          -   \`aiSuggestionId\`: A string, a temporary unique ID for this suggestion.
-          -   \`description\`: A string describing the item (e.g., "Supply and install new toilet", "Supply and install ceramic floor tile").
-          -   \`suggestedQuantity\`: A number representing the suggested quantity. **This is important, try to extract or infer this.**
-          -   \`suggestedUnit\`: A string representing the suggested unit (e.g., "each", "sq ft", "linear ft"). **This is important, try to extract or infer this.**
-          -   \`notesFromAI\`: A string containing any specific notes about this item (optional).
-          -   \`matchedCostItemId\`: A string, the ID from the \`cost_items\` table if a match is found (nullable).
-          -   \`suggestedUnitCost\`: A number, the suggested unit cost (nullable).
-          -   \`suggestedMarkup\`: A number, the suggested markup percentage (nullable).
-          -   \`section_name\`: A string, the suggested section name (nullable).
-
-  Important Considerations:
-  -   Do NOT invent prices or labor costs at this stage. Your current focus is on understanding the scope and suggesting line items. Costing will be handled separately by the application logic based on your suggestions.
-  -   If the user uploads files/images, acknowledge them (e.g., "Thanks for the image. I see..."). You won't be able to directly analyze image content in this text-based interaction, but acknowledge the attachment.
-  -   Keep your conversational replies concise but thorough enough to confirm understanding or ask for necessary details.
-  -   If the user asks for something outside of estimation, gently guide them back or state you are specialized in estimation.
-  -   ALWAYS include the JSON block, even if it's empty (e.g., \`\`\`json\n{}\n\`\`\` or \`\`\`json\n{\n  "lineItemsSuggestedByAI": []\n}\`\`\` if no items are identified).
-
-  Example Clarifying Question: "Okay, a kitchen refresh sounds good. To help me understand the scope better, could you tell me the approximate length of the countertops you're planning to replace?"
-  Example Acknowledgment: "Got it. A new deck, approximately 12x16 feet. What kind of decking material are you considering (e.g., wood, composite)?"
-  Example JSON Output:
-  \`\`\`json
-  {
-    "projectType": "Bathroom Remodel",
-    "dimensions": "8x5 ft",
-    "lineItemsSuggestedByAI": [
-      {
-        "aiSuggestionId": "temp-12345",
-        "description": "Supply and install new toilet",
-        "suggestedQuantity": 1,
-        "suggestedUnit": "each",
-        "notesFromAI": "Standard elongated bowl",
-        "matchedCostItemId": null,
-        "suggestedUnitCost": null,
-        "suggestedMarkup": null,
-        "section_name": "Plumbing"
-      },
-      {
-        "aiSuggestionId": "temp-67890",
-        "description": "Supply and install ceramic floor tile",
-        "suggestedQuantity": 40,
-        "suggestedUnit": "sq ft",
-        "notesFromAI": "Assuming 8x5 bathroom size",
-        "matchedCostItemId": null,
-        "suggestedUnitCost": null,
-        "suggestedMarkup": null,
-        "section_name": "Flooring"
-      }
-    ]
-  }
-  \`\`\`
-  `,
-});
-
-const generationConfig = {
-  temperature: 0.7,
-  topK: 1,
-  topP: 1,
-  maxOutputTokens: 8192, // Adjust as needed, but be mindful of costs/limits
-};
-
-const safetySettings = [
-  { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
-  { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
-  { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
-  { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
-];
-
-// Helper to transform messages for Gemini
-// Gemini expects { role: "user" | "model", parts: [{ text: "..." }] }
-// System instruction is now part of model initialization
-function transformMessagesForGemini(messages: Message[]): Array<{ role: "user" | "model"; parts: { text: string }[] }> {
-  return messages
-    .filter(msg => msg.role === 'user' || msg.role === 'assistant') // System message is handled by systemInstruction
-    .map(msg => ({
-      role: msg.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: msg.content + (msg.attachments ? ` (Attached: ${msg.attachments.map(a => a.name).join(', ')})` : '') }],
-    }));
-}
-
+// Get the Agent Server URL from environment variables
+const AGNO_AGENT_SERVER_URL = process.env.AGNO_AGENT_SERVER_URL;
 
 export async function POST(request: Request) {
-  if (!GEMINI_API_KEY) {
-    return NextResponse.json({ error: 'GEMINI_API_KEY is not configured on the server.' }, { status: 500 });
+  if (!AGNO_AGENT_SERVER_URL) {
+    console.error("AGNO_AGENT_SERVER_URL is not set. Please set it in your environment variables.");
+    return NextResponse.json({ error: 'Agent Server URL is not configured on the server.' }, { status: 500 });
   }
 
   try {
     const body = await request.json();
     const incomingMessages: Message[] = body.messages;
+    const sessionId: string | undefined = body.sessionId; // Get session ID from request
+    const personId: string | undefined = body.personId; // Get person ID from request
+    const opportunityId: string | undefined = body.opportunityId; // Get opportunity ID from request
+    let projectContext: any = body.projectContext; // Get project context (can be pre-filled or fetched)
+    const contractorPreferences: any = body.contractorPreferences; // Get contractor preferences
+    let customerZipCode: string | undefined = body.customerZipCode; // Get customer zip code (can be pre-filled or fetched)
+
+    // If personId or opportunityId are provided, fetch context from Supabase
+    if (personId || opportunityId) {
+      const supabase = createRouteHandlerClient({ cookies });
+      let person = null;
+      let opportunity = null;
+
+      if (opportunityId) {
+        opportunity = await opportunityService.getOpportunityById(opportunityId);
+        if (opportunity && opportunity.person_id) {
+          person = await personService.getPersonById(opportunity.person_id);
+        }
+      } else if (personId) {
+        person = await personService.getPersonById(personId);
+      }
+
+      // Construct projectContext and customerZipCode from fetched data if not already provided
+      if (!projectContext) {
+        projectContext = {
+          clientName: person ? `${person.first_name || ''} ${person.last_name || ''}`.trim() || person.business_name || 'Unknown Client' : 'Unknown Client',
+          opportunityName: opportunity ? opportunity.opportunity_name : 'New Opportunity',
+          // Add other relevant context fields from person/opportunity as needed
+        };
+      }
+
+      if (!customerZipCode && person && person.postal_code) {
+        customerZipCode = person.postal_code;
+      }
+    }
+
 
     if (!incomingMessages || !Array.isArray(incomingMessages) || incomingMessages.length === 0) {
-      return NextResponse.json({ error: 'Messages are required in the request body.' }, { status: 400 });
+      // If no messages are provided but personId/opportunityId are,
+      // assume this is the initial call to start the conversation.
+      if (personId || opportunityId) {
+         // Create an initial system message based on context
+         let initialMessageContent = "Starting a new estimate.";
+         if (projectContext?.clientName && projectContext?.opportunityName) {
+            initialMessageContent = `Starting estimate for ${projectContext.clientName}'s ${projectContext.opportunityName} opportunity.`;
+         } else if (projectContext?.clientName) {
+            initialMessageContent = `Starting estimate for ${projectContext.clientName}.`;
+         } else if (projectContext?.opportunityName) {
+             initialMessageContent = `Starting estimate for the ${projectContext.opportunityName} opportunity.`;
+         }
+         incomingMessages.push({ role: 'system', content: initialMessageContent, id: Date.now().toString(), timestamp: new Date().toISOString() });
+
+      } else {
+         return NextResponse.json({ error: 'Messages are required in the request body for non-initial calls.' }, { status: 400 });
+      }
     }
 
-    const history = transformMessagesForGemini(incomingMessages);
 
-    // Find the index of the first user message in the history
-    const firstUserIndex = history.findIndex(msg => msg.role === 'user');
+    // Construct the payload for the Agent Server
+    const agentServerPayload = {
+      conversationHistory: incomingMessages.map(msg => ({ role: msg.role, content: msg.content })),
+      projectContext: projectContext,
+      contractorPreferences: contractorPreferences,
+      sessionId: sessionId,
+      customerZipCode: customerZipCode,
+      personId: personId, // Pass personId and opportunityId to the agent server
+      opportunityId: opportunityId,
+    };
 
-    let chatHistory: Array<{ role: "user" | "model"; parts: { text: string }[] }> = [];
-    if (firstUserIndex !== -1) {
-      // If a user message is found, use the history from that point onwards,
-      // excluding the last message (current user query)
-      chatHistory = history.slice(firstUserIndex, -1);
-    } else {
-      // If no user message is found in the history (shouldn't happen in a valid chat),
-      // pass an empty history.
-      chatHistory = [];
-    }
-
-    const chat = model.startChat({
-      history: chatHistory, // Use the potentially adjusted history
-      generationConfig,
-      safetySettings,
+    // Make the HTTP POST request to the Agno Agent Server
+    const agentServerResponse = await fetch(`${AGNO_AGENT_SERVER_URL}/api/v1/estimate/generate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(agentServerPayload),
     });
 
-    const currentUserMessageContent = history[history.length - 1]?.parts[0]?.text || "";
-    const result = await chat.sendMessage(currentUserMessageContent); // Send only the current user message text
-    
-    const geminiResponse = result.response;
-    const responseText = geminiResponse.text();
-
-    let conversationalReply = responseText;
-    let structuredEstimateData: any = {}; // Initialize structured data object
-
-    // Attempt to extract JSON block from the response text
-    const jsonMatch = responseText.match(/```json\n([\s\S]*?)\n```/);
-
-    if (jsonMatch && jsonMatch[1]) {
-      try {
-        structuredEstimateData = JSON.parse(jsonMatch[1]);
-        // Remove the JSON block from the conversational reply
-        conversationalReply = responseText.replace(jsonMatch[0], '').trim();
-
-        // Process suggested line items (assuming structuredEstimateData.lineItemsSuggestedByAI exists)
-        if (structuredEstimateData.lineItemsSuggestedByAI && Array.isArray(structuredEstimateData.lineItemsSuggestedByAI)) {
-          // Fetch cost items for lookup
-          const costItems = await costItemService.getCostItems({ isActive: true }); // Fetch active cost items
-
-          structuredEstimateData.lineItems = await Promise.all(structuredEstimateData.lineItemsSuggestedByAI.map(async (item: any) => {
-            let matchedCostItemId = null;
-            let unitCost = item.suggestedUnitCost || 0; // Use suggested cost if provided
-            let markup = item.suggestedMarkup || 0; // Use suggested markup if provided
-            let notes = item.notesFromAI || ""; // Start with AI's notes
-            let quantity = item.suggestedQuantity || 1; // Use suggested quantity if provided
-            let unit = item.suggestedUnit || "EA"; // Use suggested unit if provided
-
-            // Attempt to match with existing cost items (basic keyword match for now)
-            const matchedCostItem = costItems.find(costItem =>
-              costItem.name.toLowerCase().includes(item.description.toLowerCase()) ||
-              (costItem.description && costItem.description.toLowerCase().includes(item.description.toLowerCase()))
-            );
-
-            if (matchedCostItem) {
-              matchedCostItemId = matchedCostItem.id;
-              // Prioritize AI's suggestions if provided, otherwise use cost item defaults
-              unitCost = item.suggestedUnitCost ?? matchedCostItem.unit_cost;
-              markup = item.suggestedMarkup ?? matchedCostItem.default_markup;
-              unit = item.suggestedUnit ?? matchedCostItem.unit; // Use cost item unit if AI doesn't suggest one
-            } else {
-              // Implement BigBox lookup if cost item not found and item is a material
-              // Assuming item.description can be used as a search query for BigBox
-              try {
-                // Uncomment the import for bigboxService at the top of the file
-                // import { bigboxService } from '@/lib/bigbox-service';
-                const { bigboxService } = await import('@/lib/bigbox-service');
-                const bigBoxResults = await bigboxService.searchProducts(item.description);
-
-                // Check if search_results array exists and has elements
-                if (bigBoxResults && bigBoxResults.search_results && bigBoxResults.search_results.length > 0) {
-                  // Use the price of the first relevant result
-                  unitCost = bigBoxResults.search_results[0].offers?.primary?.price || unitCost; // Use BigBox price if available, otherwise keep current unitCost
-                  markup = markup; // Keep current markup (either AI suggested or default 0)
-                  notes += (notes ? " | " : "") + "Price from BigBox API, please review and add to Cost Library if needed.";
-                }
-              } catch (bigboxError) {
-                console.error("Error calling BigBox API:", bigboxError);
-                // Continue without BigBox price if API call fails
-              }
-            }
-
-            // Calculate total with markup
-            const costWithMarkup = unitCost * (1 + markup / 100);
-            const total = quantity * costWithMarkup;
-
-
-            return {
-              id: uuidv4(), // Temporary ID for frontend state management
-              aiSuggestionId: item.aiSuggestionId || uuidv4(), // Use AI's ID or generate new
-              description: item.description || "Untitled Item",
-              quantity: quantity,
-              unit: unit,
-              unit_cost: unitCost, // Use found cost or 0
-              markup: markup, // Use found markup or 0
-              total: total,
-              section_name: item.section_name || "AI Suggestions", // Use AI's section or default
-              notes: notes, // Include BigBox note if applicable
-              matched_cost_item_id: matchedCostItemId, // Include matched cost item ID
-              // suggestedUnitCost: item.suggestedUnitCost || null, // Keep AI's suggestion if available
-              // suggestedMarkup: item.suggestedMarkup || null, // Keep AI's suggestion if available
-            };
-          }));
-          // Remove the original AI suggested items after processing
-          delete structuredEstimateData.lineItemsSuggestedByAI;
-        } else {
-           // If lineItemsSuggestedByAI is missing or not an array, initialize an empty array
-           structuredEstimateData.lineItems = [];
-        }
-
-      } catch (parseError) {
-        console.error("Error parsing JSON from Gemini response:", parseError);
-        // Continue with just the conversational reply if JSON parsing fails
-        structuredEstimateData = {}; // Ensure structured data is empty on parse error
-        structuredEstimateData.lineItems = []; // Ensure lineItems is an empty array
-      }
-    } else {
-       // If no JSON block is found, structured data remains empty
-       structuredEstimateData = {};
-       structuredEstimateData.lineItems = []; // Ensure lineItems is an empty array
+    if (!agentServerResponse.ok) {
+      const errorBody = await agentServerResponse.text();
+      console.error(`Error from Agent Server: ${agentServerResponse.status} - ${errorBody}`);
+      return NextResponse.json({ error: `Agent Server returned an error: ${agentServerResponse.status}`, details: errorBody }, { status: agentServerResponse.status });
     }
 
+    // Parse the JSON response from the Agent Server
+    const agentServerData: AgentServerResponse = await agentServerResponse.json();
 
+    // The Agent Server's response structure matches what the frontend expects
+    // (with structuredEstimate instead of structuredEstimateData)
     const responsePayload = {
-      conversationalReply: conversationalReply,
-      structuredEstimateData: structuredEstimateData,
+      conversationalReply: agentServerData.conversationalReply,
+      structuredEstimateData: agentServerData.structuredEstimate, // Map structuredEstimate to structuredEstimateData for frontend compatibility
+      materialsToAddToLibrary: agentServerData.materialsToAddToLibrary, // Pass materials to add
+      sessionId: agentServerData.sessionId, // Pass back the session ID
     };
 
     return NextResponse.json(responsePayload, { status: 200 });
 
   } catch (error) {
-    console.error('Error in /api/ai/estimate-chat:', error);
-    let errorMessage = 'An unknown error occurred while communicating with the AI model.';
+    console.error('Error in /app/api/ai/estimate-chat:', error);
+    let errorMessage = 'An unknown error occurred while calling the Agent Server.';
     if (error instanceof Error) {
       errorMessage = error.message;
     }
-     // Check for specific GoogleGenerativeAI errors if possible
-    if (error && typeof error === 'object' && 'message' in error) {
-        errorMessage = String(error.message);
-    }
-    return NextResponse.json({ error: 'Failed to process request with AI model.', details: errorMessage }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to communicate with the Agent Server.', details: errorMessage }, { status: 500 });
   }
 }

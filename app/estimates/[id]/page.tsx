@@ -9,10 +9,10 @@ import { ArrowLeft, Edit, Download, Send, Check, X } from "lucide-react"
 import { estimateService } from "@/lib/estimates"
 import { formatCurrency, formatDate } from "@/lib/utils"
 import { PaymentScheduleList } from "../payment-schedule-list"
-import { CreateBidButton } from "./create-bid-button"
+import { CreateProjectButton } from "./create-bid-button" // Updated import name
 
 export const metadata: Metadata = {
-  title: "Estimate Details | HomePro OS",
+  title: "Estimate Details | PROActive OS",
   description: "View estimate details",
 }
 
@@ -115,7 +115,10 @@ export default async function EstimateDetailPage({ params }: { params: { id: str
             <Download className="mr-2 h-4 w-4" />
             Download PDF
           </Button>
-          <CreateBidButton estimateId={estimate.id} />
+          {/* Conditionally render the Create Project button if the estimate is accepted */}
+          {estimate.status === "Accepted" && (
+            <CreateProjectButton estimateId={estimate.id} />
+          )}
         </div>
       </div>
 
@@ -144,9 +147,13 @@ export default async function EstimateDetailPage({ params }: { params: { id: str
           <CardContent>
             <div className="space-y-2">
               <p className="font-medium">
-                <Link href={`/opportunities/${estimate.opportunity.id}`} className="hover:underline">
-                  {estimate.opportunity.opportunity_name}
-                </Link>
+                {estimate.opportunity ? (
+                  <Link href={`/opportunities/${estimate.opportunity.id}`} className="hover:underline">
+                    {estimate.opportunity.opportunity_name}
+                  </Link>
+                ) : (
+                  <span>No opportunity linked</span>
+                )}
               </p>
             </div>
           </CardContent>

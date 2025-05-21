@@ -14,7 +14,8 @@ export default async function PaymentConfirmationPage({
   searchParams: { status?: string }
 }) {
   const invoiceId = params.id
-  const status = searchParams.status || "success" // Default to success if not provided
+  const awaitedSearchParams = await searchParams;
+  const status = awaitedSearchParams.status || "success" // Default to success if not provided
 
   const invoice = await getInvoiceById(invoiceId)
   if (!invoice) {

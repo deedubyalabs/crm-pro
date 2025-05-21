@@ -66,14 +66,14 @@ export const personService = {
     }
   },
 
-  async getPersonById(id: string): Promise<Person | null> {
+  async getPersonById(id: string, supabaseClient = supabase): Promise<Person | null> {
     try {
       // Validate UUID format before querying the database
       if (!isValidUUID(id)) {
         throw new Error(`Invalid UUID format: ${id}`)
       }
 
-      const { data, error } = await supabase.from("people").select("*").eq("id", id).single()
+      const { data, error } = await supabaseClient.from("people").select("*").eq("id", id).single()
 
       if (error) throw error
       return data

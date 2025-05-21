@@ -7,22 +7,25 @@ import { PlusCircle } from "lucide-react"
 import Link from "next/link"
 
 export const metadata: Metadata = {
-  title: "Jobs | HomePro OS",
+  title: "Jobs | PROActive OS",
   description: "Manage and track all jobs across your projects",
 }
 
-export default function JobsPage({
+export default async function JobsPage({
   searchParams,
 }: {
   searchParams: { [key: string]: string | string[] | undefined }
 }) {
+  // Await search parameters
+  const awaitedSearchParams = await searchParams;
+
   // Extract search parameters
-  const status = typeof searchParams.status === "string" ? searchParams.status : undefined
-  const projectId = typeof searchParams.projectId === "string" ? searchParams.projectId : undefined
-  const assignedToId = typeof searchParams.assignedToId === "string" ? searchParams.assignedToId : undefined
-  const search = typeof searchParams.search === "string" ? searchParams.search : undefined
-  const startDate = typeof searchParams.startDate === "string" ? searchParams.startDate : undefined
-  const endDate = typeof searchParams.endDate === "string" ? searchParams.endDate : undefined
+  const status = typeof awaitedSearchParams.status === "string" ? awaitedSearchParams.status : undefined
+  const projectId = typeof awaitedSearchParams.projectId === "string" ? awaitedSearchParams.projectId : undefined
+  const assignedToId = typeof awaitedSearchParams.assignedToId === "string" ? awaitedSearchParams.assignedToId : undefined
+  const search = typeof awaitedSearchParams.search === "string" ? awaitedSearchParams.search : undefined
+  const startDate = typeof awaitedSearchParams.startDate === "string" ? awaitedSearchParams.startDate : undefined
+  const endDate = typeof awaitedSearchParams.endDate === "string" ? awaitedSearchParams.endDate : undefined
 
   return (
     <div className="space-y-6">

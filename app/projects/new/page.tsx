@@ -6,7 +6,7 @@ import ProjectForm from "../project-form"
 import { estimateService } from "@/lib/estimates" // Import estimateService
 import type { EstimateWithDetails } from "@/types/estimates" // Import EstimateWithDetails
 import { personService } from "@/lib/people" // Import personService
-import type { Person } from "@/lib/people" // Import Person type from lib/people
+import type { Person } from "@/lib/people" // Import Person type from lib/people"
 
 export const metadata = {
   title: "New Project | HomePro One",
@@ -19,20 +19,61 @@ interface NewProjectPageProps {
   };
 }
 
+// Get the Agent Server URL from environment variables
+const AGNO_AGENT_SERVER_URL = process.env.AGNO_AGENT_SERVER_URL;
+
 export default async function NewProjectPage({ searchParams }: NewProjectPageProps) {
   let estimate: EstimateWithDetails | null = null;
-  let person: Person | null = null; // State for person data
+  let person: Person | null = null;
+  let suggestedProjectDescription: string | null = null;
 
-  if (searchParams.estimateId) {
+  const awaitedSearchParams = await searchParams;
+
+  if (awaitedSearchParams.estimateId) {
     try {
       // Fetch the estimate if estimateId is provided
-      const fetchedEstimate = await estimateService.getEstimateById(searchParams.estimateId);
+      const fetchedEstimate = await estimateService.getEstimateById(awaitedSearchParams.estimateId);
       // Ensure the fetched estimate is "Accepted" before using it for pre-filling
       if (fetchedEstimate?.status === 'Accepted') {
         estimate = fetchedEstimate;
         // Fetch person details if estimate is found and has a person_id
         if (estimate.person_id) {
           person = await personService.getPersonById(estimate.person_id);
+        }
+
+        // Call Agno Agent Server to generate project description
+        if (AGNO_AGENT_SERVER_URL) {
+          try {
+            const agentServerResponse = await fetch(`${AGNO_AGENT_SERVER_URL}/api/v1/agents/project/generate-description`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                estimateDetails: {
+                  title: estimate.title,
+                  lineItems: estimate.lineItems.map(item => ({
+                    name: item.name,
+                    description: item.description,
+                    quantity: item.quantity,
+                    unit: item.unit,
+                  })),
+                },
+              }),
+            });
+
+            if (agentServerResponse.ok) {
+              const data = await agentServerResponse.json();
+              suggestedProjectDescription = data.suggestedProjectDescription;
+            } else {
+              const errorBody = await agentServerResponse.text();
+              console.error(`Error from Agent Server (generate-description): ${agentServerResponse.status} - ${errorBody}`);
+            }
+          } catch (error) {
+            console.error('Error calling Agent Server for project description:', error);
+          }
+        } else {
+           console.warn("AGNO_AGENT_SERVER_URL is not set. Cannot generate AI project description.");
         }
       }
     } catch (error) {
@@ -59,7 +100,11 @@ export default async function NewProjectPage({ searchParams }: NewProjectPagePro
           <CardDescription>Enter the details for your new project</CardDescription>
         </CardHeader>
         <CardContent>
-          <ProjectForm initialEstimate={estimate} initialPerson={person} /> {/* Pass estimate and person data */}
+          <ProjectForm
+            initialEstimate={estimate}
+            initialPerson={person}
+            suggestedDescription={suggestedProjectDescription} // Pass suggested description
+          />
         </CardContent>
       </Card>
     </div>

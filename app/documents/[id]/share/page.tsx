@@ -16,12 +16,12 @@ export async function generateMetadata({ params }: DocumentSharePageProps): Prom
   try {
     const document = await getDocumentById(params.id)
     return {
-      title: `Share ${document.title || "Document"} | HomePro OS`,
+      title: `Share ${document.title || "Document"} | PROActive OS`,
       description: "Share document with team members or clients",
     }
   } catch (error) {
     return {
-      title: "Document Not Found | HomePro OS",
+      title: "Document Not Found | PROActive OS",
       description: "The requested document could not be found",
     }
   }

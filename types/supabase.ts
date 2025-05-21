@@ -5,6 +5,7 @@ export interface Database {
     Tables: {
       people: {
         Row: {
+          lead_stage: string
           id: string
           created_at: string
           updated_at: string

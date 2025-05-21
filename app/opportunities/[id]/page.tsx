@@ -97,13 +97,13 @@ export default function OpportunityDetailPage({ params: { id } }: { params: { id
         case "contact attempted":
           return <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">Contact Attempted</Badge>
         case "contacted":
-          return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Contacted</Badge>
+          return <Badge className="bg-green-100 text-green-800 hover:bg-green-800">Contacted</Badge>
         case "needs scheduling":
-          return <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-100">Needs Scheduling</Badge>
+          return <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-800">Needs Scheduling</Badge>
         case "appointment scheduled":
-          return <Badge className="bg-indigo-100 text-indigo-800 hover:bg-indigo-100">Appointment Scheduled</Badge>
+          return <Badge className="bg-indigo-100 text-indigo-800 hover:bg-indigo-800">Appointment Scheduled</Badge>
         case "needs estimate":
-          return <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-100">Needs Estimate</Badge>
+          return <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-800">Needs Estimate</Badge>
         case "estimate sent":
           return <Badge className="bg-cyan-100 text-cyan-800 hover:bg-cyan-800">Estimate Sent</Badge> // Corrected hover color
         case "estimate accepted":
@@ -647,6 +647,35 @@ export default function OpportunityDetailPage({ params: { id } }: { params: { id
             </Card>
           </div>
         </div>
+
+        {/* AI Email Draft Modal */}
+        <Dialog open={isEmailModalOpen} onOpenChange={setIsEmailModalOpen}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>AI Email Draft</DialogTitle>
+              <DialogDescription>
+                Here is a draft email based on the opportunity context. You can copy and paste it into your email client.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="draftedEmail">Drafted Email</Label>
+                <Textarea
+                  id="draftedEmail"
+                  value={draftedEmailText}
+                  readOnly
+                  rows={10}
+                  className="col-span-3"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button onClick={handleCopyToClipboard} disabled={!draftedEmailText || isDraftingEmail}>
+                <Copy className="mr-2 h-4 w-4" /> Copy to Clipboard
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     )
 }

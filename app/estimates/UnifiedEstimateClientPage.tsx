@@ -35,6 +35,7 @@ export default function UnifiedEstimateClientPage({ estimate }: UnifiedEstimateC
   const [paymentSchedules, setPaymentSchedules] = useState<Partial<EstimatePaymentSchedule>[]>(estimate?.paymentSchedules || []);
 
   const [showCreateProjectButton, setShowCreateProjectButton] = useState(false); // State to control button visibility
+  // const [showFloorPlanModal, setShowFloorPlanModal] = useState(false); // State to control Floor Plan modal visibility
 
   useEffect(() => {
     if (estimate && estimate.status === 'Accepted') {
@@ -161,6 +162,78 @@ export default function UnifiedEstimateClientPage({ estimate }: UnifiedEstimateC
     loadData()
   }, [estimate, personIdFromUrl, opportunityIdFromUrl]); // Add dependencies for URL params and estimate
 
+  // Effect to initiate AI conversation on load if personId or opportunityId are present
+  useEffect(() => {
+    const initiateAIConversation = async () => {
+      // Only run if it's a new estimate and IDs are present
+      if (!estimate && (personIdFromUrl || opportunityIdFromUrl)) {
+        setIsProcessing(true);
+
+        try {
+          // Construct initial payload with IDs and an initial system message
+          const initialMessages: Message[] = [{
+            id: uuidv4(),
+            role: 'system',
+            content: 'Initiate AI estimate based on provided context.', // This will be replaced by backend's contextual message
+            timestamp: new Date().toISOString(),
+          }];
+
+          const response = await fetch("/api/ai/estimate-chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              messages: initialMessages,
+              personId: personIdFromUrl,
+              opportunityId: opportunityIdFromUrl,
+            }),
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || "API request failed during initiation");
+          }
+
+          const data = await response.json();
+
+          // Set the initial assistant message from the backend's response
+          const assistantMessage: Message = {
+            id: uuidv4(),
+            role: "assistant",
+            content: data.conversationalReply,
+            timestamp: new Date().toISOString(),
+          };
+          setMessages([assistantMessage]); // Replace initial system message with actual assistant reply
+
+          console.log("AI Structured Data (Initial):", data.structuredEstimateData);
+          console.log("AI Suggested Materials to Add (Initial):", data.materialsToAddToLibrary);
+
+          if (data.structuredEstimateData?.lineItems && Array.isArray(data.structuredEstimateData.lineItems)) {
+            const aiSuggestedLineItems: Partial<EstimateLineItem>[] = data.structuredEstimateData.lineItems.map((item: Partial<EstimateLineItem>) => ({
+              ...item,
+              isAISuggested: true,
+            }));
+            setLineItems(aiSuggestedLineItems); // Set initial line items
+          }
+
+        } catch (error) {
+          console.error("Error initiating AI conversation:", error);
+          const errorMessage: Message = {
+            id: uuidv4(),
+            role: "assistant",
+            content: `Sorry, I encountered an error while starting the AI conversation: ${error instanceof Error ? error.message : String(error)}`,
+            timestamp: new Date().toISOString(),
+          };
+          setMessages([errorMessage]); // Display error message
+        } finally {
+          setIsProcessing(false);
+        }
+      }
+    };
+
+    initiateAIConversation();
+  }, [estimate, personIdFromUrl, opportunityIdFromUrl]); // Dependencies: run when estimate or IDs change
+
+
   const handleSendMessage = async (text: string, attachments?: Attachment[]) => {
     const userMessage: Message = {
       id: uuidv4(),
@@ -173,9 +246,8 @@ export default function UnifiedEstimateClientPage({ estimate }: UnifiedEstimateC
     setIsProcessing(true)
 
     try {
-      const messagesToSend = (messages.length === 1 && messages[0].role === 'assistant' && !estimate)
-        ? [userMessage]
-        : [...messages, userMessage];
+      // For subsequent messages, send the full conversation history
+      const messagesToSend = [...messages, userMessage];
 
       const response = await fetch("/api/ai/estimate-chat", {
         method: "POST",
@@ -198,6 +270,7 @@ export default function UnifiedEstimateClientPage({ estimate }: UnifiedEstimateC
       };
       setMessages((prevMessages) => [...prevMessages, assistantMessage]);
       console.log("AI Structured Data:", data.structuredEstimateData);
+      console.log("AI Suggested Materials to Add:", data.materialsToAddToLibrary); // Log materials to add
 
       if (data.structuredEstimateData?.lineItems && Array.isArray(data.structuredEstimateData.lineItems)) {
         const aiSuggestedLineItems: Partial<EstimateLineItem>[] = data.structuredEstimateData.lineItems.map((item: Partial<EstimateLineItem>) => ({
@@ -300,6 +373,7 @@ export default function UnifiedEstimateClientPage({ estimate }: UnifiedEstimateC
           />
         </div>
       </div>
+
     </div>
   );
 }

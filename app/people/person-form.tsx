@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, Dispatch, SetStateAction } from "react" // Import useEffect
 import { useRouter } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
@@ -29,6 +29,7 @@ const personSchema = z
     state_province: z.string().optional(),
     postal_code: z.string().optional(),
     lead_source: z.string().optional(),
+    lead_stage: z.string().optional(), // Add lead_stage to schema
     notes: z.string().optional(),
     tags: z.array(z.string()).optional(),
   })
@@ -68,6 +69,14 @@ interface PersonFormProps {
 export default function PersonForm({ initialData, isEdit = false }: PersonFormProps) {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [leadSources, setLeadSources] = useState<{ id: string; name: string }[]>([]) // State for lead sources
+  const [leadStages, setLeadStages] = useState<{ id: string; name: string }[]>([]) // State for lead stages
+  const [loadingCategories, setLoadingCategories] = useState(true) // State for loading categories
+  const [errorCategories, setErrorCategories] = useState<string | null>(null) // State for category loading errors
+  const [showNewSourceInput, setShowNewSourceInput] = useState(false); // State to show new source input
+  const [showNewStageInput, setShowNewStageInput] = useState(false); // State to show new stage input
+  const [newSource, setNewSource] = useState(''); // State for new source input value
+  const [newStage, setNewStage] = useState(''); // State for new stage input value
 
   const form = useForm<PersonFormValues>({
     resolver: zodResolver(personSchema),
@@ -87,6 +96,7 @@ export default function PersonForm({ initialData, isEdit = false }: PersonFormPr
           postal_code: initialData.postal_code || "",
           lead_source: initialData.lead_source || "",
           notes: initialData.notes || "",
+          lead_stage: initialData.lead_stage || "", // Add lead_stage to defaultValues
           tags: initialData.tags || [],
         }
       : {
@@ -102,10 +112,48 @@ export default function PersonForm({ initialData, isEdit = false }: PersonFormPr
           state_province: "",
           postal_code: "",
           lead_source: "",
+          lead_stage: "", // Add lead_stage to defaultValues
           notes: "",
           tags: [],
         },
   })
+
+  useEffect(() => {
+    async function fetchCategories() {
+      try {
+        setLoadingCategories(true)
+        // Fetch Lead Sources
+        const leadSourcesResponse = await fetch('/api/categories?type=lead_source');
+        if (!leadSourcesResponse.ok) {
+          throw new Error(`Error fetching lead sources: ${leadSourcesResponse.statusText}`);
+        }
+        const leadSourcesData = await leadSourcesResponse.json();
+        setLeadSources(leadSourcesData);
+
+        // Fetch Lead Stages
+        const leadStagesResponse = await fetch('/api/categories?type=lead_stage');
+        if (!leadStagesResponse.ok) {
+          throw new Error(`Error fetching lead stages: ${leadStagesResponse.statusText}`);
+        }
+        const leadStagesData = await leadStagesResponse.json();
+        setLeadStages(leadStagesData);
+
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+        setErrorCategories(error instanceof Error ? error.message : "An unknown error occurred");
+        toast({
+          title: "Error fetching categories",
+          description: error instanceof Error ? error.message : "An error occurred while loading categories.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoadingCategories(false);
+      }
+    }
+
+    fetchCategories();
+  }, []); // Empty dependency array means this effect runs once on mount
+
 
   const personType = form.watch("person_type")
   const isBusinessOrSubcontractor = personType === "business" || personType === "subcontractor"
@@ -142,9 +190,67 @@ export default function PersonForm({ initialData, isEdit = false }: PersonFormPr
     }
   }
 
+  async function handleAddCategory(
+    type: 'lead_source' | 'lead_stage',
+    name: string,
+    setCategories: Dispatch<SetStateAction<{ id: string; name: string }[]>>,
+    setNewCategory: Dispatch<SetStateAction<string>>,
+    setShowNewInput: Dispatch<SetStateAction<boolean>>
+  ) {
+    if (!name.trim()) {
+      toast({
+        title: "Input required",
+        description: "Please enter a name for the new category.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true); // Disable form while adding category
+    try {
+      const response = await fetch(`/api/categories?type=${type}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error adding category: ${response.statusText}`);
+      }
+
+      const newCategory = await response.json();
+      setCategories(prevCategories => [...prevCategories, newCategory]);
+      setNewCategory('');
+      setShowNewInput(false);
+      toast({
+        title: "Category added",
+        description: `New ${type.replace('_', ' ')} "${newCategory.name}" added.`,
+      });
+
+      // Optionally, set the newly added category as the selected value
+      if (type === 'lead_source') {
+        form.setValue('lead_source', newCategory.name);
+      } else if (type === 'lead_stage') {
+        form.setValue('lead_stage', newCategory.name);
+      }
+
+    } catch (error) {
+      console.error(`Error adding ${type}:`, error);
+      toast({
+        title: "Error adding category",
+        description: error instanceof Error ? error.message : "An error occurred while adding the category.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false); // Re-enable form
+    }
+  }
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6"> {/* Removed vertical padding */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormField
             control={form.control}
@@ -179,26 +285,104 @@ export default function PersonForm({ initialData, isEdit = false }: PersonFormPr
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Lead Source</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSubmitting}>
+                <Select onValueChange={(value) => {
+                  if (value === "add_new_source") {
+                    setShowNewSourceInput(true);
+                  } else {
+                    field.onChange(value);
+                    setShowNewSourceInput(false);
+                  }
+                }} defaultValue={field.value} disabled={isSubmitting || loadingCategories}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a lead source" />
+                      <SelectValue placeholder={loadingCategories ? "Loading sources..." : "Select a lead source"} />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="website">Website</SelectItem>
-                    <SelectItem value="referral">Referral</SelectItem>
-                    <SelectItem value="google">Google</SelectItem>
-                    <SelectItem value="facebook">Facebook</SelectItem>
-                    <SelectItem value="instagram">Instagram</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
+                    {errorCategories ? (
+                      <SelectItem value="error" disabled>Error loading sources</SelectItem>
+                    ) : (
+                      leadSources.map((source) => (
+                        <SelectItem key={source.id} value={source.name}>
+                          {source.name}
+                        </SelectItem>
+                      ))
+                    )}
+                    <SelectItem value="add_new_source">Add New Source</SelectItem>
                   </SelectContent>
                 </Select>
+                {showNewSourceInput && (
+                  <div className="flex space-x-2 mt-2">
+                    <Input
+                      placeholder="New source name"
+                      value={newSource}
+                      onChange={(e) => setNewSource(e.target.value)}
+                      disabled={isSubmitting}
+                    />
+                    <Button type="button" onClick={() => handleAddCategory('lead_source', newSource, setLeadSources, setNewSource, setShowNewSourceInput)} disabled={isSubmitting || !newSource}>
+                      Add
+                    </Button>
+                  </div>
+                )}
                 <FormDescription>Where this contact came from (optional).</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
           />
+
+          {/* Add Lead Stage field */}
+          {personType === "lead" && (
+            <FormField
+              control={form.control}
+              name="lead_stage"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Lead Stage</FormLabel>
+                  <Select onValueChange={(value) => {
+                    if (value === "add_new_stage") {
+                      setShowNewStageInput(true);
+                    } else {
+                      field.onChange(value);
+                      setShowNewStageInput(false);
+                    }
+                  }} defaultValue={field.value} disabled={isSubmitting || loadingCategories}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder={loadingCategories ? "Loading stages..." : "Select a lead stage"} />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {errorCategories ? (
+                        <SelectItem value="error" disabled>Error loading stages</SelectItem>
+                      ) : (
+                        leadStages.map((stage) => (
+                          <SelectItem key={stage.id} value={stage.name}>
+                          {stage.name}
+                        </SelectItem>
+                        ))
+                      )}
+                      <SelectItem value="add_new_stage">Add New Stage</SelectItem>
+                    </SelectContent>
+                  </Select>
+                   {showNewStageInput && (
+                    <div className="flex space-x-2 mt-2">
+                      <Input
+                        placeholder="New stage name"
+                        value={newStage}
+                        onChange={(e) => setNewStage(e.target.value)}
+                        disabled={isSubmitting}
+                      />
+                      <Button type="button" onClick={() => handleAddCategory('lead_stage', newStage, setLeadStages, setNewStage, setShowNewStageInput)} disabled={isSubmitting || !newStage}>
+                        Add
+                      </Button>
+                    </div>
+                  )}
+                  <FormDescription>The current stage of this lead (optional).</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
         </div>
 
         {isBusinessOrSubcontractor ? (

@@ -1,5 +1,5 @@
 -- =============================================
--- HomePro OS Complete Database Schema
+-- PROActive OS Complete Database Schema
 -- =============================================
 
 -- Enable UUID extension

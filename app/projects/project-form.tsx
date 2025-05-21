@@ -47,9 +47,10 @@ interface ProjectFormProps {
   projectId?: string
   initialEstimate?: EstimateWithDetails | null; // Add initialEstimate prop
   initialPerson?: Person | null; // Add initialPerson prop
+  suggestedDescription?: string | null; // Add suggestedDescription prop
 }
 
-export default function ProjectForm({ initialData, projectId, initialEstimate, initialPerson }: ProjectFormProps) {
+export default function ProjectForm({ initialData, projectId, initialEstimate, initialPerson, suggestedDescription }: ProjectFormProps) {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
 
@@ -57,7 +58,7 @@ export default function ProjectForm({ initialData, projectId, initialEstimate, i
     resolver: zodResolver(projectFormSchema),
     defaultValues: {
       name: initialEstimate?.opportunity?.opportunity_name || initialData?.project_name || "", // Pre-fill from estimate opportunity name or initialData project_name
-      description: initialEstimate?.notes || initialData?.description || "", // Pre-fill from estimate notes or initialData description
+      description: suggestedDescription || initialEstimate?.notes || initialData?.description || "", // Pre-fill from suggestedDescription, then estimate notes, then initialData description
       status: initialData?.status || "Pending Start", // Default to Pending Start
       customer_id: initialEstimate?.person_id || initialData?.person_id || undefined, // Pre-fill from estimate person_id or initialData person_id
       opportunity_id: initialEstimate?.opportunity_id || initialData?.opportunity_id || undefined, // Pre-fill from estimate opportunity_id or initialData opportunity_id

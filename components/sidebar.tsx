@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -154,7 +154,7 @@ export default function Sidebar({ className }: SidebarProps) {
   const adminNavItems = [
     {
       title: "Agent Workspace",
-      href: "/agent-workspace",
+      href: process.env.NEXT_PUBLIC_AAUI_URL || "/agent-workspace", // Use environment variable, fallback to local route
       icon: Bot,
     },
     {
@@ -168,6 +168,51 @@ export default function Sidebar({ className }: SidebarProps) {
       icon: Cog,
     },
   ]
+
+  interface AgentStatus {
+    connected: boolean;
+    details?: any;
+    error?: string;
+  }
+
+  const AgentStatusIndicator = () => {
+    const [status, setStatus] = useState<AgentStatus | null>(null);
+
+    useEffect(() => {
+      const fetchStatus = async () => {
+        try {
+          const response = await fetch('/api/system/agent-server-status');
+          const data = await response.json();
+          setStatus(data);
+        } catch (error) {
+          setStatus({ connected: false, error: 'Failed to fetch status' });
+        }
+      };
+
+      fetchStatus(); // Fetch initially
+      const intervalId = setInterval(fetchStatus, 30000); // Fetch every 30 seconds
+
+      return () => clearInterval(intervalId); // Cleanup on unmount
+    }, []);
+
+    if (!status) {
+      return null; // Or a loading indicator
+    }
+
+    const statusColor = status.connected ? 'bg-green-500' : 'bg-red-500';
+    const tooltipContent = status.connected ? 'Agent Server Connected' : `Agent Server Disconnected: ${status.error}`;
+
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className={cn("w-3 h-3 rounded-full", statusColor)} />
+          </TooltipTrigger>
+          <TooltipContent side="right">{tooltipContent}</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  };
 
   // Render a nav item based on whether the sidebar is collapsed or not
   const renderNavItem = (item: { title: string; href: string; icon: any }) => {
@@ -234,7 +279,7 @@ export default function Sidebar({ className }: SidebarProps) {
           {!isCollapsed && (
             <Link href="/" className="flex items-center space-x-2">
               <Home className="h-5 w-5" />
-              <span className="font-bold text-xl">HomePro OS</span>
+              <span className="font-bold text-xl">PROActive OS</span>
             </Link>
           )}
           {isCollapsed && (
@@ -302,6 +347,9 @@ export default function Sidebar({ className }: SidebarProps) {
           <nav className={cn("px-2 py-2 space-y-1", isCollapsed && "flex flex-col items-center")}>
             {adminNavItems.map((item) => renderNavItem(item))}
           </nav>
+          <div className={cn("px-4 py-2", isCollapsed && "flex justify-center")}>
+            <AgentStatusIndicator />
+          </div>
         </div>
       </aside>
     </>

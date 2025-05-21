@@ -6,7 +6,7 @@ import { Plus } from "lucide-react"
 import Link from "next/link"
 
 export const metadata: Metadata = {
-  title: "Cost Items | HomePro OS",
+  title: "Cost Items | PROActive OS",
   description: "Manage your cost items catalog",
 }
 
@@ -15,9 +15,11 @@ export default async function CostItemsPage({
 }: {
   searchParams: { [key: string]: string | string[] | undefined }
 }) {
-  const type = typeof searchParams.type === "string" ? searchParams.type : undefined
-  const search = typeof searchParams.search === "string" ? searchParams.search : undefined
-  const isActive = searchParams.isActive === "true" ? true : searchParams.isActive === "false" ? false : undefined
+  const awaitedSearchParams = await searchParams;
+
+  const type = typeof awaitedSearchParams.type === "string" ? awaitedSearchParams.type : undefined
+  const search = typeof awaitedSearchParams.search === "string" ? awaitedSearchParams.search : undefined
+  const isActive = awaitedSearchParams.isActive === "true" ? true : awaitedSearchParams.isActive === "false" ? false : undefined
 
   const costItems = await costItemService.getCostItems({
     type: type as any,

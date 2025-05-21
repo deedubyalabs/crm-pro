@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   description: "Manage and track your business expenses",
 }
 
-export default function ExpensesPage({
+export default async function ExpensesPage({
   searchParams,
 }: {
   searchParams: {
@@ -23,6 +23,8 @@ export default function ExpensesPage({
     reimbursable?: string
   }
 }) {
+  const awaitedSearchParams = await searchParams;
+
   return (
     <div className="container mx-auto py-6">
       <div className="flex justify-between items-center mb-6">
@@ -36,22 +38,22 @@ export default function ExpensesPage({
       </div>
 
       <ExpenseFilters
-        selectedCategory={searchParams.category}
-        selectedStatus={searchParams.status}
-        startDate={searchParams.startDate}
-        endDate={searchParams.endDate}
-        billable={searchParams.billable === "true"}
-        reimbursable={searchParams.reimbursable === "true"}
+        selectedCategory={awaitedSearchParams.category}
+        selectedStatus={awaitedSearchParams.status}
+        startDate={awaitedSearchParams.startDate}
+        endDate={awaitedSearchParams.endDate}
+        billable={awaitedSearchParams.billable === "true"}
+        reimbursable={awaitedSearchParams.reimbursable === "true"}
       />
 
       <Suspense fallback={<div>Loading expenses...</div>}>
         <ExpensesList
-          category={searchParams.category}
-          status={searchParams.status}
-          startDate={searchParams.startDate}
-          endDate={searchParams.endDate}
-          billable={searchParams.billable === "true" ? true : undefined}
-          reimbursable={searchParams.reimbursable === "true" ? true : undefined}
+          category={awaitedSearchParams.category}
+          status={awaitedSearchParams.status}
+          startDate={awaitedSearchParams.startDate}
+          endDate={awaitedSearchParams.endDate}
+          billable={awaitedSearchParams.billable === "true" ? true : undefined}
+          reimbursable={awaitedSearchParams.reimbursable === "true" ? true : undefined}
         />
       </Suspense>
     </div>

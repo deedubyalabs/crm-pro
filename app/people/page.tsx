@@ -1,15 +1,24 @@
-import { Suspense } from "react"
+import { Suspense, useState } from "react"
 import type { Metadata } from "next"
-import Link from "next/link"
+import Link from "next/link" // Keep Link for now in case it's used elsewhere, will remove if not
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Plus, Search } from "lucide-react"
-import PeopleList from "./people-list"
 import PeopleListSkeleton from "./people-list-skeleton"
-import PeopleTypeFilter from "./people-type-filter"
+import { personService } from "@/lib/people"
+import PeopleClient from "./people-client"
+import PersonForm from "./person-form" // Import PersonForm
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog" // Correct import for Shadcn Dialog
 
 export const metadata: Metadata = {
-  title: "People | HomePro OS",
+  title: "People | PROActive OS",
   description: "Manage your contacts, leads, customers, and subcontractors",
 }
 
@@ -18,11 +27,15 @@ export default async function PeoplePage({
 }: {
   searchParams: { [key: string]: string | string[] | undefined }
 }) {
-  // Extract search parameters
-  const search = typeof searchParams.search === "string" ? searchParams.search : undefined
-  const type = typeof searchParams.type === "string" ? searchParams.type : undefined
-  const leadSource = typeof searchParams.leadSource === "string" ? searchParams.leadSource : undefined
-  const tag = typeof searchParams.tag === "string" ? searchParams.tag : undefined
+  // Extract search parameters by awaiting
+  const params = await searchParams; // Await the searchParams promise
+  const search = typeof params.search === "string" ? params.search : undefined
+  const type = typeof params.type === "string" ? params.type : undefined
+  const leadSource = typeof params.leadSource === "string" ? params.leadSource : undefined
+  const tag = typeof params.tag === "string" ? params.tag : undefined
+
+  // Fetch people data on the server
+  const people = await personService.getPeople({ type, search, leadSource, tag })
 
   return (
     <div className="flex flex-col space-y-4 p-8">
@@ -31,16 +44,30 @@ export default async function PeoplePage({
           <h1 className="text-3xl font-bold tracking-tight">People</h1>
           <p className="text-muted-foreground">Manage your contacts, leads, customers, and subcontractors</p>
         </div>
-        <Button asChild>
-          <Link href="/people/new">
-            <Plus className="mr-2 h-4 w-4" />
-            New Contact
-          </Link>
-        </Button>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              New Contact
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-2xl"> {/* Increased max-width */}
+            <DialogHeader>
+              <DialogTitle>Create New Contact</DialogTitle>
+              <DialogDescription>
+                Fill in the details below to create a new contact.
+              </DialogDescription>
+            </DialogHeader>
+            {/* PersonForm component will go here */}
+            <div className="overflow-y-auto mt-4 pb-4"> {/* Added wrapper div with margin-top, bottom padding, and scroll */}
+              <PersonForm />
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
-        <PeopleTypeFilter className="w-full sm:w-auto" />
+        {/* PeopleTypeFilter is now in PeopleClient */}
         <div className="relative w-full sm:w-64">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <form action="/people" method="GET">
@@ -52,10 +79,11 @@ export default async function PeoplePage({
             <Input type="search" name="search" placeholder="Search people..." className="pl-8" defaultValue={search} />
           </form>
         </div>
+        {/* Bulk delete and reset filters buttons are now in PeopleClient */}
       </div>
 
       <Suspense fallback={<PeopleListSkeleton />}>
-        <PeopleList type={type} search={search} leadSource={leadSource} tag={tag} />
+        <PeopleClient people={people} type={type} search={search} leadSource={leadSource} tag={tag} />
       </Suspense>
     </div>
   )

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
@@ -20,21 +20,21 @@ import { toast } from "@/components/ui/use-toast"
 import { personService } from "@/lib/people"
 
 const appointmentFormSchema = z.object({
-  title: z.string().min(1, "Title is required"),
-  description: z.string().optional(),
+  appointment_type: z.string().min(1, "Title is required"), // Changed from title to appointment_type
+  description: z.string().optional(), // Kept description as it's used for notes
   start_time: z.date({
     required_error: "Start time is required",
   }),
   end_time: z.date({
     required_error: "End time is required",
   }),
-  location: z.string().optional(),
+  address: z.string().optional(), // Changed from location to address
   status: z.string().min(1, "Status is required"),
   person_id: z.string().optional(),
   opportunity_id: z.string().optional(),
   project_id: z.string().optional(),
   notes: z.string().optional(),
-  assigned_to: z.string().optional(),
+  // Removed assigned_to as it's not in the Supabase schema
 })
 
 type AppointmentFormValues = z.infer<typeof appointmentFormSchema>
@@ -57,22 +57,21 @@ export default function AppointmentForm({ initialData, appointmentId }: Appointm
   const form = useForm<AppointmentFormValues>({
     resolver: zodResolver(appointmentFormSchema),
     defaultValues: {
-      title: initialData?.title || "",
-      description: initialData?.description || "",
+      appointment_type: initialData?.appointment_type || "", // Use appointment_type
+      description: initialData?.notes || "", // Map initialData notes to form description
       start_time: initialData?.start_time ? new Date(initialData.start_time) : now,
       end_time: initialData?.end_time ? new Date(initialData.end_time) : oneHourLater,
-      location: initialData?.location || "",
-      status: initialData?.status || "scheduled",
+      address: initialData?.address || "", // Use address
+      status: initialData?.status || "Scheduled", // Use correct enum default
       person_id: initialData?.person_id || undefined,
       opportunity_id: initialData?.opportunity_id || undefined,
       project_id: initialData?.project_id || undefined,
-      notes: initialData?.notes || "",
-      assigned_to: initialData?.assigned_to || "",
+      notes: initialData?.notes || "", // Keep notes for internal use
     },
   })
 
   // Load contacts when the component mounts
-  useState(() => {
+  useEffect(() => {
     async function loadContacts() {
       try {
         setIsLoadingContacts(true)
@@ -81,7 +80,7 @@ export default function AppointmentForm({ initialData, appointmentId }: Appointm
         const formattedContacts = people.map((person) => ({
           id: person.id,
           name: personService.getDisplayName(person),
-          type: person.type,
+          type: person.person_type, // Use person_type from Supabase schema
         }))
 
         setContacts(formattedContacts)
@@ -104,37 +103,53 @@ export default function AppointmentForm({ initialData, appointmentId }: Appointm
     try {
       setIsLoading(true)
 
-      // Format dates for API
-      const formattedValues = {
-        ...values,
+      // Format dates for API and map to Supabase column names
+      const supabaseAppointmentData: NewAppointment = {
+        person_id: values.person_id || null,
+        appointment_type: values.appointment_type, // Use appointment_type
+        status: values.status as NewAppointment['status'],
         start_time: values.start_time.toISOString(),
         end_time: values.end_time.toISOString(),
-      }
+        address: values.address, // Use address
+        notes: values.notes,
+        opportunity_id: values.opportunity_id || null,
+        project_id: values.project_id || null,
+        // created_by_user_id is not handled by the form, will be set by Supabase RLS or backend logic
+      };
+
+      // Remove undefined values to allow Supabase to use defaults or nulls
+      Object.keys(supabaseAppointmentData).forEach(key => {
+        if (supabaseAppointmentData[key as keyof NewAppointment] === undefined) {
+          delete supabaseAppointmentData[key as keyof NewAppointment];
+        }
+      });
+
 
       if (appointmentId) {
         // Update existing appointment
-        await appointmentService.updateAppointment(appointmentId, formattedValues)
+        await appointmentService.updateAppointment(appointmentId, supabaseAppointmentData as any);
         toast({
           title: "Appointment updated",
           description: "Your appointment has been updated successfully.",
-        })
+        });
       } else {
         // Create new appointment
-        const newAppointment = await appointmentService.createAppointment(formattedValues as NewAppointment)
+        const newAppointment = await appointmentService.createAppointment(supabaseAppointmentData);
         toast({
           title: "Appointment created",
           description: "Your new appointment has been scheduled successfully.",
-        })
-        router.push(`/appointments/${newAppointment.id}`)
+        });
+        router.push(`/appointments/${newAppointment.id}`);
       }
     } catch (error) {
+      console.error("Error saving appointment:", error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to save appointment",
         variant: "destructive",
-      })
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
   }
 
@@ -143,10 +158,10 @@ export default function AppointmentForm({ initialData, appointmentId }: Appointm
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         <FormField
           control={form.control}
-          name="title"
+          name="appointment_type" // Use appointment_type
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Title</FormLabel>
+              <FormLabel>Title</FormLabel> {/* Keep label as Title for user */}
               <FormControl>
                 <Input placeholder="Enter appointment title" {...field} />
               </FormControl>
@@ -157,7 +172,7 @@ export default function AppointmentForm({ initialData, appointmentId }: Appointm
 
         <FormField
           control={form.control}
-          name="description"
+          name="description" // Keep form field name as description for user input
           render={({ field }) => (
             <FormItem>
               <FormLabel>Description</FormLabel>
@@ -207,10 +222,10 @@ export default function AppointmentForm({ initialData, appointmentId }: Appointm
                           <Clock className="h-4 w-4 opacity-50" />
                           <Input
                             type="time"
-                            value={format(field.value, "HH:mm")}
+                            value={field.value ? format(field.value, "HH:mm") : ""}
                             onChange={(e) => {
                               const [hours, minutes] = e.target.value.split(":")
-                              const newDate = new Date(field.value)
+                              const newDate = field.value ? new Date(field.value) : new Date();
                               newDate.setHours(Number.parseInt(hours), Number.parseInt(minutes))
                               field.onChange(newDate)
                             }}
@@ -261,10 +276,10 @@ export default function AppointmentForm({ initialData, appointmentId }: Appointm
                           <Clock className="h-4 w-4 opacity-50" />
                           <Input
                             type="time"
-                            value={format(field.value, "HH:mm")}
+                            value={field.value ? format(field.value, "HH:mm") : ""}
                             onChange={(e) => {
                               const [hours, minutes] = e.target.value.split(":")
-                              const newDate = new Date(field.value)
+                              const newDate = field.value ? new Date(field.value) : new Date();
                               newDate.setHours(Number.parseInt(hours), Number.parseInt(minutes))
                               field.onChange(newDate)
                             }}
@@ -283,10 +298,10 @@ export default function AppointmentForm({ initialData, appointmentId }: Appointm
           <div className="space-y-6">
             <FormField
               control={form.control}
-              name="location"
+              name="address" // Use address
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Location</FormLabel>
+                  <FormLabel>Location</FormLabel> {/* Keep label as Location for user */}
                   <FormControl>
                     <Input placeholder="Enter location" {...field} />
                   </FormControl>
@@ -305,14 +320,14 @@ export default function AppointmentForm({ initialData, appointmentId }: Appointm
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
+                    </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="scheduled">Scheduled</SelectItem>
-                      <SelectItem value="confirmed">Confirmed</SelectItem>
-                      <SelectItem value="completed">Completed</SelectItem>
-                      <SelectItem value="cancelled">Cancelled</SelectItem>
-                      <SelectItem value="rescheduled">Rescheduled</SelectItem>
+                      <SelectItem value="Scheduled">Scheduled</SelectItem>
+                      <SelectItem value="Completed">Completed</SelectItem>
+                      <SelectItem value="Canceled">Canceled</SelectItem>
+                      <SelectItem value="Rescheduled">Rescheduled</SelectItem>
+                      <SelectItem value="No Show">No Show</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -365,19 +380,7 @@ export default function AppointmentForm({ initialData, appointmentId }: Appointm
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="assigned_to"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Assigned To</FormLabel>
-                <FormControl>
-                  <Input placeholder="Enter assignee name" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          {/* Removed assigned_to form field */}
         </div>
 
         <FormField

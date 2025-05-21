@@ -2,8 +2,8 @@ import type { Metadata } from "next"
 import { UpdatePasswordForm } from "./update-password-form"
 
 export const metadata: Metadata = {
-  title: "Update Password | HomePro OS",
-  description: "Update your HomePro OS account password",
+  title: "Update Password | PROActive OS",
+  description: "Update your PROActive OS account password",
 }
 
 export default function UpdatePasswordPage() {

@@ -3,7 +3,7 @@ import { estimateService } from "@/lib/estimates"
 import { EstimatesList } from "./estimates-list"
 
 export const metadata: Metadata = {
-  title: "Estimates | HomePro OS",
+  title: "Estimates | PROActive OS",
   description: "Manage your estimates",
 }
 
@@ -12,12 +12,14 @@ export default async function EstimatesPage({
 }: {
   searchParams: { [key: string]: string | string[] | undefined }
 }) {
-  const status = typeof searchParams.status === "string" ? searchParams.status : undefined
-  const search = typeof searchParams.search === "string" ? searchParams.search : undefined
-  const opportunityId = typeof searchParams.opportunityId === "string" ? searchParams.opportunityId : undefined
-  const personId = typeof searchParams.personId === "string" ? searchParams.personId : undefined
-  const startDate = typeof searchParams.startDate === "string" ? searchParams.startDate : undefined
-  const endDate = typeof searchParams.endDate === "string" ? searchParams.endDate : undefined
+  const awaitedSearchParams = await searchParams;
+
+  const status = typeof awaitedSearchParams.status === "string" ? awaitedSearchParams.status : undefined
+  const search = typeof awaitedSearchParams.search === "string" ? awaitedSearchParams.search : undefined
+  const opportunityId = typeof awaitedSearchParams.opportunityId === "string" ? awaitedSearchParams.opportunityId : undefined
+  const personId = typeof awaitedSearchParams.personId === "string" ? awaitedSearchParams.personId : undefined
+  const startDate = typeof awaitedSearchParams.startDate === "string" ? awaitedSearchParams.startDate : undefined
+  const endDate = typeof awaitedSearchParams.endDate === "string" ? awaitedSearchParams.endDate : undefined
 
   const estimates = await estimateService.getEstimates({
     status: status as any,

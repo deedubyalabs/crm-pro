@@ -1,3 +1,6 @@
+"use client"
+
+import { useState } from "react"
 import { personService, PersonType } from "@/lib/people"
 import { formatPhoneNumber } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
@@ -5,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { MoreHorizontal, Mail, Phone, MapPin, User, Tag } from "lucide-react"
 import Link from "next/link"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,6 +19,18 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { getInitials } from "@/lib/utils"
+import { useRouter } from "next/navigation"
+import { useEffect } from "react"
+import { Person } from "@/lib/people" // Assuming Person type is exported from here
+
+interface PeopleListProps {
+  people: Person[] // Add the people prop
+  type?: string
+  search?: string
+  leadSource?: string
+  tag?: string
+  onSelectPeople: (selectedIds: string[]) => void
+}
 
 // Helper function to get type badge
 function getTypeBadge(type: string) {
@@ -38,18 +54,36 @@ function getTypeBadge(type: string) {
   }
 }
 
-export default async function PeopleList({
+export default function PeopleList({
+  people, // Receive people as a prop
   type,
   search,
   leadSource,
   tag,
-}: {
-  type?: string
-  search?: string
-  leadSource?: string
-  tag?: string
-}) {
-  const people = await personService.getPeople({ type, search, leadSource, tag })
+  onSelectPeople,
+}: PeopleListProps) {
+  const router = useRouter()
+  const [selectedPeople, setSelectedPeople] = useState<string[]>([])
+
+  // Call onSelectPeople when selectedPeople changes
+  useEffect(() => {
+    onSelectPeople(selectedPeople)
+  }, [selectedPeople, onSelectPeople])
+
+  const handleDeletePerson = async (personId: string) => {
+    if (confirm("Are you sure you want to delete this person?")) {
+      await personService.deletePerson(personId)
+      router.refresh() // Refresh the page to update the list
+    }
+  }
+
+  const handleSelectPerson = (personId: string, isSelected: boolean) => {
+    if (isSelected) {
+      setSelectedPeople([...selectedPeople, personId])
+    } else {
+      setSelectedPeople(selectedPeople.filter((id) => id !== personId))
+    }
+  }
 
   if (people.length === 0) {
     return (
@@ -78,6 +112,18 @@ export default async function PeopleList({
     <Table>
       <TableHeader>
         <TableRow>
+          <TableHead className="w-[40px]">
+            <Checkbox
+              checked={selectedPeople.length === people.length && people.length > 0}
+              onCheckedChange={(checked) => {
+                if (checked) {
+                  setSelectedPeople(people.map((person) => person.id))
+                } else {
+                  setSelectedPeople([])
+                }
+              }}
+            />
+          </TableHead>
           <TableHead>Name</TableHead>
           <TableHead>Type</TableHead>
           <TableHead>Email</TableHead>
@@ -90,6 +136,12 @@ export default async function PeopleList({
       <TableBody>
         {people.map((person) => (
           <TableRow key={person.id}>
+            <TableCell>
+              <Checkbox
+                checked={selectedPeople.includes(person.id)}
+                onCheckedChange={(checked) => handleSelectPerson(person.id, checked as boolean)}
+              />
+            </TableCell>
             <TableCell>
               <div className="flex items-center space-x-3">
                 <Avatar>
@@ -189,7 +241,7 @@ export default async function PeopleList({
                     <Link href={`/people/${person.id}/projects`}>View Projects</Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem className="text-red-600">Delete Contact</DropdownMenuItem>
+                  <DropdownMenuItem className="text-red-600" onClick={() => handleDeletePerson(person.id)}>Delete Contact</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </TableCell>

@@ -1,12 +1,12 @@
-# HomePro OS
+# PROActive OS
 
-![HomePro OS](public/abstract-logo.png)
+![PROActive OS](public/abstract-logo.png)
 
-HomePro OS is a comprehensive business operations platform designed specifically for home service professionals. It streamlines project management, customer relationships, financial operations, and field service coordination through an agent-optimized interface.
+PROActive OS is a comprehensive business operations platform designed specifically for home service professionals. It streamlines project management, customer relationships, financial operations, and field service coordination through an agent-optimized interface.
 
 ## 🌟 Overview
 
-HomePro OS is built to address the unique challenges faced by home service businesses, including contractors, remodelers, HVAC specialists, plumbers, electricians, and other trade professionals. The platform integrates all aspects of business operations into a single, cohesive system.
+PROActive OS is built to address the unique challenges faced by home service businesses, including contractors, remodelers, HVAC specialists, plumbers, electricians, and other trade professionals. The platform integrates all aspects of business operations into a single, cohesive system.
 
 ## ✨ Key Features
 
@@ -250,7 +250,7 @@ Manage your customer relationships with:
 
 ## 🤝 Contributing
 
-We welcome contributions to HomePro OS! Please follow these steps:
+We welcome contributions to PROActive OS! Please follow these steps:
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
@@ -276,4 +276,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ---
 
-Built with ❤️ by the HomePro OS Team
+Built with ❤️ by the PROActive OS Team

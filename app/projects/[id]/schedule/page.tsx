@@ -15,7 +15,7 @@ import ScheduleOptimizeButton from "./schedule-optimize-button"
 import ScheduleGenerateButton from "./schedule-generate-button"
 
 export const metadata = {
-  title: "Project Schedule | HomePro OS",
+  title: "Project Schedule | PROActive OS",
   description: "Intelligent project scheduling and resource allocation",
 }
 

@@ -22,7 +22,8 @@ export default async function ProjectTakeoffPage({
     notFound()
   }
 
-  const takeoffId = searchParams.takeoffId
+  const awaitedSearchParams = await searchParams;
+  const takeoffId = awaitedSearchParams.takeoffId
 
   return (
     <div className="container py-6">

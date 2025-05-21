@@ -3,8 +3,8 @@ import { UsersList } from "./users-list"
 // import { authService } from "@/lib/auth-service"
 
 export const metadata: Metadata = {
-  title: "User Management | HomePro OS",
-  description: "Manage users in your HomePro OS system",
+  title: "User Management | PROActive OS",
+  description: "Manage users in your PROActive OS system",
 }
 
 export default async function UsersPage() {

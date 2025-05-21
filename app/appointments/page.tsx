@@ -11,7 +11,7 @@ import AppointmentStatusFilter from "./appointment-status-filter"
 import { DateRangePicker } from "./date-range-picker"
 
 export const metadata: Metadata = {
-  title: "Appointments | HomePro OS",
+  title: "Appointments | PROActive OS",
   description: "Manage your appointments and meetings",
 }
 
@@ -20,20 +20,23 @@ export default async function AppointmentsPage({
 }: {
   searchParams: { [key: string]: string | string[] | undefined }
 }) {
+  // Await search parameters
+  const awaitedSearchParams = await searchParams;
+
   // Extract search parameters
-  const search = typeof searchParams.search === "string" ? searchParams.search : undefined
-  const status = typeof searchParams.status === "string" ? searchParams.status : undefined
-  const personId = typeof searchParams.personId === "string" ? searchParams.personId : undefined
-  const opportunityId = typeof searchParams.opportunityId === "string" ? searchParams.opportunityId : undefined
-  const projectId = typeof searchParams.projectId === "string" ? searchParams.projectId : undefined
+  const search = typeof awaitedSearchParams.search === "string" ? awaitedSearchParams.search : undefined
+  const status = typeof awaitedSearchParams.status === "string" ? awaitedSearchParams.status : undefined
+  const personId = typeof awaitedSearchParams.personId === "string" ? awaitedSearchParams.personId : undefined
+  const opportunityId = typeof awaitedSearchParams.opportunityId === "string" ? awaitedSearchParams.opportunityId : undefined
+  const projectId = typeof awaitedSearchParams.projectId === "string" ? awaitedSearchParams.projectId : undefined
 
   // Parse date range or use default (current week)
   const today = new Date()
   const startOfCurrentWeek = startOfWeek(today, { weekStartsOn: 1 }) // Week starts on Monday
   const endOfCurrentWeek = addDays(startOfCurrentWeek, 6) // End of week (Sunday)
 
-  const from = typeof searchParams.from === "string" ? new Date(searchParams.from) : startOfCurrentWeek
-  const to = typeof searchParams.to === "string" ? new Date(searchParams.to) : endOfCurrentWeek
+  const from = typeof awaitedSearchParams.from === "string" ? new Date(awaitedSearchParams.from) : startOfCurrentWeek
+  const to = typeof awaitedSearchParams.to === "string" ? new Date(awaitedSearchParams.to) : endOfCurrentWeek
 
   return (
     <div className="flex flex-col space-y-4 p-8">
@@ -67,8 +70,8 @@ export default async function AppointmentsPage({
               {personId && <input type="hidden" name="personId" value={personId} />}
               {opportunityId && <input type="hidden" name="opportunityId" value={opportunityId} />}
               {projectId && <input type="hidden" name="projectId" value={projectId} />}
-              {searchParams.from && <input type="hidden" name="from" value={searchParams.from.toString()} />}
-              {searchParams.to && <input type="hidden" name="to" value={searchParams.to.toString()} />}
+              {awaitedSearchParams.from && <input type="hidden" name="from" value={awaitedSearchParams.from.toString()} />}
+              {awaitedSearchParams.to && <input type="hidden" name="to" value={awaitedSearchParams.to.toString()} />}
 
               <Input
                 type="search"

@@ -9,11 +9,13 @@ export const metadata = {
   description: "Create a new sales opportunity",
 }
 
-export default function NewOpportunityPage({
+export default async function NewOpportunityPage({
   searchParams,
 }: {
   searchParams: { personId?: string }
 }) {
+  const awaitedSearchParams = await searchParams;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center space-x-2">
@@ -32,7 +34,7 @@ export default function NewOpportunityPage({
           <CardDescription>Enter the details for your new opportunity</CardDescription>
         </CardHeader>
         <CardContent>
-          <OpportunityForm personId={searchParams.personId} />
+          <OpportunityForm personId={awaitedSearchParams.personId} />
         </CardContent>
       </Card>
     </div>

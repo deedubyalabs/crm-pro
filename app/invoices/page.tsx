@@ -3,7 +3,7 @@ import { getInvoices } from "@/lib/invoices"
 import InvoicesList from "./invoices-list"
 
 export const metadata: Metadata = {
-  title: "Invoices | HomePro OS",
+  title: "Invoices | PROActive OS",
   description: "Manage your invoices",
 }
 
