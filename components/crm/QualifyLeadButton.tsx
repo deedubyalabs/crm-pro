@@ -8,9 +8,10 @@ import { toast } from "@/components/ui/use-toast";
 interface QualifyLeadButtonProps {
   leadId: string;
   onQualified: (assessment: { qualificationAssessment: string; suggestedNextSteps: string[] }) => void; // Callback prop
+  asMenuItem?: boolean; // New prop to render as a menu item
 }
 
-export default function QualifyLeadButton({ leadId, onQualified }: QualifyLeadButtonProps) {
+export default function QualifyLeadButton({ leadId, onQualified, asMenuItem }: QualifyLeadButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleQualifyClick = async () => {
@@ -46,6 +47,15 @@ export default function QualifyLeadButton({ leadId, onQualified }: QualifyLeadBu
       setIsLoading(false);
     }
   };
+
+  if (asMenuItem) {
+    return (
+      <div onClick={handleQualifyClick} className="flex items-center cursor-pointer" role="menuitem" aria-disabled={isLoading}>
+        <MessageSquare className="mr-2 h-4 w-4" />
+        {isLoading ? "Qualifying..." : "Qualify with AI"}
+      </div>
+    );
+  }
 
   return (
     <Button className="w-full justify-start" variant="outline" onClick={handleQualifyClick} disabled={isLoading}>

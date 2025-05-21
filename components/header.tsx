@@ -13,8 +13,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Bell, User, LogOut, Settings } from "lucide-react"
+import { Bell, User, LogOut, Settings, Brain } from "lucide-react" // Import Brain icon
 import { useSidebar } from "@/contexts/sidebar-context"
+import { useAIContext } from "@/contexts/ai-context" // Import useAIContext
 import { cn } from "@/lib/utils"
 
 export default function Header() {
@@ -57,17 +58,24 @@ export default function Header() {
     return parts.length > 0 ? parts[0].charAt(0).toUpperCase() + parts[0].slice(1) : "Home"
   }
 
+  const { setAssistantOpen } = useAIContext() // Use AI context
+
   return (
     <header
       className={cn(
         "sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background px-4 md:px-6",
-        isCollapsed ? "ml-16" : "ml-0 md:ml-64",
       )}
     >
       <div className="flex items-center">
         <h1 className="text-xl font-semibold">{getPageTitle()}</h1>
       </div>
       <div className="flex items-center gap-4">
+        {/* AI Assistant Button */}
+        <Button variant="ghost" size="icon" onClick={() => setAssistantOpen(true)}>
+          <Brain className="h-5 w-5" />
+          <span className="sr-only">Open AI Assistant</span>
+        </Button>
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="relative">

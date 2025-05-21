@@ -9,13 +9,13 @@ import { personService } from "@/lib/people"
 import PeopleClient from "./people-client"
 import PersonForm from "./person-form" // Import PersonForm
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog" // Correct import for Shadcn Dialog
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet" // Import Shadcn Sheet
 
 export const metadata: Metadata = {
   title: "People | PROActive OS",
@@ -44,26 +44,25 @@ export default async function PeoplePage({
           <h1 className="text-3xl font-bold tracking-tight">People</h1>
           <p className="text-muted-foreground">Manage your contacts, leads, customers, and subcontractors</p>
         </div>
-        <Dialog>
-          <DialogTrigger asChild>
+        <Sheet>
+          <SheetTrigger asChild>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
               New Contact
             </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-2xl"> {/* Increased max-width */}
-            <DialogHeader>
-              <DialogTitle>Create New Contact</DialogTitle>
-              <DialogDescription>
+          </SheetTrigger>
+          <SheetContent className="w-full sm:max-w-[500px] overflow-y-auto"> {/* Adjusted width */}
+            <SheetHeader>
+              <SheetTitle>Create New Contact</SheetTitle>
+              <SheetDescription>
                 Fill in the details below to create a new contact.
-              </DialogDescription>
-            </DialogHeader>
-            {/* PersonForm component will go here */}
-            <div className="overflow-y-auto mt-4 pb-4"> {/* Added wrapper div with margin-top, bottom padding, and scroll */}
+              </SheetDescription>
+            </SheetHeader>
+            <div className="mt-4"> {/* Added margin-top */}
               <PersonForm />
             </div>
-          </DialogContent>
-        </Dialog>
+          </SheetContent>
+        </Sheet>
       </div>
 
       <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">

@@ -7,10 +7,10 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input" // Import Input
-import QualifyLeadButton  from "@/components/crm/QualifyLeadButton" // Import QualifyLeadButton
 import LeadAISection from "@/components/crm/LeadAISection" // Import LeadAISection
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { getInitials } from "@/lib/utils"
+import EditPersonSheetTrigger from "@/components/crm/EditPersonSheetTrigger" // Import EditPersonSheetTrigger
 import {
   Mail,
   Phone,
@@ -48,16 +48,6 @@ import { documentService } from "@/lib/documents";
 import { authService } from "@/lib/auth-service";
 import { AppointmentSummary } from "@/lib/opportunities"; // Import AppointmentSummary
 import { DocumentWithRelations } from "@/types/documents"; // Import DocumentWithRelations
-
-// Server Action to handle lead qualification callback
-async function handleLeadQualified(assessment: { qualificationAssessment: string; suggestedNextSteps: string[] }) {
-  'use server';
-  console.log("Lead Qualification Assessment (Server Action):", assessment);
-  // TODO: Implement logic to store or display this assessment.
-  // For now, QualifyLeadButton shows a toast, and this logs to the server.
-  // To update the "AI Insights & Suggestions" panel, further work is needed
-  // (e.g., revalidating path, client-side state management, or dedicated component).
-}
 
 export default async function PersonPage({ params }: { params: { id: string } }) {
   // Check if the ID is "new" and redirect to the new person page
@@ -191,9 +181,7 @@ export default async function PersonPage({ params }: { params: { id: string } })
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem asChild>
-                <Link href={`/people/${person.id}/edit`}>Edit Contact</Link>
-              </DropdownMenuItem>
+              <EditPersonSheetTrigger person={person} />
               {personType === "lead" && (
                 <DropdownMenuItem asChild>
                   <Link href={`/people/${person.id}/convert`}>Convert to Customer</Link>
@@ -255,11 +243,11 @@ export default async function PersonPage({ params }: { params: { id: string } })
                       </div>
                     )}
 
-                    {/* Assigned To - TODO: Implement with real data from backend */}
+                    {/* Assigned To */}
                     <div className="flex items-center">
                       <User2 className="h-5 w-5 mr-3 text-muted-foreground" />
-                      {/* TODO: Render assigned user here */}
-                      <span className="text-muted-foreground">Not assigned</span> {/* Placeholder */}
+                      <span>{assignedUser ? [assignedUser.first_name, assignedUser.last_name].filter(Boolean).join(' ') : 'Not assigned'}</span> {/* Display assigned user */}
+                      {/* TODO: Implement editability for assigned user */}
                     </div>
                   </div>
                 </div>
@@ -278,6 +266,12 @@ export default async function PersonPage({ params }: { params: { id: string } })
                     <div className="flex items-center">
                       <Calendar className="h-5 w-5 mr-3 text-muted-foreground" />
                       <span>Added on {formatDate(person.created_at)}</span>
+                    </div>
+
+                    {/* AI Qualification */}
+                    <div className="flex items-center">
+                      <ClipboardList className="h-5 w-5 mr-3 text-muted-foreground" /> {/* Using ClipboardList for now, could be a different icon */}
+                      <span>AI Qualification: <strong className="text-muted-foreground">Pending AI Analysis</strong></span> {/* Placeholder */}
                     </div>
 
                     {person.last_contacted_at && (
@@ -313,6 +307,30 @@ export default async function PersonPage({ params }: { params: { id: string } })
                     No notes available for this contact.
                   </div>
                 )}
+              </div>
+
+              {/* Tags Section (Moved from Right Sidebar) */}
+              <div className="mt-6 pt-6 border-t">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg font-medium">Tags</h3>
+                  <Button variant="ghost" size="sm">
+                    <Edit className="h-4 w-4" />
+                    <span className="sr-only">Edit Tags</span>
+                  </Button>
+                </div>
+                <CardContent className="p-0"> {/* Removed padding as it's now inside another CardContent */}
+                  {person.tags && person.tags.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {person.tags.map((tag, index) => (
+                        <Badge key={index} variant="secondary">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No tags added yet.</p>
+                  )}
+                </CardContent>
               </div>
             </CardContent>
           </Card>
@@ -350,6 +368,12 @@ export default async function PersonPage({ params }: { params: { id: string } })
                   className="rounded-none border-b-2 border-transparent px-4 py-3 data-[state=active]:border-primary data-[state=active]:bg-transparent"
                 >
                   Activity ({activitiesCount})
+                </TabsTrigger>
+                <TabsTrigger
+                  value="ai-insights"
+                  className="rounded-none border-b-2 border-transparent px-4 py-3 data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                >
+                  AI Insights
                 </TabsTrigger>
               </TabsList>
 
@@ -535,122 +559,19 @@ export default async function PersonPage({ params }: { params: { id: string } })
                   </div>
                 </div>
               </TabsContent>
+
+              {/* AI Insights Tab */}
+              <TabsContent value="ai-insights" className="p-0">
+                <div className="p-6">
+                  <LeadAISection personId={person.id} personType={person.person_type} />
+                </div>
+              </TabsContent>
             </Tabs>
           </Card>
         </div>
 
         {/* Right Sidebar */}
         <div className="space-y-6">
-          {/* Quick Actions */}
-          <Card>
-            <CardHeader className="pb-3">
-              <h3 className="text-lg font-medium">Quick Actions</h3>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Button className="w-full justify-start" variant="outline">
-                <MessageSquare className="mr-2 h-4 w-4" />
-                Log Activity
-              </Button>
-
-              <Button className="w-full justify-start" variant="outline" asChild>
-                <Link href={`/estimates/new?personId=${person.id}`}>
-                  <FileText className="mr-2 h-4 w-4" />
-                  Create AI Estimate
-                </Link>
-              </Button>
-
-              <Button className="w-full justify-start" variant="outline" asChild>
-                <Link href={`/appointments/new?personId=${person.id}`}>
-                  <CalendarClock className="mr-2 h-4 w-4" />
-                  Schedule Appointment
-                </Link>
-              </Button>
-
-              {personType === "lead" && (
-                <Button className="w-full justify-start" variant="outline" asChild>
-                  <Link href={`/opportunities/new?personId=${person.id}`}>
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Create Opportunity
-                  </Link>
-                </Button>
-              )}
-
-              {personType === "customer" && (
-                <>
-                  <Button className="w-full justify-start" variant="outline" asChild>
-                    <Link href={`/projects/new?personId=${person.id}`}>
-                      <Building2 className="mr-2 h-4 w-4" />
-                      Create Project
-                    </Link>
-                  </Button>
-                  <Button className="w-full justify-start" variant="outline">
-                    <FileText className="mr-2 h-4 w-4" />
-                    Create Invoice
-                  </Button>
-                </>
-              )}
-
-              {personType === "subcontractor" && (
-                <Button className="w-full justify-start" variant="outline">
-                  <ClipboardList className="mr-2 h-4 w-4" />
-                  Request Bid
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* AI Insights & Suggestions Panel */}
-          <Card>
-            <CardHeader className="pb-3">
-              <h3 className="text-lg font-medium">AI Insights & Suggestions</h3>
-            </CardHeader>
-            <CardContent>
-              {/* TODO: Populate with actual AI suggestions later */}
-              <p className="text-sm text-muted-foreground">Proactive AI suggestions will appear here.</p>
-            </CardContent>
-          </Card>
-
-          {/* AI Chat & Interactions Section */}
-          <Card>
-            <CardHeader className="pb-3">
-              <h3 className="text-lg font-medium">AI Chat & Interactions</h3>
-            </CardHeader>
-            <CardContent>
-              {personType === "lead" && (
-                <QualifyLeadButton leadId={person.id} onQualified={handleLeadQualified} />
-              )}
-              <LeadAISection personId={person.id} personType={person.person_type} />
-              {/* Note: To "Increase the size of the chat input and the area for displaying chat history",
-                   the LeadAISection component itself will need to be modified. */}
-            </CardContent>
-          </Card>
-
-          {/* Tags */}
-          <Card>
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-medium">Tags</h3>
-                <Button variant="ghost" size="sm">
-                  <Edit className="h-4 w-4" />
-                  <span className="sr-only">Edit Tags</span>
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {person.tags && person.tags.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {person.tags.map((tag, index) => (
-                    <Badge key={index} variant="secondary">
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">No tags added yet.</p>
-              )}
-            </CardContent>
-          </Card>
-
           {/* Related Contacts - TODO: Implement with real data from backend */}
           {(personType === "business" || personType === "subcontractor") && (
             <Card>

@@ -1,0 +1,7 @@
+langgraph
+langchain-core
+pydantic
+supabase
+google-generativeai
+python-dotenv
+psycopg2-binary
