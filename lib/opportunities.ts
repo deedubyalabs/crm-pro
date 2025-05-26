@@ -8,7 +8,7 @@ interface OpportunityQueryResult {
   person_id: string;
   opportunity_name: string;
   description: string | null;
-  status: string; // Assuming status is a string in the query result
+  status: OpportunityStatus; // Use OpportunityStatus enum for type safety
   estimated_value: number | null;
   probability: number | null; // Added probability
   requested_completion_date: string | null; // Assuming date is returned as string
@@ -18,6 +18,7 @@ interface OpportunityQueryResult {
   created_by_user_id: string | null;
   created_at: string; // Assuming timestamp is returned as string
   updated_at: string; // Assuming timestamp is returned as string
+  lead_score: number | null; // Added lead_score
   person: { // Nested person object structure
     id: string;
     first_name: string | null;
@@ -36,6 +37,7 @@ export type NewOpportunity = Database["public"]["Tables"]["opportunities"]["Inse
 export type UpdateOpportunity = Database["public"]["Tables"]["opportunities"]["Update"] & {
   requested_completion_date?: Date | string | null; // Allow Date object input
   expected_close_date?: Date | string | null; // Added expected_close_date
+  lead_score?: number | null; // Added lead_score
 };
 
 // Redefine OpportunityWithPerson to match the query result structure more directly
@@ -44,7 +46,7 @@ export interface OpportunityWithPerson {
   person_id: string; // Still include the foreign key ID
   opportunity_name: string;
   description: string | null;
-  status: string; // Assuming status is a string in the query result
+  status: OpportunityStatus; // Use OpportunityStatus enum for type safety
   estimated_value: number | null;
   probability: number | null; // Added probability
   requested_completion_date: string | null; // Assuming date is returned as string
@@ -54,6 +56,7 @@ export interface OpportunityWithPerson {
   created_by_user_id: string | null;
   created_at: string; // Assuming timestamp is returned as string
   updated_at: string; // Assuming timestamp is returned as string
+  lead_score: number | null; // Added lead_score
   person: { // Nested person object structure
     id: string;
     first_name: string | null;
@@ -87,7 +90,7 @@ export type EstimateSummary = {
 
 export type AppointmentSummary = {
   id: string
-  title: string
+  title: string // This will be mapped from appointment_type or a combination of fields
   status: string
   start_time: string
   end_time: string
@@ -103,8 +106,10 @@ export type ProjectSummary = {
   budget_amount: number | null
 }
 
+export type OpportunityStatus = "New Lead" | "Contact Attempted" | "Contacted" | "Needs Scheduling" | "Appointment Scheduled" | "Needs Estimate" | "Estimate Sent" | "Estimate Accepted" | "Estimate Rejected" | "On Hold" | "Lost"
+
 export type OpportunityFilters = {
-  status?: string
+  status?: OpportunityStatus | "all"
   personId?: string
   search?: string
   minValue?: number
@@ -137,6 +142,7 @@ export const opportunityService = {
           created_by_user_id,
           created_at,
           updated_at,
+          lead_score,
           person:person_id (
             id,
             first_name,
@@ -216,6 +222,7 @@ export const opportunityService = {
         .from("opportunities")
         .select(`
         *,
+        lead_score,
         person:person_id (
           id,
           first_name,
@@ -245,20 +252,30 @@ export const opportunityService = {
       // Transform the data to match OpportunityWithRelations type
       const opportunity: OpportunityWithRelations = {
         ...data,
-        assigned_to: data.assigned_user_id, // Map assigned_user_id to assigned_to
+        expected_close_date: data.requested_completion_date, // Map requested_completion_date to expected_close_date
         person: data.person
           ? {
               id: data.person.id,
-              name:
-                data.person.business_name || `${data.person.first_name || ""} ${data.person.last_name || ""}`.trim(),
+              first_name: data.person.first_name,
+              last_name: data.person.last_name,
+              business_name: data.person.business_name,
               email: data.person.email,
               phone: data.person.phone,
+              person_type: data.person.person_type,
+              name:
+                data.person.business_name || `${data.person.first_name || ""} ${data.person.last_name || ""}`.trim(),
               type: data.person.person_type,
             }
           : {
               id: "",
+              first_name: null,
+              last_name: null,
+              business_name: null,
+              email: null,
+              phone: null,
+              person_type: "unknown",
               name: "Unknown",
-              type: "",
+              type: "unknown",
             },
         estimates: data.estimates || [], // Include fetched estimates
       }
@@ -286,7 +303,7 @@ export const opportunityService = {
 
           return {
             id: appointment.id,
-            title: appointment.title,
+            title: appointment.appointment_type, // Use appointment_type as the title
             status: appointment.status,
             start_time: appointment.start_time,
             end_time: appointment.end_time,
@@ -383,7 +400,9 @@ export const opportunityService = {
 
   // Calculate the weighted value of an opportunity (value * probability)
   calculateWeightedValue(opportunity: Opportunity): number {
-    // Since we don't have probability in the schema, we'll just return the estimated value
-    return opportunity.estimated_value || 0
+    // Use lead_score if available, otherwise fallback to estimated_value
+    return opportunity.lead_score !== null && opportunity.lead_score !== undefined
+      ? opportunity.lead_score
+      : opportunity.estimated_value || 0;
   },
 }

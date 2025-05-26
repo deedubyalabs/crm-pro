@@ -1,42 +1,28 @@
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowLeft } from "lucide-react"
+"use client"
+
+import { useRouter } from "next/navigation"
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 import OpportunityForm from "../opportunity-form"
 
-export const metadata = {
-  title: "New Opportunity | HomePro One",
-  description: "Create a new sales opportunity",
-}
-
-export default async function NewOpportunityPage({
+export default function NewOpportunityPage({
   searchParams,
 }: {
   searchParams: { personId?: string }
 }) {
-  const awaitedSearchParams = await searchParams;
+  const router = useRouter()
+  const personId = searchParams.personId;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center space-x-2">
-        <Button variant="outline" size="icon" asChild>
-          <Link href="/opportunities">
-            <ArrowLeft className="h-4 w-4" />
-            <span className="sr-only">Back</span>
-          </Link>
-        </Button>
-        <h1 className="text-3xl font-bold tracking-tight">New Opportunity</h1>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Opportunity Details</CardTitle>
-          <CardDescription>Enter the details for your new opportunity</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <OpportunityForm personId={awaitedSearchParams.personId} />
-        </CardContent>
-      </Card>
-    </div>
+    <Sheet open onOpenChange={(open) => !open && router.back()}>
+      <SheetContent className="w-full sm:max-w-lg flex flex-col">
+        <SheetHeader>
+          <SheetTitle>New Opportunity</SheetTitle>
+          <SheetDescription>Enter the details for your new opportunity</SheetDescription>
+        </SheetHeader>
+        <div className="flex-1 overflow-y-auto">
+          <OpportunityForm personId={personId} />
+        </div>
+      </SheetContent>
+    </Sheet>
   )
 }

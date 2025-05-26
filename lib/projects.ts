@@ -1,28 +1,6 @@
 import { supabase, handleSupabaseError } from "./supabase"
-import type { Database } from "@/types/supabase"
-
-export type Project = Database["public"]["Tables"]["projects"]["Row"]
-export type NewProject = Database["public"]["Tables"]["projects"]["Insert"]
-export type UpdateProject = Database["public"]["Tables"]["projects"]["Update"]
-
-export type Job = Database["public"]["Tables"]["jobs"]["Row"]
-export type NewJob = Database["public"]["Tables"]["jobs"]["Insert"]
-export type UpdateJob = Database["public"]["Tables"]["jobs"]["Update"]
-
-export type ProjectWithCustomer = Project & {
-  customer: {
-    id: string
-    name: string
-    email?: string | null
-    phone?: string | null
-  } | null
-}
-
-export type ProjectFilters = {
-  status?: string
-  customerId?: string
-  search?: string
-}
+import type { Project, NewProject, UpdateProject, ProjectWithCustomer, ProjectFilters } from "../types/project"
+import type { Job, NewJob, UpdateJob } from "../types/job"
 
 export const projectService = {
   async getProjects(filters?: ProjectFilters): Promise<ProjectWithCustomer[]> {
@@ -180,6 +158,18 @@ export const projectService = {
       const { data, error } = await supabase.from("projects").insert(project).select().single()
 
       if (error) throw error
+
+      // After project creation, check if the associated person is a Lead and convert to Customer
+      if (data.person_id) {
+        const { personService, PersonType } = await import("./people") // Dynamically import to avoid circular dependency
+        const person = await personService.getPersonById(data.person_id)
+
+        if (person && person.person_type === PersonType.LEAD) {
+          console.log(`Converting lead ${person.id} to customer upon project creation.`)
+          await personService.updatePerson(person.id, { person_type: PersonType.CUSTOMER })
+        }
+      }
+
       return data
     } catch (error) {
       throw new Error(handleSupabaseError(error))
@@ -306,7 +296,7 @@ export const projectService = {
     }
   },
 
-  async updateJobStatus(jobId: string, status: string): Promise<Job> {
+  async updateJobStatus(jobId: string, status: "Scheduled" | "Completed" | "Canceled" | "Pending" | "In Progress" | "Blocked"): Promise<Job> {
     try {
       const now = new Date().toISOString()
       const updates: UpdateJob = {

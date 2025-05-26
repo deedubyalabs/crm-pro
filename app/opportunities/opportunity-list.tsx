@@ -3,7 +3,7 @@ import { formatCurrency, formatDate } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { MoreHorizontal, Calendar, DollarSign, User, BarChart } from "lucide-react"
+import { MoreHorizontal, Calendar, DollarSign, User, BarChart, Percent } from "lucide-react" // Import Percent icon
 import Link from "next/link"
 import {
   DropdownMenu,
@@ -34,16 +34,18 @@ function getStatusBadge(status: string) {
   }
 }
 
+import { OpportunityStatus } from "@/lib/opportunities"; // Import OpportunityStatus type
+
 export default async function OpportunityList({
   status,
   search,
   personId,
 }: {
-  status?: string
-  search?: string
-  personId?: string
+  status?: OpportunityStatus | "all";
+  search?: string;
+  personId?: string;
 }) {
-  const opportunities = await opportunityService.getOpportunities({ status, search, personId })
+  const opportunities = await opportunityService.getOpportunities({ status, search, personId });
 
   if (opportunities.length === 0) {
     return (
@@ -74,8 +76,10 @@ export default async function OpportunityList({
             <TableHead>Name</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Contact</TableHead>
-            <TableHead>Value</TableHead>
-            <TableHead>Completion Date</TableHead>
+            <TableHead>Estimated Value</TableHead> {/* Changed from Value */}
+            <TableHead>Probability</TableHead> {/* Added Probability */}
+            <TableHead>Lead Score</TableHead> {/* Added Lead Score */}
+            <TableHead>Expected Close Date</TableHead> {/* Changed from Completion Date */}
             <TableHead className="w-[80px]"></TableHead>
           </TableRow>
         </TableHeader>
@@ -84,7 +88,7 @@ export default async function OpportunityList({
             <TableRow key={opportunity.id}>
               <TableCell>
                 <Link href={`/opportunities/${opportunity.id}`} className="font-medium hover:underline">
-                  {opportunity.title || "Untitled Opportunity"}
+                  {opportunity.opportunity_name || "Untitled Opportunity"} {/* Corrected from title */}
                 </Link>
                 {opportunity.description && (
                   <p className="text-sm text-muted-foreground line-clamp-1">{opportunity.description}</p>
@@ -100,20 +104,40 @@ export default async function OpportunityList({
                 </div>
               </TableCell>
               <TableCell>
-                {opportunity.value ? (
+                {opportunity.estimated_value ? (
                   <div className="flex items-center">
                     <DollarSign className="h-4 w-4 mr-1 text-muted-foreground" />
-                    {formatCurrency(opportunity.value)}
+                    {formatCurrency(opportunity.estimated_value)}
                   </div>
                 ) : (
                   <span className="text-muted-foreground">Not set</span>
                 )}
               </TableCell>
               <TableCell>
-                {opportunity.requested_completion_date ? (
+                {opportunity.probability !== null && opportunity.probability !== undefined ? (
+                  <div className="flex items-center">
+                    <Percent className="h-4 w-4 mr-1 text-muted-foreground" />
+                    {opportunity.probability}%
+                  </div>
+                ) : (
+                  <span className="text-muted-foreground">Not set</span>
+                )}
+              </TableCell>
+              <TableCell>
+                {opportunity.lead_score !== null && opportunity.lead_score !== undefined ? (
+                  <div className="flex items-center">
+                    <BarChart className="h-4 w-4 mr-1 text-muted-foreground" />
+                    {opportunity.lead_score}%
+                  </div>
+                ) : (
+                  <span className="text-muted-foreground">Not set</span>
+                )}
+              </TableCell>
+              <TableCell>
+                {opportunity.expected_close_date ? (
                   <div className="flex items-center">
                     <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                    {formatDate(opportunity.requested_completion_date)}
+                    {formatDate(opportunity.expected_close_date)}
                   </div>
                 ) : (
                   <span className="text-muted-foreground">Not set</span>

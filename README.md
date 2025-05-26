@@ -1,279 +1,297 @@
-# PROActive OS
+# PROActive OS: Your Operations Hub for Construction Success
 
-![PROActive OS](public/abstract-logo.png)
+**Version:** 1.0 (Production-Grade Manual System)
+**Last Updated:** May 21, 2025
 
-PROActive OS is a comprehensive business operations platform designed specifically for home service professionals. It streamlines project management, customer relationships, financial operations, and field service coordination through an agent-optimized interface.
+## 1. Project Vision & Mission
 
-## 🌟 Overview
+**Vision:** To be the most intuitive, efficient, and reliable operations hub for solo residential contractors and small construction businesses, empowering them to manage their entire project lifecycle with clarity and professionalism.
 
-PROActive OS is built to address the unique challenges faced by home service businesses, including contractors, remodelers, HVAC specialists, plumbers, electricians, and other trade professionals. The platform integrates all aspects of business operations into a single, cohesive system.
+**Mission:** To provide a comprehensive, yet easy-to-use, cloud-based platform that streamlines Customer Relationship Management (CRM), estimating, project management, financial tracking, and communication, enabling contractors to save time, improve profitability, and deliver exceptional client experiences.
 
-## ✨ Key Features
+## 2. Core Problem Addressed
 
-### 🏗️ Project Management
-- Complete project lifecycle management
-- Job scheduling and tracking
-- Material lists and takeoffs
-- Intelligent scheduling with weather impact analysis
+Solo residential contractors and small construction firms often juggle numerous administrative and operational tasks that detract from their core craft. They face challenges in:
 
-### 💼 Customer Relationship Management
-- Lead and opportunity tracking
-- Customer communication hub
-- Appointment scheduling
-- Client portal for customer access
+*   Efficiently managing leads, client communications, and sales opportunities.
+*   Quickly creating accurate, professional estimates and proposals.
+*   Tracking project progress, schedules, and tasks effectively.
+*   Managing project financials, including expenses, invoices, payments, and job costing.
+*   Organizing project documents, photos, and notes.
+*   Coordinating with subcontractors and managing bids.
+*   Handling change orders systematically.
+*   Maintaining a professional image and ensuring client satisfaction.
 
-### 💰 Financial Management
-- Estimates and proposals
-- Invoicing and payment processing
-- Expense tracking
-- Change order management
-- Financial dashboard with KPIs
+PROActive OS is designed to be the central nervous system for their business, bringing all these functions into one integrated and user-friendly platform.
 
-### 📄 Document Management
-- Document storage and organization
-- Document sharing and collaboration
-- Version control
-- E-signature capabilities
+## 3. High-Level System Overview
 
-### 🤖 Agent Workspace
-- AI-powered agents for task automation
-- Tool integration framework
-- Task management
-- System settings and configuration
+PROActive OS is a web-based application built with a modern tech stack (Next.js, Supabase) designed for performance, reliability, and ease of use. It provides a suite of interconnected modules covering the full spectrum of a contractor's operational needs. The system prioritizes a clean user interface, logical workflows, and deep relational linking of data to provide a holistic view of the business.
 
-### 📱 Mobile Accessibility
-- Responsive design for field use
-- Voice notes and transcription
-- Photo documentation
+**Key Modules:**
 
-## 🛠️ Technology Stack
+*   **Dashboard:** Customizable overview of key business metrics, upcoming tasks, project statuses, and financial summaries.
+*   **CRM (People & Opportunities):**
+    *   **People:** Comprehensive contact management for Leads, Customers, Subcontractors, Vendors, and Employees.
+    *   **Opportunities:** Tracking potential projects from initial qualification to estimate creation.
+*   **Operations:**
+    *   **Projects:** Central hub for managing active jobs, including all related details, financials, documents, and tasks.
+    *   **Estimates:** Powerful and flexible tool for creating detailed, professional estimates and proposals.
+    *   **Jobs (Tasks & To-Do's):** Managing general tasks and specific project-related jobs with checklists and assignments.
+    *   **Schedule:** Visual calendar for managing appointments, project tasks, and deadlines.
+    *   **Daily Logs:** Comprehensive daily reporting from the job site.
+    *   **Work Orders & Service Tickets:** Managing ad-hoc service requests and smaller jobs, with integration for membership plans.
+    *   **Documents:** Centralized repository for all project and contact-related files with versioning and categorization.
+    *   **Voice Notes:** (Future integration point for AI transcription)
+*   **Financials:**
+    *   **Financial Hub:** Overview of financial health, linking to all financial modules.
+    *   **Cost Items Database:** Central library for materials, labor rates, equipment, and subcontractor costs.
+    *   **Change Orders:** Managing scope changes, client approvals, and financial impact on projects.
+    *   **Invoices:** Creating and sending professional invoices, tracking payment status.
+    *   **Payments:** Recording and managing client payments.
+    *   **Expenses:** Tracking all project-related and overhead expenses.
+    *   **Purchase Orders:** Managing orders with suppliers.
+    *   **Sub-Contracts:** Managing agreements with subcontractors.
+    *   **Bills (Accounts Payable):** Tracking bills from vendors and subcontractors.
+    *   **Job Costing:** Real-time and historical analysis of project profitability.
+*   **Admin & Settings:**
+    *   User profile management.
+    *   Company settings (branding, default terms, etc.).
+    *   Customizable categories ("add as you go" for stages, sources, types, etc.).
+    *   Integration management (Square, Accounting, etc.).
+    *   (Future) User roles and permissions for small teams.
+*   **Reporting:** Comprehensive reporting suite with pre-built reports and a custom report builder, focusing on in-app interactive viewing.
+*   **Client Portal:** Secure portal for clients to view project progress, documents, make payments, and communicate.
+*   **Communication (Future Placeholder for Sendbird):** Integrated email and in-app messaging capabilities.
+*   **Membership & Rewards:** Managing client membership plans and loyalty programs.
 
-- **Frontend**: Next.js (App Router), React, TypeScript, Tailwind CSS
-- **Backend**: Next.js API Routes, Server Actions
-- **Database**: Supabase (PostgreSQL)
-- **Authentication**: Custom auth with Supabase
-- **Payment Processing**: Square
-- **Email**: Resend
-- **Storage**: Supabase Storage
-- **Deployment**: Vercel
-- **External APIs**: BigBox API, Weather API
+## 4. Target User Profile
 
-## 🚀 Getting Started
+*   **Solo Residential General Contractors & Remodelers.**
+*   **Specialized Trade Contractors** (Plumbers, Electricians, HVAC, Painters, Landscapers, etc.) operating independently or with very small crews (1-5 people).
+*   Users who value simplicity, efficiency, and a modern user experience.
+*   Often mobile (using tablets/laptops on-site or in their vehicle).
+*   May have varying levels of technical comfort but need a tool that "just works" and doesn't require extensive training.
+*   Primarily focused on residential projects, but may do some light commercial work.
 
-### Prerequisites
+## 5. Key Value Propositions (Manual System)
 
-- Node.js 18.x or higher
-- npm or yarn
-- Supabase account
-- Square developer account (for payment processing)
-- Resend account (for email functionality)
+*   **Centralized Control:** Manage your entire business from one place, eliminating the need to juggle multiple disconnected apps and spreadsheets.
+*   **Time Savings:** Streamlined workflows for common tasks like estimating, invoicing, and scheduling free up significant time.
+*   **Enhanced Professionalism:** Consistently produce professional-looking documents (estimates, invoices, change orders) and maintain clear communication with clients.
+*   **Improved Organization:** Keep all project information, client details, documents, and financial records neatly organized and easily accessible.
+*   **Better Financial Oversight:** Gain clear visibility into project costs, revenue, and profitability with integrated job costing and financial reporting.
+*   **Increased Efficiency:** Reduce redundant data entry through interconnected modules and intelligent data pre-filling.
+*   **Customizable to Your Business:** Flexible "add as you go" categories allow you to tailor the system to your specific terminology and processes.
+*   **User-Friendly Interface:** A clean, modern, and intuitive design makes the platform easy to learn and use, even for less tech-savvy contractors.
 
-### Installation
+## 6. Core Principles (Guiding Development)
 
-1. Clone the repository:
-   \`\`\`bash
-   git clone https://github.com/your-username/homepro-os.git
-   cd homepro-os
-   \`\`\`
+*   **User-Centric Design:** Every feature and workflow is designed with the solo contractor's needs and ease of use as the top priority.
+*   **Simplicity & Intuition:** The platform must be easy to learn and navigate, with clear, uncluttered interfaces. Side drawers are preferred for creation/edit forms to maintain context.
+*   **Deep Integration & Relational Data:** All modules are tightly integrated, with data flowing seamlessly between them. A robust relational database schema (Supabase/PostgreSQL) is foundational.
+*   **Efficiency:** Workflows are optimized to minimize clicks and save the user time.
+*   **Reliability & Security:** The platform must be stable, performant, and secure, protecting sensitive business and client data.
+*   **Modern Technology:** Built with a modern, scalable tech stack (Next.js, Supabase, Tailwind CSS).
+*   **Future-Readiness for AI:** While this README focuses on the manual system, the underlying architecture and data structures (Agent Data Fabric foundation) are designed to readily accommodate future AI integrations for enhanced automation and proactive assistance.
 
-2. Install dependencies:
-   \`\`\`bash
-   npm install
-   # or
-   yarn install
-   \`\`\`
+## 7. Key Features & Functionality (Manual System - End Goal)
 
-3. Set up environment variables:
-   Create a `.env.local` file in the root directory with the following variables:
-   \`\`\`
-   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-   
-   NEXT_PUBLIC_SQUARE_APP_ID=your_square_app_id
-   SQUARE_ACCESS_TOKEN=your_square_access_token
-   SQUARE_LOCATION_ID=your_square_location_id
-   NEXT_PUBLIC_SQUARE_API_URL=your_square_api_url
-   
-   RESEND_API_KEY=your_resend_api_key
-   EMAIL_FROM=your_email_address
-   
-   NEXT_PUBLIC_BIGBOX_API_URL=your_bigbox_api_url
-   BIGBOX_API_KEY=your_bigbox_api_key
-   \`\`\`
+*(This section would be very detailed, drawing heavily from your `contractor-foreman-review.md` "PROActive OS Adaptation" sections for each module. Below is a high-level summary; the full version would list out specific fields, actions, and sub-features for each.)*
 
-4. Run database migrations:
-   \`\`\`bash
-   npm run migrate
-   # or
-   yarn migrate
-   \`\`\`
+### 7.1. Dashboard
+    * Customizable widgets for:
+        * Open Estimates (list, stats)
+        * Unpaid Invoices (chart, list)
+        * Current Projects (list, progress summary)
+        * Leads by Stage
+        * Upcoming Tasks & Appointments
+        * Recent Activity Feed
+        * Key Financial KPIs (e.g., Revenue YTD, Profit Margin Average)
 
-5. Start the development server:
-   \`\`\`bash
-   npm run dev
-   # or
-   yarn dev
-   \`\`\`
+### 7.2. CRM
+    *   **People Module (Contacts):**
+        *   Unified list for Leads, Customers, Subcontractors, Vendors, Employees (filterable by type).
+        *   Side drawer for quick creation/editing of contacts.
+        *   Comprehensive contact detail view:
+            *   Contact Information (multiple phones, emails, addresses).
+            *   Key Information (status, source, dates).
+            *   Notes, Tags.
+            *   Related entities tabs: Opportunities, Projects, Estimates, Invoices, Jobs, Appointments, Documents, Activity Log, AI Insights (placeholder).
+        *   "Add as you go" for Lead Source, Lead Stage, Contact Tags, etc.
+        *   Manual conversion of Lead to Customer.
+        *   Bulk actions (delete, assign tags).
+    *   **Opportunities Module:**
+        *   List view with customizable columns and filters.
+        *   Side drawer for quick creation/editing of opportunities (link to Person).
+        *   Opportunity detail view:
+            *   Details (Opportunity Name, Stage, Project Type, Est. Value, Close Date, Sales Rep).
+            *   Sales pipeline visualizer.
+            *   Address information (can differ from primary contact).
+            *   Related entities tabs: Tasks/Jobs, Estimates, Files, Notes, Activity Log.
+        *   "Add as yougo" for Opportunity Stage, Project Type.
+    *   **Inbox (Future - Manual Email Integration):**
+        *   Connect personal email (Gmail/Outlook) to send/receive emails within PROActive OS, automatically linking them to contacts/projects.
 
-6. Open [http://localhost:3000](http://localhost:3000) in your browser to see the application.
+### 7.3. Operations
+    *   **Projects Module:**
+        *   Dashboard/list view of all projects (filterable, sortable).
+        *   Comprehensive project detail view (central hub):
+            *   Summary (status, key dates, budget vs. actual).
+            *   Financials (linked Estimates, Change Orders, Invoices, Payments, Expenses, Purchase Orders, Bills, Job Costing summary).
+            *   Schedule of Values.
+            *   Schedule (Gantt chart view, task list).
+            *   Jobs/Tasks.
+            *   Daily Logs.
+            *   Documents & Photos.
+            *   Contacts (Client, Subcontractors, etc.).
+            *   Procurement (linked POs).
+            *   Client Portal access controls.
+            *   Reports specific to the project.
+            *   Notes, Activity Log.
+    *   **Estimates Module:**
+        *   List view of all estimates (filterable by status, etc.).
+        *   Side drawer for quick estimate creation.
+        *   Detailed estimate creation/editing interface:
+            *   Link to Opportunity/Person.
+            *   Estimate details (number, issue/expiry date, project type).
+            *   Line Items:
+                *   Sections (with optional toggle for groups of items).
+                *   Import from Cost Items Database (materials, labor, equipment, subs, groups) via side drawer.
+                *   Add new cost items "as you go" to the database.
+                *   Manual item entry.
+                *   Fields: Description, Qty, Unit, Unit Cost, Markup (%, $), Taxable, Total.
+                *   Assign items to internal staff or subcontractors.
+            *   Summary (Subtotal, Discount, Tax, Total, Est. Cost, Est. Profit, Est. Hours).
+            *   Terms & Conditions, Scope of Work, Cover Sheet, Notes, Files.
+            *   Bidding section for managing subcontractor bids on specific line items/sections.
+            *   Preview & Send functionality (PDF generation).
+            *   Convert to Project/Invoice/Schedule of Values upon approval.
+    *   **Jobs (Tasks & To-Do's) Module:**
+        *   List view and Kanban board view.
+        *   Side drawer for task creation (link to Person, Opportunity, Project).
+        *   Fields: Subject, Assigned To, Due Date/Time, Type (Call, Email, Meeting, Site Visit, etc. - "add as you go"), Status, Priority, Description, Checklist Items, Notes.
+        *   "Show on Calendar" option.
+    *   **Schedule (Calendar) Module:**
+        *   Day, Week, Month views.
+        *   Displays Appointments and Jobs/Tasks marked "Show on Calendar."
+        *   Drag-and-drop rescheduling.
+        *   Integration with external calendars (e.g., Google Calendar via API).
+    *   **Daily Logs Module:**
+        *   List view (per project) and calendar navigation.
+        *   Comprehensive form for daily entries:
+            *   Date, Weather, Jobsite Conditions, Delays.
+            *   People on Site (Employees, Subs - with time in/out).
+            *   Materials Delivered/Used.
+            *   Equipment Used/Logs.
+            *   Notes, Photos/Files, Incidents.
+    *   **Work Orders & Service Tickets Module:**
+        *   Dedicated modules for managing smaller, often service-oriented jobs.
+        *   Link to Clients, (potentially) Projects, Membership Plans.
+        *   Scheduling, assignment, status tracking, description, items/services used.
+        *   Electronic signature support for completion.
+    *   **Documents Module:**
+        *   Central repository for ALL uploaded files and generated documents (Estimates, Invoices, Change Orders, POs, etc.).
+        *   Folder structure or robust tagging/categorization (`document_type` field).
+        *   Link documents to People, Opportunities, Projects, Estimates, etc.
+        *   Version control (basic).
+        *   Advanced search and filtering.
 
-## 📁 Project Structure
+### 7.4. Financials
+    *   **Financial Hub:** Dashboard with key financial KPIs, links to other financial modules.
+    *   **Cost Items Database Module:**
+        *   Manage library of Materials, Labor Rates, Equipment, Subcontractor services, Other costs.
+        *   Fields: Item Code, Name, Description, Type, Unit, Unit Cost, Default Markup.
+        *   Ability to create and manage Cost Item Groups (assemblies).
+        *   "Add as you go" from Estimates/POs.
+        *   (Future) BigBoxAPI integration for price updates.
+    *   **Change Orders Module:**
+        *   List view and status tracking.
+        *   Create COs linked to Projects.
+        *   Add CO line items (import from Estimate/SOV or manual).
+        *   Approval workflow with client (e-signature).
+        *   Automatic update to Project financials and Schedule of Values.
+    *   **Invoices Module:**
+        *   List view, status tracking (Draft, Sent, Paid, Overdue).
+        *   Create Invoices from Projects, Estimates, or manually.
+        *   Add various item types: from Cost Items, SOV, Estimate, Time & Materials (unbilled Time Cards, Expenses, COs), Manual Items, Discounts, Retainage.
+        *   Professional PDF generation.
+        *   Send via email (integration).
+        *   Square integration for online payments.
+    *   **Payments Module:**
+        *   Record payments against Invoices.
+        *   Track payment method, date, amount, reference.
+        *   Square integration for automatic reconciliation of online payments.
+    *   **Expenses Module:**
+        *   Track project-related and overhead expenses.
+        *   Link to Projects, categorize ("add as you go").
+        *   Fields: Date, Vendor, Description, Amount, Receipt attachment.
+        *   Mark as billable to include on invoices.
+    *   **Purchase Orders Module:**
+        *   Create and manage POs for suppliers.
+        *   Link to Projects, Suppliers.
+        *   Add items from Cost Database, Material Lists, or manually.
+        *   Track status (Draft, Sent, Partially Received, Received).
+    *   **Sub-Contracts Module:**
+        *   Manage agreements with subcontractors.
+        *   Link to Projects, Subcontractors.
+        *   Define scope of work, contract amount, terms.
+    *   **Bills (Accounts Payable) Module:**
+        *   Track incoming bills from vendors and subcontractors.
+        *   Link to POs or Expenses.
+        *   Manage due dates and payment status.
+    *   **Job Costing:**
+        *   Automatic calculation based on all linked financial data (Estimates, COs, Invoices, Payments, Expenses, Time Cards, POs, Bills).
+        *   Real-time and summary views of estimated vs. actual costs, revenue, and profit per project.
 
-\`\`\`
-homepro-os/
-├── app/                    # Next.js App Router
-│   ├── agent-workspace/    # Agent workspace pages
-│   ├── api/                # API routes
-│   ├── appointments/       # Appointment management
-│   ├── auth/               # Authentication pages
-│   ├── calendar/           # Calendar views
-│   ├── change-orders/      # Change order management
-│   ├── client-portal/      # Client portal pages
-│   ├── cost-items/         # Cost items management
-│   ├── documents/          # Document management
-│   ├── estimates/          # Estimate creation and management
-│   ├── expenses/           # Expense tracking
-│   ├── financial-dashboard/# Financial reporting
-│   ├── inbox/              # Communication hub
-│   ├── invoices/           # Invoice management
-│   ├── jobs/               # Job management
-│   ├── material-lists/     # Material lists
-│   ├── opportunities/      # Sales opportunities
-│   ├── payments/           # Payment processing
-│   ├── people/             # Customer and contact management
-│   ├── projects/           # Project management
-│   ├── settings/           # System settings
-│   ├── voice-notes/        # Voice notes and transcription
-│   ├── layout.tsx          # Root layout
-│   └── page.tsx            # Home page
-├── components/             # Shared React components
-├── contexts/               # React context providers
-├── db/                     # Database migrations and schema
-├── emails/                 # Email templates
-├── hooks/                  # Custom React hooks
-├── lib/                    # Utility functions and services
-├── public/                 # Static assets
-├── types/                  # TypeScript type definitions
-├── .env.local              # Environment variables (not in repo)
-├── next.config.js          # Next.js configuration
-├── package.json            # Project dependencies
-├── tailwind.config.js      # Tailwind CSS configuration
-└── tsconfig.json           # TypeScript configuration
-\`\`\`
+### 7.5. Admin & Settings
+    *   User Profile.
+    *   Company Information & Branding (for documents).
+    *   Default Payment Terms, Estimate Terms, etc.
+    *   Management of "Add as you go" categories (Lead Sources, Stages, Project Types, Task Types, Expense Categories, etc.).
+    *   Third-party integrations dashboard (Square, Accounting API, Calendar).
 
-## 📖 Usage
+### 7.6. Reporting Module
+    *   Library of pre-built reports for all major modules (CRM, Projects, Financials, etc.).
+    *   Custom Report Builder:
+        *   Select modules/data sources.
+        *   Choose columns/fields.
+        *   Apply filters, sorting, grouping.
+        *   Save custom report templates.
+    *   Interactive in-app report viewing with charts and data tables.
+    *   Export options (PDF, CSV).
 
-### Agent Workspace
+### 7.7. Client Portal
+    *   Secure, unique portal access per client/project.
+    *   View project progress, key dates, shared documents (estimates, invoices, COs, photos).
+    *   Communication channel (chat/messaging - Sendbird integration).
+    *   E-signature for documents.
+    *   Online payment of invoices (Square integration).
+    *   Contractor controls for information visibility.
 
-The Agent Workspace is the central hub for AI-powered automation. Here you can:
-- Configure and deploy agents for specific tasks
-- Manage tools that agents can use
-- Monitor agent activity through logs
-- Configure system-wide settings
+### 7.8. Membership & Rewards
+    *   Define membership tiers and benefits.
+    *   Track client membership status.
+    *   Points earning rules (spending, referrals, etc.).
+    *   Points redemption for discounts or services.
+    *   Manage optional add-on service packages.
 
-### Project Management
+## 8. Technology Stack (Recap)
 
-Create and manage projects with:
-- Customer details and project specifications
-- Job scheduling and tracking
-- Material takeoffs and lists
-- Financial tracking including estimates, invoices, and expenses
-- Document management
+*   **Frontend:** Next.js (App Router), React, TypeScript, Tailwind CSS, shadcn/ui
+*   **Backend:** Next.js API Routes / Server Actions
+*   **Database:** Supabase (PostgreSQL) - serving as the core Agent Data Fabric foundation.
+*   **Authentication:** Supabase Auth (or custom with Supabase).
+*   **File Storage:** Supabase Storage.
+*   **Deployment:** Vercel.
+*   **Key External APIs (for manual system):** Square (Payments, Invoicing), Accounting API (user's choice - Xero, QuickBooks via API), Google Calendar. (Sendbird for chat is more of an AI-phase integration but good to keep in mind).
 
-### Financial Management
+## 9. Future Considerations (Beyond Manual MVP)
 
-Comprehensive financial tools including:
-- Estimate creation with line items and payment schedules
-- Invoice generation and payment tracking
-- Change order management
-- Expense tracking
-- Financial dashboard with key metrics
-
-### Customer Management
-
-Manage your customer relationships with:
-- Lead and opportunity tracking
-- Customer communication
-- Appointment scheduling
-- Client portal for customer access to projects, invoices, and documents
-
-## 🗺️ Roadmap
-
-### Q3 2023
-- [x] Core project management functionality
-- [x] Basic financial management (estimates, invoices)
-- [x] Customer relationship management
-- [x] Document management system
-
-### Q4 2023
-- [x] Agent workspace for AI-powered automation
-- [x] Enhanced financial reporting
-- [x] Square payment integration
-- [x] Client portal for customer access
-- [x] Voice notes and transcription
-
-### Q1 2024
-- [x] Material takeoffs and lists
-- [x] Purchase order management
-- [x] Expense tracking
-- [x] BigBox integration for material pricing
-- [x] Document sharing and collaboration
-
-### Q2 2024
-- [x] Intelligent scheduling with weather impact analysis
-- [x] Enhanced communication tools
-- [x] Mobile app for field use
-- [ ] Time tracking and payroll integration
-- [ ] Enhanced reporting and analytics
-
-### Q3 2024
-- [ ] Equipment management and tracking
-- [ ] Warranty management
-- [ ] Customer review management
-- [ ] Enhanced client portal features
-- [ ] Advanced document management with version control
-
-### Q4 2024
-- [ ] Subcontractor management
-- [ ] Advanced scheduling with resource optimization
-- [ ] Inventory management
-- [ ] Enhanced mobile capabilities
-- [ ] Integration with accounting software
-
-### 2025 and Beyond
-- [ ] Multi-location support
-- [ ] Franchise management
-- [ ] Advanced business intelligence
-- [ ] Machine learning for project estimation
-- [ ] AR/VR integration for project visualization
-- [ ] IoT integration for smart home services
-
-## 🤝 Contributing
-
-We welcome contributions to PROActive OS! Please follow these steps:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-Please ensure your code follows our coding standards and includes appropriate tests.
-
-## 📄 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🙏 Acknowledgements
-
-- [Next.js](https://nextjs.org/)
-- [React](https://reactjs.org/)
-- [Tailwind CSS](https://tailwindcss.com/)
-- [Supabase](https://supabase.io/)
-- [Square](https://squareup.com/developers)
-- [Resend](https://resend.io/)
-- [Vercel](https://vercel.com/)
+*   **Deep AI Integration:** Embedded AI Assistant (conversational UI via side drawer), proactive suggestions, AI-powered data analysis, automation of complex workflows using Agno agents.
+*   **Mobile Apps:** Native or PWA for enhanced offline capabilities (especially time tracking, daily logs).
+*   **Advanced Team Features:** User roles, permissions, team scheduling, collaborative workflows (for slightly larger teams).
+*   **Inventory Management:** Basic tracking for commonly used materials.
+*   **Full Visual Takeoff (FloorPlan Pro integration).**
 
 ---
-
-Built with ❤️ by the PROActive OS Team

@@ -10,14 +10,15 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area" // Import ScrollArea and ScrollBar
 import { toast } from "@/components/ui/use-toast"
-import { personService } from "@/lib/people"
-import type { Person } from "@/lib/people"
+import { personService, PersonType } from "@/lib/people" // Import PersonType
+import type { NewPerson, Person, UpdatePerson } from "@/lib/people"
 import { TagInput } from "@/components/tag-input"
 
 const personSchema = z
   .object({
-    person_type: z.string().min(1, "Type is required"),
+    person_type: z.enum(["lead", "customer", "business", "subcontractor", "employee"]),
     first_name: z.string().optional(),
     last_name: z.string().optional(),
     business_name: z.string().optional(),
@@ -37,15 +38,15 @@ const personSchema = z
     (data) => {
       // For businesses and subcontractors, business_name is required
       if (
-        (data.person_type.toLowerCase() === "business" || data.person_type.toLowerCase() === "subcontractor") &&
+        (data.person_type === "business" || data.person_type === "subcontractor") &&
         !data.business_name
       ) {
         return false
       }
       // For individuals, at least first_name or last_name is required
       if (
-        data.person_type.toLowerCase() !== "business" &&
-        data.person_type.toLowerCase() !== "subcontractor" &&
+        data.person_type !== "business" &&
+        data.person_type !== "subcontractor" &&
         !data.first_name &&
         !data.last_name
       ) {
@@ -83,7 +84,7 @@ export default function PersonForm({ initialData, isEdit = false }: PersonFormPr
     defaultValues: initialData
       ? {
           // Convert to lowercase for UI display
-          person_type: initialData.person_type.toLowerCase(),
+          person_type: initialData.person_type.toLowerCase() as PersonFormValues["person_type"],
           first_name: initialData.first_name || "",
           last_name: initialData.last_name || "",
           business_name: initialData.business_name || "",
@@ -100,7 +101,7 @@ export default function PersonForm({ initialData, isEdit = false }: PersonFormPr
           tags: initialData.tags || [],
         }
       : {
-          person_type: "lead",
+          person_type: "lead", // Default to "lead" in lowercase
           first_name: "",
           last_name: "",
           business_name: "",
@@ -163,14 +164,24 @@ export default function PersonForm({ initialData, isEdit = false }: PersonFormPr
     try {
       console.log("Submitting form with values:", values)
 
+      // Convert person_type back to capitalized enum value for the service
+      const personTypeForService = Object.values(PersonType).find(
+        (type) => type.toLowerCase() === values.person_type,
+      ) as PersonType;
+
+      const submissionValues = {
+        ...values,
+        person_type: personTypeForService,
+      };
+
       if (isEdit && initialData) {
-        await personService.updatePerson(initialData.id, values)
+        await personService.updatePerson(initialData.id, submissionValues as UpdatePerson)
         toast({
           title: "Contact updated",
           description: "The contact has been updated successfully.",
         })
       } else {
-        await personService.createPerson(values)
+        await personService.createPerson(submissionValues as NewPerson)
         toast({
           title: "Contact created",
           description: "The new contact has been created successfully.",
@@ -250,165 +261,196 @@ export default function PersonForm({ initialData, isEdit = false }: PersonFormPr
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6"> {/* Removed vertical padding */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <FormField
-            control={form.control}
-            name="person_type"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Contact Type</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSubmitting}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a contact type" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="lead">Lead</SelectItem>
-                    <SelectItem value="customer">Customer</SelectItem>
-                    <SelectItem value="business">Business</SelectItem>
-                    <SelectItem value="subcontractor">Subcontractor</SelectItem>
-                    <SelectItem value="employee">Employee</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormDescription>The type of contact determines available actions and workflows.</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="lead_source"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Lead Source</FormLabel>
-                <Select onValueChange={(value) => {
-                  if (value === "add_new_source") {
-                    setShowNewSourceInput(true);
-                  } else {
-                    field.onChange(value);
-                    setShowNewSourceInput(false);
-                  }
-                }} defaultValue={field.value} disabled={isSubmitting || loadingCategories}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder={loadingCategories ? "Loading sources..." : "Select a lead source"} />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {errorCategories ? (
-                      <SelectItem value="error" disabled>Error loading sources</SelectItem>
-                    ) : (
-                      leadSources.map((source) => (
-                        <SelectItem key={source.id} value={source.name}>
-                          {source.name}
-                        </SelectItem>
-                      ))
-                    )}
-                    <SelectItem value="add_new_source">Add New Source</SelectItem>
-                  </SelectContent>
-                </Select>
-                {showNewSourceInput && (
-                  <div className="flex space-x-2 mt-2">
-                    <Input
-                      placeholder="New source name"
-                      value={newSource}
-                      onChange={(e) => setNewSource(e.target.value)}
-                      disabled={isSubmitting}
-                    />
-                    <Button type="button" onClick={() => handleAddCategory('lead_source', newSource, setLeadSources, setNewSource, setShowNewSourceInput)} disabled={isSubmitting || !newSource}>
-                      Add
-                    </Button>
-                  </div>
-                )}
-                <FormDescription>Where this contact came from (optional).</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* Add Lead Stage field */}
-          {personType === "lead" && (
+      <ScrollArea className="h-[calc(100vh-8rem)] px-4"> {/* Adjust height as needed */}
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <FormField
               control={form.control}
-              name="lead_stage"
+              name="person_type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Lead Stage</FormLabel>
+                  <FormLabel>Contact Type</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSubmitting}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a contact type" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="lead">Lead</SelectItem>
+                      <SelectItem value="customer">Customer</SelectItem>
+                      <SelectItem value="business">Business</SelectItem>
+                      <SelectItem value="subcontractor">Subcontractor</SelectItem>
+                      <SelectItem value="employee">Employee</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>The type of contact determines available actions and workflows.</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="lead_source"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Lead Source</FormLabel>
                   <Select onValueChange={(value) => {
-                    if (value === "add_new_stage") {
-                      setShowNewStageInput(true);
+                    if (value === "add_new_source") {
+                      setShowNewSourceInput(true);
                     } else {
                       field.onChange(value);
-                      setShowNewStageInput(false);
+                      setShowNewSourceInput(false);
                     }
                   }} defaultValue={field.value} disabled={isSubmitting || loadingCategories}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder={loadingCategories ? "Loading stages..." : "Select a lead stage"} />
+                        <SelectValue placeholder={loadingCategories ? "Loading sources..." : "Select a lead source"} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
                       {errorCategories ? (
-                        <SelectItem value="error" disabled>Error loading stages</SelectItem>
+                        <SelectItem value="error" disabled>Error loading sources</SelectItem>
                       ) : (
-                        leadStages.map((stage) => (
-                          <SelectItem key={stage.id} value={stage.name}>
-                          {stage.name}
-                        </SelectItem>
+                        leadSources.map((source) => (
+                          <SelectItem key={source.id} value={source.name}>
+                            {source.name}
+                          </SelectItem>
                         ))
                       )}
-                      <SelectItem value="add_new_stage">Add New Stage</SelectItem>
+                      <SelectItem value="add_new_source">Add New Source</SelectItem>
                     </SelectContent>
                   </Select>
-                   {showNewStageInput && (
+                  {showNewSourceInput && (
                     <div className="flex space-x-2 mt-2">
                       <Input
-                        placeholder="New stage name"
-                        value={newStage}
-                        onChange={(e) => setNewStage(e.target.value)}
+                        placeholder="New source name"
+                        value={newSource}
+                        onChange={(e) => setNewSource(e.target.value)}
                         disabled={isSubmitting}
                       />
-                      <Button type="button" onClick={() => handleAddCategory('lead_stage', newStage, setLeadStages, setNewStage, setShowNewStageInput)} disabled={isSubmitting || !newStage}>
+                      <Button type="button" onClick={() => handleAddCategory('lead_source', newSource, setLeadSources, setNewSource, setShowNewSourceInput)} disabled={isSubmitting || !newSource}>
                         Add
                       </Button>
                     </div>
                   )}
-                  <FormDescription>The current stage of this lead (optional).</FormDescription>
+                  <FormDescription>Where this contact came from (optional).</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
-          )}
-        </div>
 
-        {isBusinessOrSubcontractor ? (
-          <FormField
-            control={form.control}
-            name="business_name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Business Name</FormLabel>
-                <FormControl>
-                  <Input placeholder="Enter business name" {...field} disabled={isSubmitting} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
+            {/* Add Lead Stage field */}
+            {personType === "lead" && (
+              <FormField
+                control={form.control}
+                name="lead_stage"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Lead Stage</FormLabel>
+                    <Select onValueChange={(value) => {
+                      if (value === "add_new_stage") {
+                        setShowNewStageInput(true);
+                      } else {
+                        field.onChange(value);
+                        setShowNewStageInput(false);
+                      }
+                    }} defaultValue={field.value} disabled={isSubmitting || loadingCategories}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={loadingCategories ? "Loading stages..." : "Select a lead stage"} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {errorCategories ? (
+                          <SelectItem value="error" disabled>Error loading stages</SelectItem>
+                        ) : (
+                          leadStages.map((stage) => (
+                            <SelectItem key={stage.id} value={stage.name}>
+                            {stage.name}
+                          </SelectItem>
+                          ))
+                        )}
+                        <SelectItem value="add_new_stage">Add New Stage</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {showNewStageInput && (
+                      <div className="flex space-x-2 mt-2">
+                        <Input
+                          placeholder="New stage name"
+                          value={newStage}
+                          onChange={(e) => setNewStage(e.target.value)}
+                          disabled={isSubmitting}
+                        />
+                        <Button type="button" onClick={() => handleAddCategory('lead_stage', newStage, setLeadStages, setNewStage, setShowNewStageInput)} disabled={isSubmitting || !newStage}>
+                          Add
+                        </Button>
+                      </div>
+                    )}
+                    <FormDescription>The current stage of this lead (optional).</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             )}
-          />
-        ) : (
+          </div>
+
+          {isBusinessOrSubcontractor ? (
+            <FormField
+              control={form.control}
+              name="business_name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Business Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter business name" {...field} disabled={isSubmitting} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <FormField
+                control={form.control}
+                name="first_name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>First Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter first name" {...field} disabled={isSubmitting} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="last_name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Last Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter last name" {...field} disabled={isSubmitting} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <FormField
               control={form.control}
-              name="first_name"
+              name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>First Name</FormLabel>
+                  <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter first name" {...field} disabled={isSubmitting} />
+                    <Input type="email" placeholder="Enter email address" {...field} disabled={isSubmitting} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -417,29 +459,27 @@ export default function PersonForm({ initialData, isEdit = false }: PersonFormPr
 
             <FormField
               control={form.control}
-              name="last_name"
+              name="phone"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Last Name</FormLabel>
+                  <FormLabel>Phone</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter last name" {...field} disabled={isSubmitting} />
+                    <Input placeholder="Enter phone number" {...field} disabled={isSubmitting} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
           </div>
-        )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormField
             control={form.control}
-            name="email"
+            name="address_line1"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Email</FormLabel>
+                <FormLabel>Address Line 1</FormLabel>
                 <FormControl>
-                  <Input type="email" placeholder="Enter email address" {...field} disabled={isSubmitting} />
+                  <Input placeholder="Enter street address" {...field} disabled={isSubmitting} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -448,139 +488,111 @@ export default function PersonForm({ initialData, isEdit = false }: PersonFormPr
 
           <FormField
             control={form.control}
-            name="phone"
+            name="address_line2"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Phone</FormLabel>
+                <FormLabel>Address Line 2</FormLabel>
                 <FormControl>
-                  <Input placeholder="Enter phone number" {...field} disabled={isSubmitting} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <FormField
-          control={form.control}
-          name="address_line1"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Address Line 1</FormLabel>
-              <FormControl>
-                <Input placeholder="Enter street address" {...field} disabled={isSubmitting} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="address_line2"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Address Line 2</FormLabel>
-              <FormControl>
-                <Input placeholder="Apt, Suite, Unit, etc." {...field} disabled={isSubmitting} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <FormField
-            control={form.control}
-            name="city"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>City</FormLabel>
-                <FormControl>
-                  <Input placeholder="City" {...field} disabled={isSubmitting} />
+                  <Input placeholder="Apt, Suite, Unit, etc." {...field} disabled={isSubmitting} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="state_province"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>State/Province</FormLabel>
-                <FormControl>
-                  <Input placeholder="State/Province" {...field} disabled={isSubmitting} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <FormField
+              control={form.control}
+              name="city"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>City</FormLabel>
+                  <FormControl>
+                    <Input placeholder="City" {...field} disabled={isSubmitting} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="state_province"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>State/Province</FormLabel>
+                  <FormControl>
+                    <Input placeholder="State/Province" {...field} disabled={isSubmitting} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="postal_code"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Postal Code</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Postal Code" {...field} disabled={isSubmitting} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
 
           <FormField
             control={form.control}
-            name="postal_code"
+            name="tags"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Postal Code</FormLabel>
+                <FormLabel>Tags</FormLabel>
                 <FormControl>
-                  <Input placeholder="Postal Code" {...field} disabled={isSubmitting} />
+                  <TagInput
+                    value={field.value || []}
+                    onChange={field.onChange}
+                    placeholder="Type and press Enter to add tags"
+                    disabled={isSubmitting}
+                  />
+                </FormControl>
+                <FormDescription>Add tags to categorize and filter contacts (press Enter after each tag)</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="notes"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Notes</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Add any additional notes about this contact"
+                    className="min-h-[100px]"
+                    {...field}
+                    disabled={isSubmitting}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-        </div>
-
-        <FormField
-          control={form.control}
-          name="tags"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Tags</FormLabel>
-              <FormControl>
-                <TagInput
-                  value={field.value || []}
-                  onChange={field.onChange}
-                  placeholder="Type and press Enter to add tags"
-                  disabled={isSubmitting}
-                />
-              </FormControl>
-              <FormDescription>Add tags to categorize and filter contacts (press Enter after each tag)</FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="notes"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Notes</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder="Add any additional notes about this contact"
-                  className="min-h-[100px]"
-                  {...field}
-                  disabled={isSubmitting}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <div className="flex justify-end space-x-4">
-          <Button type="button" variant="outline" onClick={() => router.back()} disabled={isSubmitting}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Saving..." : isEdit ? "Update Contact" : "Create Contact"}
-          </Button>
-        </div>
-      </form>
+          <ScrollBar orientation="vertical" />
+        </form>
+      </ScrollArea>
+      <div className="flex justify-end space-x-4 p-4 border-t"> {/* Added padding and border-t */}
+        <Button type="button" variant="outline" onClick={() => router.back()} disabled={isSubmitting}>
+          Cancel
+        </Button>
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? "Saving..." : isEdit ? "Update Contact" : "Create Contact"}
+        </Button>
+      </div>
     </Form>
   )
 }

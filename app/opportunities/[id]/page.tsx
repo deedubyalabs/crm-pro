@@ -19,7 +19,7 @@ import {
   History,
   Copy, // Import Copy icon
 } from "lucide-react"
-import { opportunityService } from "@/lib/opportunities"
+import { opportunityService, NewOpportunity } from "@/lib/opportunities" // Import NewOpportunity
 import { formatCurrency, formatDate } from "@/lib/utils"
 import { Progress } from "@/components/ui/progress"
 import { RelatedAppointments } from "./related-appointments"

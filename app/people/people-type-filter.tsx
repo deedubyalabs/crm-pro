@@ -26,12 +26,13 @@ export default function PeopleTypeFilter({ className }: { className?: string }) 
 
   return (
     <Tabs defaultValue={currentType} className={className} onValueChange={handleTypeChange}>
-      <TabsList className="grid grid-cols-5 w-full">
+      <TabsList className="grid grid-cols-6 w-full">
         <TabsTrigger value="all">All</TabsTrigger>
         <TabsTrigger value="customer">Customers</TabsTrigger>
         <TabsTrigger value="lead">Leads</TabsTrigger>
         <TabsTrigger value="business">Businesses</TabsTrigger>
         <TabsTrigger value="subcontractor">Subcontractors</TabsTrigger>
+        <TabsTrigger value="employee">Employees</TabsTrigger>
       </TabsList>
     </Tabs>
   )

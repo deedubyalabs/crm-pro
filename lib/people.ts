@@ -12,7 +12,6 @@ export enum PersonType {
   BUSINESS = "Business",
   SUBCONTRACTOR = "Subcontractor",
   EMPLOYEE = "Employee",
-  OTHER = "Other",
 }
 
 export type PersonFilters = {
@@ -36,7 +35,7 @@ export const personService = {
       // Apply filters
       if (filters?.type && filters.type !== "all") {
         // Convert to proper case to match database values (e.g., "lead" -> "Lead")
-        const dbType = filters.type.charAt(0).toUpperCase() + filters.type.slice(1).toLowerCase()
+        const dbType = (filters.type.charAt(0).toUpperCase() + filters.type.slice(1).toLowerCase()) as PersonType;
         query = query.eq("person_type", dbType)
       }
 
@@ -84,10 +83,10 @@ export const personService = {
 
   async createPerson(person: NewPerson): Promise<Person> {
     try {
-      // Convert person_type to proper case to match database enum values
+      // Convert person_type to proper case to match database enum values and cast to PersonType
       const personData = {
         ...person,
-        person_type: person.person_type.charAt(0).toUpperCase() + person.person_type.slice(1).toLowerCase(),
+        person_type: (person.person_type.charAt(0).toUpperCase() + person.person_type.slice(1).toLowerCase()) as PersonType,
       }
 
       const { data, error } = await supabase.from("people").insert(personData).select().single()
@@ -113,10 +112,10 @@ export const personService = {
         updated_at: new Date().toISOString(),
       }
 
-      // Convert person_type to proper case if it's being updated
+      // Convert person_type to proper case if it's being updated and cast to PersonType
       if (updates.person_type) {
         updateData.person_type =
-          updates.person_type.charAt(0).toUpperCase() + updates.person_type.slice(1).toLowerCase()
+          (updates.person_type.charAt(0).toUpperCase() + updates.person_type.slice(1).toLowerCase()) as PersonType
       }
 
       const { data, error } = await supabase.from("people").update(updateData).eq("id", id).select().single()

@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation"
 import type { Metadata } from "next"
 import Link from "next/link"
-import { getProjectById } from "@/lib/projects"
+import { projectService } from "@/lib/projects"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -15,7 +15,13 @@ interface ProjectPageProps {
 
 export async function generateMetadata({ params }: ProjectPageProps): Promise<Metadata> {
   try {
-    const project = await getProjectById(params.id)
+    const project = await projectService.getProjectById(params.id)
+    if (!project) {
+      return {
+        title: "Project Not Found | PROActive OS",
+        description: "The requested project could not be found",
+      }
+    }
     return {
       title: `${project.project_name} | PROActive OS`,
       description: `View details for project ${project.project_name}`,
@@ -30,7 +36,11 @@ export async function generateMetadata({ params }: ProjectPageProps): Promise<Me
 
 export default async function ProjectPage({ params }: ProjectPageProps) {
   try {
-    const project = await getProjectById(params.id)
+    const project = await projectService.getProjectById(params.id)
+
+    if (!project) {
+      notFound()
+    }
 
     return (
       <div className="container mx-auto py-6 space-y-6">
@@ -67,7 +77,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {project.start_date ? new Date(project.start_date).toLocaleDateString() : "Not set"}
+                {project.planned_start_date ? new Date(project.planned_start_date).toLocaleDateString() : "Not set"}
               </div>
             </CardContent>
           </Card>
@@ -77,7 +87,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {project.end_date ? new Date(project.end_date).toLocaleDateString() : "Not set"}
+                {project.planned_end_date ? new Date(project.planned_end_date).toLocaleDateString() : "Not set"}
               </div>
             </CardContent>
           </Card>

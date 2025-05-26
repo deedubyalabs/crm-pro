@@ -1,3 +1,5 @@
+"use client"
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
@@ -17,6 +19,9 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { Line, LineChart, ResponsiveContainer, XAxis, YAxis } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
+import ActivityLogsTab from "./components/activity-logs-tab"
+import ConfigurationTab from "./components/configuration-tab"
+import PerformanceTab from "./components/performance-tab"
 
 // Sample data for charts
 const taskData = [
@@ -88,12 +93,14 @@ export default function AgentWorkspaceDashboard() {
 
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="performance">Performance</TabsTrigger>
-          <TabsTrigger value="errors">Errors</TabsTrigger>
+          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+          <TabsTrigger value="activity-logs">Activity Logs</TabsTrigger>
+          <TabsTrigger value="performance-metrics">Performance</TabsTrigger>
+          <TabsTrigger value="configuration">Configuration</TabsTrigger>
+          <TabsTrigger value="error-logs">Error Logs</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="space-y-4">
+        <TabsContent value="dashboard" className="space-y-4">
           {/* KPI Cards */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card>
@@ -356,127 +363,20 @@ export default function AgentWorkspaceDashboard() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="performance" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Token Usage</CardTitle>
-              <CardDescription>Token consumption over the past 7 days</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ChartContainer
-                config={{
-                  tokens: {
-                    label: "Token Usage",
-                    color: "hsl(var(--chart-1))",
-                  },
-                }}
-                className="h-[300px]"
-              >
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={tokenData}>
-                    <XAxis dataKey="day" />
-                    <YAxis />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <Line
-                      type="monotone"
-                      dataKey="tokens"
-                      stroke="var(--color-tokens)"
-                      strokeWidth={2}
-                      dot={{ r: 4 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </ChartContainer>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Agent Performance</CardTitle>
-              <CardDescription>Success rates and response times by agent</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Bot className="h-4 w-4" />
-                      <span className="text-sm font-medium">InvoiceProcessor</span>
-                    </div>
-                    <span className="text-sm">98.2% success</span>
-                  </div>
-                  <Progress value={98.2} className="h-2" />
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Avg. response time: 1.2s</span>
-                    <span>112 tasks processed</span>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Bot className="h-4 w-4" />
-                      <span className="text-sm font-medium">LeadQualifier</span>
-                    </div>
-                    <span className="text-sm">92.5% success</span>
-                  </div>
-                  <Progress value={92.5} className="h-2" />
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Avg. response time: 2.8s</span>
-                    <span>87 tasks processed</span>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Bot className="h-4 w-4" />
-                      <span className="text-sm font-medium">AppointmentScheduler</span>
-                    </div>
-                    <span className="text-sm">95.7% success</span>
-                  </div>
-                  <Progress value={95.7} className="h-2" />
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Avg. response time: 1.5s</span>
-                    <span>46 tasks processed</span>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Bot className="h-4 w-4" />
-                      <span className="text-sm font-medium">ProjectManager</span>
-                    </div>
-                    <span className="text-sm">97.1% success</span>
-                  </div>
-                  <Progress value={97.1} className="h-2" />
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Avg. response time: 2.1s</span>
-                    <span>68 tasks processed</span>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Bot className="h-4 w-4" />
-                      <span className="text-sm font-medium">CustomerSupport</span>
-                    </div>
-                    <span className="text-sm">89.3% success</span>
-                  </div>
-                  <Progress value={89.3} className="h-2" />
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Avg. response time: 3.4s</span>
-                    <span>75 tasks processed</span>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        <TabsContent value="activity-logs" className="space-y-4">
+          <ActivityLogsTab />
         </TabsContent>
 
-        <TabsContent value="errors" className="space-y-4">
+        <TabsContent value="performance-metrics" className="space-y-4">
+          <PerformanceTab />
+        </TabsContent>
+
+        <TabsContent value="configuration" className="space-y-4">
+          <ConfigurationTab />
+        </TabsContent>
+
+        <TabsContent value="error-logs" className="space-y-4">
+          {/* Error Summary */}
           <Card>
             <CardHeader>
               <CardTitle>Error Summary</CardTitle>

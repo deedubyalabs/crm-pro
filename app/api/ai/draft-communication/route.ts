@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { opportunityService } from '@/lib/opportunities';
 import { estimateService } from '@/lib/estimates';
@@ -22,7 +22,25 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'opportunityId and communicationType are required in the request body.' }, { status: 400 });
     }
 
-    const supabase = createRouteHandlerClient({ cookies });
+    const cookieStore = await cookies(); // Get the cookies object, await it
+
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value;
+          },
+          set(name: string, value: string, options: CookieOptions) {
+            cookieStore.set({ name, value, ...options });
+          },
+          remove(name: string, options: CookieOptions) {
+            cookieStore.delete({ name, ...options });
+          },
+        },
+      }
+    );
 
     // Fetch opportunity details
     const opportunity = await opportunityService.getOpportunityById(opportunityId, supabase);
@@ -38,7 +56,7 @@ export async function POST(request: Request) {
         const latestEstimate = opportunity.estimates.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
          if (latestEstimate) {
              estimateDetails = {
-                 title: latestEstimate.title,
+                 title: latestEstimate.estimate_number, // Corrected from title to estimate_number
                  totalAmount: latestEstimate.total_amount,
                  issueDate: latestEstimate.issue_date,
                  status: latestEstimate.status,
