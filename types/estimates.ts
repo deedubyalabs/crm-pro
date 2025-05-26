@@ -82,6 +82,9 @@ export interface EstimateLineItem {
   sort_order: number
   section_name: string | null
   notes: string | null // Added notes property
+  is_optional: boolean // Added for optional items
+  is_taxable: boolean // Added for taxable items
+  assigned_to_user_id: string | null // Added for item assignment
   created_at: string
   updated_at: string
   costItem?: {
@@ -103,6 +106,9 @@ export interface NewEstimateLineItem {
   total: number
   sort_order?: number
   section_name?: string | null
+  is_optional?: boolean // Added for optional items
+  is_taxable?: boolean // Added for taxable items
+  assigned_to_user_id?: string | null // Added for item assignment
 }
 
 export interface UpdateEstimateLineItem {
@@ -115,6 +121,9 @@ export interface UpdateEstimateLineItem {
   total?: number
   sort_order?: number
   section_name?: string | null
+  is_optional?: boolean // Added for optional items
+  is_taxable?: boolean // Added for taxable items
+  assigned_to_user_id?: string | null // Added for item assignment
 }
 
 export interface EstimatePaymentSchedule {

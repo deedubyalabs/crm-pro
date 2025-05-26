@@ -20,6 +20,7 @@ import { cn, formatCurrency } from "@/lib/utils"
 import { format } from "date-fns"
 import { EstimateLineItemRow } from "./estimate-line-item"
 import { PaymentScheduleItem } from "./payment-schedule-item"
+import { BulkMarkupDialog } from "./bulk-markup-dialog" // Import new dialog
 import type { EstimateLineItem, EstimateWithDetails, EstimatePaymentSchedule } from "@/types/estimates"
 import type { CostItem } from "@/types/cost-items"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -97,6 +98,7 @@ export function EstimateForm({
   const [selectedOpportunityId, setSelectedOpportunityId] = useState(estimate?.opportunity_id || "");
   const [sections, setSections] = useState<string[]>([]);
   const [newSectionName, setNewSectionName] = useState("");
+  const [isBulkMarkupDialogOpen, setIsBulkMarkupDialogOpen] = useState(false); // State for bulk markup dialog
 
   // Initialize the form with default values or existing estimate data
   const form = useForm<FormValues>({
@@ -189,6 +191,46 @@ export function EstimateForm({
   const totalAmount = discountedSubtotal + taxAmount; // Update total calculation to include tax
 
 
+  // Handle applying bulk markup
+  const handleApplyBulkMarkup = (markupPercentage: number, scope: string) => {
+    const updatedLineItems = lineItems.map((item) => {
+      let applyMarkup = false;
+      // Ensure item.costItem exists before accessing its properties
+      const itemType = item.costItem?.type; // Corrected to camelCase
+
+      if (scope === "all") {
+        applyMarkup = true;
+      } else if (scope === "material" && itemType === "Material") {
+        applyMarkup = true;
+      } else if (scope === "labor" && itemType === "Labor") {
+        applyMarkup = true;
+      } else if (scope === "equipment" && itemType === "Equipment") {
+        applyMarkup = true;
+      } else if (scope === "subcontractor" && itemType === "Subcontractor") {
+        applyMarkup = true;
+      } else if (scope === "other" && itemType === "Other") {
+        applyMarkup = true;
+      }
+
+      if (applyMarkup) {
+        const newMarkup = markupPercentage;
+        const newUnitCost = item.unit_cost || 0;
+        const newQuantity = item.quantity || 0;
+        const subtotal = newQuantity * newUnitCost;
+        const newTotal = subtotal * (1 + newMarkup / 100);
+
+        return {
+          ...item,
+          markup: newMarkup,
+          total: newTotal,
+        };
+      }
+      return item;
+    });
+    onLineItemsChange(updatedLineItems);
+    toast({ title: "Bulk Markup Applied", description: "Markup has been applied to selected items." });
+  };
+
   // Handle adding a new line item (uses onLineItemsChange prop)
   const handleAddLineItem = () => {
     onLineItemsChange([
@@ -200,6 +242,9 @@ export function EstimateForm({
         unit_cost: 0,
         markup: 0,
         total: 0,
+        is_optional: false, // Default for new line items
+        is_taxable: true, // Default for new line items
+        assigned_to_user_id: null, // Default for new line items
       },
     ]);
   };
@@ -587,6 +632,9 @@ export function EstimateForm({
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle>Line Items</CardTitle>
                   <div className="flex items-center space-x-2">
+                    <Button type="button" onClick={() => setIsBulkMarkupDialogOpen(true)} variant="outline">
+                      <Percent className="mr-2 h-4 w-4" /> Bulk Markup
+                    </Button>
                     <div className="flex items-center space-x-2">
                       <Input
                         placeholder="New section name"
@@ -782,6 +830,11 @@ export function EstimateForm({
           </div>
         </div> {/* Closes "space-y-6" div */}
       </form>
+      <BulkMarkupDialog
+        isOpen={isBulkMarkupDialogOpen}
+        onClose={() => setIsBulkMarkupDialogOpen(false)}
+        onApplyMarkup={handleApplyBulkMarkup}
+      />
     </Form>
   );
 }

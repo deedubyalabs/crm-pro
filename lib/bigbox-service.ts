@@ -289,9 +289,12 @@ export const bigboxService = {
         try {
           const product = await this.getProductById(mapping.bigbox_product_id, mapping.store_id)
 
-          if (product && product.price) {
+          // Access price from offers.primary.price or top-level price
+          const productPrice = product.offers?.primary?.price ?? product.price;
+
+          if (productPrice !== undefined && productPrice !== null) {
             const quantity = mapping.quantity || 1
-            totalPrice += product.price * quantity
+            totalPrice += productPrice * quantity
             totalQuantity += quantity
           }
         } catch (error) {
@@ -371,18 +374,25 @@ export const bigboxService = {
   async createCostItemFromProduct(product: BigBoxProduct, markup = 20): Promise<CostItem> {
     try {
       // Generate a unique item code
-      const itemCode = `BB-${product.sku.substring(0, 8)}`
+      const itemCode = `BB-${product.item_id.substring(0, 8)}` // Use item_id
 
       // Determine the appropriate unit based on product category or dimensions
       let unit = "EA" // Default unit
-      if (product.category.toLowerCase().includes("lumber") || product.category.toLowerCase().includes("trim")) {
+      // Note: BigBoxProduct from search results doesn't directly have 'category' or 'description' at top level.
+      // We might need to fetch full product details or infer from title/features.
+      // For now, I'll use a generic mapping or assume 'Material' type.
+      // If product.features contains a "Category" or "Type" feature, we can use that.
+      const categoryFeature = product.features?.find(f => f.name.toLowerCase() === 'category' || f.name.toLowerCase() === 'type');
+      const productCategory = categoryFeature ? categoryFeature.value : product.title; // Fallback to title
+
+      if (productCategory.toLowerCase().includes("lumber") || productCategory.toLowerCase().includes("trim")) {
         unit = "LF" // Linear feet for lumber
       } else if (
-        product.category.toLowerCase().includes("drywall") ||
-        product.category.toLowerCase().includes("flooring")
+        productCategory.toLowerCase().includes("drywall") ||
+        productCategory.toLowerCase().includes("flooring")
       ) {
         unit = "SQ FT" // Square feet for area materials
-      } else if (product.category.toLowerCase().includes("paint") || product.category.toLowerCase().includes("stain")) {
+      } else if (productCategory.toLowerCase().includes("paint") || productCategory.toLowerCase().includes("stain")) {
         unit = "GAL" // Gallon for liquids
       }
 
@@ -391,11 +401,11 @@ export const bigboxService = {
         .from("cost_items")
         .insert({
           item_code: itemCode,
-          name: product.name,
-          description: product.description,
-          type: this.mapCategoryToType(product.category),
+          name: product.title, // Use title instead of name
+          description: product.link, // Use link as a fallback for description
+          type: this.mapCategoryToType(productCategory), // Use inferred category
           unit: unit,
-          unit_cost: product.price,
+          unit_cost: product.offers?.primary?.price ?? product.price ?? 0, // Access price from offers or top-level price
           default_markup: markup,
           is_active: true,
           sync_with_bigbox: true,
@@ -430,7 +440,8 @@ export const bigboxService = {
       lowerCategory.includes("flooring") ||
       lowerCategory.includes("drywall") ||
       lowerCategory.includes("roofing") ||
-      lowerCategory.includes("insulation")
+      lowerCategory.includes("insulation") ||
+      lowerCategory.includes("material")
     ) {
       return "Material"
     } else {
@@ -446,7 +457,7 @@ export const bigboxService = {
         const costItem = await this.createCostItemFromProduct(product, markup)
         createdItems.push(costItem)
       } catch (error) {
-        console.error(`Error creating cost item from product ${product.id}:`, error)
+        console.error(`Error creating cost item from product ${product.item_id}:`, error) // Use item_id
         // Continue with other products even if one fails
       }
     }

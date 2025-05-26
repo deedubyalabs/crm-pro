@@ -14,7 +14,7 @@ CREATE TABLE public.estimate_payment_schedules (
   estimate_id uuid NOT NULL,
   description text NOT NULL,
   amount numeric(12, 2) NOT NULL,
-  due_type character varying(20) NOT NULL, -- 'on_acceptance', 'on_completion', 'days_after_acceptance', 'specific_date'
+  due_type character varying(20) NOT NULL, -- 'on_acceptance', 'on_completion', 'days_after_invoice', 'specific_date'
   due_days integer NULL,
   due_date date NULL,
   sort_order integer NOT NULL DEFAULT 0,
@@ -28,3 +28,15 @@ CREATE INDEX idx_estimate_payment_schedules_estimate_id ON public.estimate_payme
 
 CREATE TRIGGER set_timestamp BEFORE UPDATE ON estimate_payment_schedules
 FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
+
+-- Add is_optional, is_taxable, and assigned_to_user_id fields to estimate_line_items
+ALTER TABLE public.estimate_line_items
+ADD COLUMN is_optional BOOLEAN NOT NULL DEFAULT FALSE,
+ADD COLUMN is_taxable BOOLEAN NOT NULL DEFAULT TRUE,
+ADD COLUMN assigned_to_user_id UUID NULL;
+
+-- Add foreign key constraint for assigned_to_user_id
+ALTER TABLE public.estimate_line_items
+ADD CONSTRAINT fk_assigned_to_user
+FOREIGN KEY (assigned_to_user_id) REFERENCES public.users(id)
+ON DELETE SET NULL;

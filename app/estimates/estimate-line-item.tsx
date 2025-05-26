@@ -5,11 +5,21 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Trash, Sparkles } from "lucide-react" // Added Sparkles icon
+import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label"
+import { Trash, Sparkles, Search } from "lucide-react" // Import Search icon
 import { formatCurrency } from "@/lib/utils"
 import type { CostItem } from "@/types/cost-items"
 import type { EstimateLineItem } from "@/types/estimates"
-import { cn } from "@/lib/utils" // Import cn for conditional classes
+import type { User } from "@/types/auth"
+import { cn } from "@/lib/utils"
+import { supabase } from "@/lib/supabase"
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from "@/components/ui/sheet" // Import Sheet components
+import { CostItemSelectorDrawer } from "./cost-item-selector-drawer" // Import the new drawer component
 
 interface EstimateLineItemProps {
   lineItem: Partial<EstimateLineItem>
@@ -18,7 +28,7 @@ interface EstimateLineItemProps {
   onUpdate: (updatedLineItem: Partial<EstimateLineItem>) => void
   onDelete: () => void
   isNew?: boolean
-  isAISuggested?: boolean // Added isAISuggested prop
+  isAISuggested?: boolean
 }
 
 export function EstimateLineItemRow({
@@ -28,7 +38,7 @@ export function EstimateLineItemRow({
   onUpdate,
   onDelete,
   isNew = false,
-  isAISuggested = false, // Default to false
+  isAISuggested = false,
 }: EstimateLineItemProps) {
   const [quantity, setQuantity] = useState(lineItem.quantity?.toString() || "1")
   const [unitCost, setUnitCost] = useState(lineItem.unit_cost?.toString() || "0")
@@ -38,9 +48,37 @@ export function EstimateLineItemRow({
   const [description, setDescription] = useState(lineItem.description || "")
   const [unit, setUnit] = useState(lineItem.unit || "EA")
   const [section, setSection] = useState(lineItem.section_name || "")
-  const [notes, setNotes] = useState(lineItem.notes || "") // State for notes
+  const [notes, setNotes] = useState(lineItem.notes || "")
+  const [isOptional, setIsOptional] = useState(lineItem.is_optional || false)
+  const [isTaxable, setIsTaxable] = useState<boolean>(lineItem.is_taxable || true)
+  const [assignedToUserId, setAssignedToUserId] = useState(lineItem.assigned_to_user_id || "")
+  const [users, setUsers] = useState<User[]>([]);
+  const [isCostItemDrawerOpen, setIsCostItemDrawerOpen] = useState(false) // State for drawer visibility
 
-  // Calculate total when quantity, unit cost, or markup changes
+  // Fetch users on component mount
+  useEffect(() => {
+    const fetchUsers = async () => {
+      const { data, error } = await supabase.from("users").select("id, first_name, last_name");
+      if (error) {
+        console.error("Error fetching users:", error);
+      } else {
+        setUsers(data as User[]);
+      }
+    };
+    fetchUsers();
+  }, []);
+
+  // Effect to ensure selectedCostItemId is valid when costItems change
+  useEffect(() => {
+    if (selectedCostItemId && selectedCostItemId !== "custom") {
+      const itemExists = costItems.some(item => item.id === selectedCostItemId);
+      if (!itemExists) {
+        setSelectedCostItemId(""); // Reset if the selected item is no longer in the list
+      }
+    }
+  }, [costItems, selectedCostItemId]);
+
+  // Calculate total and update parent when relevant states change
   useEffect(() => {
     const qty = Number.parseFloat(quantity) || 0
     const cost = Number.parseFloat(unitCost) || 0
@@ -62,11 +100,14 @@ export function EstimateLineItemRow({
       unit,
       cost_item_id: selectedCostItemId || null,
       section_name: section || null,
-      notes, // Include notes in the update
+      notes,
+      is_optional: isOptional,
+      is_taxable: isTaxable,
+      assigned_to_user_id: assignedToUserId || null,
     })
-  }, [quantity, unitCost, markup, description, unit, selectedCostItemId, section, notes]) // Added notes to dependencies
+  }, [quantity, unitCost, markup, description, unit, selectedCostItemId, section, notes, isOptional, isTaxable, assignedToUserId, lineItem]) // Added lineItem to dependency array
 
-  // Handle cost item selection
+  // Handle cost item selection from the existing dropdown
   const handleCostItemChange = (costItemId: string) => {
     setSelectedCostItemId(costItemId)
 
@@ -77,42 +118,67 @@ export function EstimateLineItemRow({
         setUnit(selectedItem.unit)
         setUnitCost(selectedItem.unit_cost.toString())
         setMarkup(selectedItem.default_markup.toString())
-        // Do not overwrite notes from AI if a cost item is selected
-        // setNotes(selectedItem.description || ""); // Decide if cost item description should overwrite AI notes
       }
     }
   }
 
+  // Handle cost item selection from the drawer
+  const handleSelectCostItemFromDrawer = (item: CostItem) => {
+    setSelectedCostItemId(item.id)
+    setDescription(item.name)
+    setUnit(item.unit)
+    setUnitCost(item.unit_cost.toString())
+    setMarkup(item.default_markup.toString())
+    setIsCostItemDrawerOpen(false) // Close the drawer
+  }
+
   return (
-    <div className={cn("grid grid-cols-12 gap-2 items-center mb-2 p-2 rounded-md", isAISuggested && "bg-blue-50/50")}> {/* Added conditional background */}
+    <div className={cn("grid grid-cols-12 gap-2 items-center mb-2 p-2 rounded-md", isAISuggested && "bg-blue-50/50")}>
       <div className="col-span-4">
         <div className="space-y-2">
-           {isAISuggested && ( // Display AI badge if suggested by AI
+           {isAISuggested && (
               <div className="flex items-center text-xs text-blue-600 font-medium">
                 <Sparkles className="mr-1 h-3 w-3 fill-blue-600" /> AI Suggestion
               </div>
             )}
-          <Select value={selectedCostItemId} onValueChange={handleCostItemChange}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select item or enter custom" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="custom">Custom Item</SelectItem>
-              {costItems.map((item) => (
-                <SelectItem key={item.id} value={item.id}>
-                  {item.item_code} - {item.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex items-center space-x-2"> {/* Flex container for Select and Button */}
+            <Select value={selectedCostItemId} onValueChange={handleCostItemChange}>
+              <SelectTrigger className="flex-1"> {/* Make Select take available space */}
+                <SelectValue placeholder="Select item or enter custom" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Clear Selection</SelectItem> {/* Option for no selection */}
+                <SelectItem value="custom">Custom Item</SelectItem>
+                {costItems.filter(item => item.id).map((item) => ( // Filter out items with null/undefined/empty IDs
+                  <SelectItem key={item.id} value={item.id}>
+                    {item.item_code} - {item.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Sheet> {/* Wrap SheetTrigger in Sheet */}
+              <SheetTrigger asChild>
+                <Button variant="outline" size="icon" onClick={() => setIsCostItemDrawerOpen(true)}>
+                  <Search className="h-4 w-4" />
+                  <span className="sr-only">Select from Catalog</span>
+                </Button>
+              </SheetTrigger>
+              <CostItemSelectorDrawer
+                isOpen={isCostItemDrawerOpen}
+                onClose={() => setIsCostItemDrawerOpen(false)}
+                onSelectCostItem={handleSelectCostItemFromDrawer}
+              />
+            </Sheet>
+          </div>
 
           <Select value={section} onValueChange={setSection}>
             <SelectTrigger>
-              <SelectValue placeholder="Select section or leave blank" />
+              <SelectValue placeholder="Select section (optional)" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="">No Section</SelectItem> {/* Option for no section */}
               {sections.map((sectionName) => (
-                sectionName !== "" && ( // Add check for empty string
+                sectionName !== "" && (
                   <SelectItem key={sectionName} value={sectionName}>
                     {sectionName}
                   </SelectItem>
@@ -127,15 +193,43 @@ export function EstimateLineItemRow({
             onChange={(e) => setDescription(e.target.value)}
             className="min-h-[60px]"
           />
-           {notes && ( // Display notes if they exist
-            <Textarea
-              placeholder="Notes"
+           <Textarea
+              placeholder="Notes (optional)"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               className="min-h-[40px] text-xs text-muted-foreground"
-              readOnly // Make notes read-only for now, can make editable later if needed
             />
-          )}
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id={`optional-${lineItem.id}`}
+                checked={isOptional}
+                onCheckedChange={(checked) => setIsOptional(!!checked)}
+              />
+              <Label htmlFor={`optional-${lineItem.id}`}>Optional</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id={`taxable-${lineItem.id}`}
+                checked={isTaxable}
+                onCheckedChange={(checked) => setIsTaxable(!!checked)}
+              />
+              <Label htmlFor={`taxable-${lineItem.id}`}>Taxable</Label>
+            </div>
+
+            <Select value={assignedToUserId} onValueChange={setAssignedToUserId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Assign to user (optional)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Unassigned</SelectItem>
+                {users.map((user) => (
+                  <SelectItem key={user.id} value={user.id}>
+                    {user.first_name} {user.last_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
         </div>
       </div>
       <div className="col-span-1">

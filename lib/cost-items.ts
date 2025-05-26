@@ -1,10 +1,10 @@
 import { supabase, handleSupabaseError } from "./supabase"
-import type { CostItem, NewCostItem, UpdateCostItem, CostItemFilters } from "@/types/cost-items"
+import type { CostItem, NewCostItem, UpdateCostItem, CostItemFilters, CostItemGroup, NewCostItemGroup, UpdateCostItemGroup } from "@/types/cost-items"
 
 export const costItemService = {
   async getCostItems(filters?: CostItemFilters): Promise<CostItem[]> {
     try {
-      let query = supabase.from("cost_items").select("*").order("name")
+      let query = supabase.from("cost_items").select("*, cost_item_groups(*)").order("name")
 
       // Apply filters
       if (filters?.type) {
@@ -20,6 +20,10 @@ export const costItemService = {
         query = query.or(`name.ilike.${searchTerm},item_code.ilike.${searchTerm},description.ilike.${searchTerm}`)
       }
 
+      if (filters?.groupId) {
+        query = query.eq("cost_item_group_id", filters.groupId)
+      }
+
       const { data, error } = await query
 
       if (error) throw error
@@ -31,7 +35,7 @@ export const costItemService = {
 
   async getCostItemById(id: string): Promise<CostItem | null> {
     try {
-      const { data, error } = await supabase.from("cost_items").select("*").eq("id", id).single()
+      const { data, error } = await supabase.from("cost_items").select("*, cost_item_groups(*)").eq("id", id).single()
 
       if (error) throw error
       return data
@@ -42,7 +46,7 @@ export const costItemService = {
 
   async createCostItem(costItem: NewCostItem): Promise<CostItem> {
     try {
-      const { data, error } = await supabase.from("cost_items").insert(costItem).select().single()
+      const { data, error } = await supabase.from("cost_items").insert(costItem).select("*, cost_item_groups(*)").single()
 
       if (error) throw error
       return data
@@ -57,7 +61,7 @@ export const costItemService = {
         .from("cost_items")
         .update({ ...updates, updated_at: new Date().toISOString() })
         .eq("id", id)
-        .select()
+        .select("*, cost_item_groups(*)")
         .single()
 
       if (error) throw error
@@ -74,6 +78,61 @@ export const costItemService = {
       if (error) throw error
     } catch (error) {
       throw new Error(handleSupabaseError(error))
+    }
+  },
+
+  // Cost Item Group functions
+  async getCostItemGroups(): Promise<CostItemGroup[]> {
+    try {
+      const { data, error } = await supabase.from("cost_item_groups").select("*").order("name");
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      throw new Error(handleSupabaseError(error));
+    }
+  },
+
+  async getCostItemGroupById(id: string): Promise<CostItemGroup | null> {
+    try {
+      const { data, error } = await supabase.from("cost_item_groups").select("*").eq("id", id).single();
+      if (error) throw error;
+      return data;
+    } catch (error) {
+        throw new Error(handleSupabaseError(error));
+    }
+  },
+
+  async createCostItemGroup(group: NewCostItemGroup): Promise<CostItemGroup> {
+    try {
+      const { data, error } = await supabase.from("cost_item_groups").insert(group).select().single();
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      throw new Error(handleSupabaseError(error));
+    }
+  },
+
+  async updateCostItemGroup(id: string, updates: UpdateCostItemGroup): Promise<CostItemGroup> {
+    try {
+      const { data, error } = await supabase
+        .from("cost_item_groups")
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      throw new Error(handleSupabaseError(error));
+    }
+  },
+
+  async deleteCostItemGroup(id: string): Promise<void> {
+    try {
+      const { error } = await supabase.from("cost_item_groups").delete().eq("id", id);
+      if (error) throw error;
+    } catch (error) {
+      throw new Error(handleSupabaseError(error));
     }
   },
 }

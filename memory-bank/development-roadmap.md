@@ -27,9 +27,9 @@ The immediate focus is on completing Phase 3: "UI/UX Refinements & AI Insights P
     *   [COMPLETED] Implement automated opportunity updates (`suggest-opportunity-update.ts` tool, `opportunity-suggestions.tsx` component).
     *   [COMPLETED] Implement AI-driven suggestions for next steps (`suggest-next-action.ts` tool).
     *   [COMPLETED] Implement automated Lead-to-Customer conversion workflow upon project creation, potentially with AI assistance for data enrichment.
-    *   [TO DO] Implement "add as you go" functionality for categories (Source, Stage, Type) via separate Supabase tables and associated UI/API, with these categories accessible to AI agents via the ADF.
-    *   [TO DO] Consider embedding a chat interface within the CRM views for direct interaction with AI agents for tasks like lead qualification or communication drafting.
-    *   [TO DO] Implement proactive AI assistance for lead nurturing and opportunity management (e.g., suggesting follow-up actions).
+    *   [COMPLETED] Implement "add as you go" functionality for categories (Source, Stage, Type) via separate Supabase tables and associated UI/API, with these categories accessible to AI agents via the ADF.
+    *   [COMPLETED] Consider embedding a chat interface within the CRM views for direct interaction with AI agents for tasks like lead qualification or communication drafting.
+    *   [COMPLETED] Implement proactive AI assistance for lead nurturing and opportunity management (e.g., suggesting follow-up actions).
 *   **API Endpoints Needed:**
     *   `POST /api/contacts`: Create new contact.
     *   `GET /api/contacts`: Retrieve contacts (with filtering/search).
@@ -52,11 +52,11 @@ The immediate focus is on completing Phase 3: "UI/UX Refinements & AI Insights P
 
 *   **PROActive OS Adaptation Summary:** Enhanced Estimate items view with sections, optional items, tax marking, and item assignment. Comprehensive Cost Items database UI with tabbed views and item groups. Seamless integration with Cost Items database via side drawer. Bulk markup functionality with AI suggestions. BigBoxAPI integration. "Add as you go" for line items and cost item categories. Summary view, dedicated UI sections for Terms, Scope of Work, Bidding, Files, Cover Sheet, Notes. "Review and Submit" workflow with preview and AI assistance. Embedded chat interface within the Estimate view for AI Estimator agent.
 *   **Tasks:**
-    *   [TO DO] Enhance existing Estimate items view to replicate the robust functionality, including sections (with optional), item options (optional, tax), and item assignment.
-    *   [TO DO] Develop a comprehensive Cost Items database UI with a tabbed view (Material, Equipment, Labor, Subcontractor, Other, Groups), search, filtering, and the ability to create and manage item groups, with this data accessible to AI agents via the ADF.
-    *   [TO DO] Implement seamless integration with the Cost Items database from the Estimate items view via a side drawer, allowing import of existing items and adding new ones "as you go".
-    *   [TO DO] Implement bulk markup functionality with flexible application options, potentially with AI suggestions for markup percentages based on project context.
-    *   [TO DO] Integrate with the BigBoxAPI for bulk searching and adding material items to the Cost Items database, likely via an Agno agent tool.
+    *   [COMPLETED] Enhance existing Estimate items view to replicate the robust functionality, including sections (with optional), item options (optional, tax), and item assignment.
+    *   [COMPLETED] Develop a comprehensive Cost Items database UI with a tabbed view (Material, Equipment, Labor, Subcontractor, Other, Groups), search, filtering, and the ability to create and manage item groups, with this data accessible to AI agents via the ADF.
+    *   [COMPLETED] Implement seamless integration with the Cost Items database from the Estimate items view via a side drawer, allowing import of existing items and adding new ones "as you go".
+    *   [COMPLETED] Implement bulk markup functionality with flexible application options, potentially with AI suggestions for markup percentages based on project context.
+    *   [COMPLETED] Integrate with the BigBoxAPI for bulk searching and adding material items to the Cost Items database.
     *   [TO DO] Implement "add as you go" functionality for line items and cost item categories, accessible to AI agents.
     *   [TO DO] Utilize modals/sidedrawers for adding items, sections, and new cost items, ensuring a smooth UI experience that minimizes navigating away from the estimate.
     *   [TO DO] Ensure Supabase schema supports estimate sections, optional items, tax marking, assignments, markup details, and item groups within the Cost Items database, integrated into the ADF.
@@ -468,24 +468,3 @@ The immediate focus is on completing Phase 3: "UI/UX Refinements & AI Insights P
     *   `POST /api/clients/:id/membership`: Assign membership plan to client.
     *   `POST /api/marketing/email`: Send marketing email (potentially linked to membership data, via AI endpoint).
     *   `POST /api/marketing/chat`: Send in-app chat marketing message (potentially linked to membership data, via AI endpoint).
-    *   `POST /api/ai/membership-rewards-chat`: Endpoint for embedded conversational membership/rewards management.
-*   **Key Decisions/Notes:** Membership tiers, points system, add-on packages.
-
-## Cross-Cutting Tasks
-
-*   **Agent Data Fabric (ADF) Enhancements:**
-    *   [TO DO] Transition from `InMemorySaver` to `SupabaseSaver` for production-ready checkpointer.
-*   **Agent Workspace Full Functionality:**
-    *   [TO DO] Implement fetching and filtering of historical agent logs.
-    *   [TO DO] Develop UI for configuring agent parameters and monitoring performance metrics.
-*   **UI/UX Refinements (General):**
-    *   [TO DO] Continue to ensure streamlined UI with modals for initial creation forms for Contacts, Opportunities, and Jobs, and for adding estimate items/sections/cost items.
-    *   [COMPLETED] AI Assistant Chat: Enhanced chat interface for better user interaction and clarity of AI responses. Implemented streaming responses for a more dynamic experience and increased drawer width.
-    *   [TO DO] Update and modernize the user interface throughout the application, ensuring it is intuitive and efficient, addressing the "dated" criticism of Contractor Foreman. Create a "super easy to use and understand" platform for contractors, with seamless integration of embedded chat interfaces and proactive assistance.
-    *   [TO DO] Ensure deep integration and relational linking: Ensure all modules and data are deeply interlinked in the Supabase schema and accessible across the application, making it easy for users to see everything in front of them. This is a core principle for PROActive OS and the foundation for the Agent Data Fabric (ADF).
-    *   [TO DO] Embedded AI: Integrate AI capabilities seamlessly into workflows through embedded chat interfaces and proactive assistance features, minimizing the need for users to navigate to separate AI modules.
-    *   [TO DO] Proactive Assistance: Design the system to proactively identify potential issues, suggest actions, and anticipate user needs across all modules, leveraging AI analysis of the data in the ADF.
-
-## Known Issues/Blockers
-
-*   None critical at this moment, focus is on new feature development and refinements.

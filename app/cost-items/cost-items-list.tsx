@@ -12,10 +12,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Plus, Search } from "lucide-react"
-import type { CostItem } from "@/types/cost-items"
+import type { CostItem, CostItemGroup } from "@/types/cost-items" // Import CostItemGroup
 import { formatCurrency } from "@/lib/utils"
 
-export function CostItemsList({ costItems }: { costItems: CostItem[] }) {
+interface CostItemsListProps {
+  costItems: CostItem[]
+  costItemGroups: CostItemGroup[] // Add this prop
+}
+
+export function CostItemsList({ costItems, costItemGroups }: CostItemsListProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -24,6 +29,7 @@ export function CostItemsList({ costItems }: { costItems: CostItem[] }) {
   // Get current filter values from URL
   const currentType = searchParams.get("type") || ""
   const currentActive = searchParams.get("isActive") || ""
+  const currentGroupId = searchParams.get("groupId") || "" // New: current group filter
 
   // Handle search submission
   const handleSearch = (e: React.FormEvent) => {
@@ -44,7 +50,7 @@ export function CostItemsList({ costItems }: { costItems: CostItem[] }) {
   const handleFilterChange = (key: string, value: string) => {
     const params = new URLSearchParams(searchParams.toString())
 
-    if (value) {
+    if (value && value !== "all") { // "all" means no filter
       params.set(key, value)
     } else {
       params.delete(key)
@@ -138,6 +144,20 @@ export function CostItemsList({ costItems }: { costItems: CostItem[] }) {
                 </SelectContent>
               </Select>
 
+              <Select value={currentGroupId} onValueChange={(value) => handleFilterChange("groupId", value)}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Filter by group" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Groups</SelectItem>
+                  {costItemGroups.map((group) => (
+                    <SelectItem key={group.id} value={group.id}>
+                      {group.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
               <Select value={currentActive} onValueChange={(value) => handleFilterChange("isActive", value)}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Filter by status" />
@@ -158,6 +178,7 @@ export function CostItemsList({ costItems }: { costItems: CostItem[] }) {
                   <TableHead>Item Code</TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Type</TableHead>
+                  <TableHead>Group</TableHead> {/* New: Group column */}
                   <TableHead>Unit</TableHead>
                   <TableHead className="text-right">Unit Cost</TableHead>
                   <TableHead className="text-right">Markup</TableHead>
@@ -168,7 +189,7 @@ export function CostItemsList({ costItems }: { costItems: CostItem[] }) {
               <TableBody>
                 {costItems.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="h-24 text-center">
+                    <TableCell colSpan={9} className="h-24 text-center"> {/* Updated colspan */}
                       No cost items found.
                     </TableCell>
                   </TableRow>
@@ -178,6 +199,7 @@ export function CostItemsList({ costItems }: { costItems: CostItem[] }) {
                       <TableCell className="font-medium">{item.item_code}</TableCell>
                       <TableCell>{item.name}</TableCell>
                       <TableCell>{getTypeBadge(item.type)}</TableCell>
+                      <TableCell>{item.cost_item_group?.name || "N/A"}</TableCell> {/* Display group name */}
                       <TableCell>{item.unit}</TableCell>
                       <TableCell className="text-right">{formatCurrency(item.unit_cost)}</TableCell>
                       <TableCell className="text-right">{item.default_markup}%</TableCell>
