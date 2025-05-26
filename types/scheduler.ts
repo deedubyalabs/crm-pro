@@ -1,6 +1,6 @@
 import type { Database } from "./supabase"
-import type { Project } from "./projects"
-import type { Job } from "./jobs"
+import type { Project } from "@/types/project"
+import type { Job, JobWithAssignedToUser } from "@/types/job"
 
 export type ResourceType = Database["public"]["Tables"]["resource_types"]["Row"]
 export type NewResourceType = Database["public"]["Tables"]["resource_types"]["Insert"]
@@ -63,8 +63,8 @@ export type ConflictType =
 export type ResolutionStatus = "unresolved" | "auto_resolved" | "manually_resolved" | "ignored"
 
 export interface ProjectTaskWithDetails extends ProjectTask {
-  project?: Project
-  job?: Job
+  project?: Project | null // Changed to allow null
+  job?: JobWithAssignedToUser | null // Changed to use JobWithAssignedToUser
   dependencies?: TaskDependency[]
   dependents?: TaskDependency[]
   resourceAssignments?: ResourceAssignment[]
@@ -72,7 +72,7 @@ export interface ProjectTaskWithDetails extends ProjectTask {
 }
 
 export interface ResourceWithAssignments extends Resource {
-  type?: ResourceType
+  type?: ResourceType | null // Changed to allow null
   assignments?: ResourceAssignment[]
 }
 

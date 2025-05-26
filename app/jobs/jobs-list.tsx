@@ -1,9 +1,20 @@
+import React, { JSX } from "react" // Added React import
 import Link from "next/link"
-import { jobService, JOB_STATUSES } from "@/lib/jobs"
+import { jobService } from "@/lib/jobs"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
+
+// Define JOB_STATUSES here as it's not exported from lib/jobs
+const JOB_STATUSES = [
+  "Pending",
+  "Scheduled",
+  "In Progress",
+  "Blocked",
+  "Completed",
+  "Canceled",
+];
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,22 +41,25 @@ import {
 import { formatDate } from "@/lib/utils"
 import { projectService } from "@/lib/projects"
 import { Progress } from "@/components/ui/progress"
+import JobListItemClient from "./job-list-item-client" // Import the new client component
+import { JobWithAssignedToUser } from "@/types/job" // Import JobWithAssignedToUser
 
 interface JobsListProps {
   status?: string
   projectId?: string
-  assignedToId?: string
+  assignedTo?: string // Changed from assignedToId to assignedTo
   search?: string
   startDate?: string
   endDate?: string
+  onJobClick?: (jobId: string) => void // Add onJobClick prop
 }
 
-export default async function JobsList({ status, projectId, assignedToId, search, startDate, endDate }: JobsListProps) {
+export default async function JobsList({ status, projectId, assignedTo, search, startDate, endDate, onJobClick }: JobsListProps) {
   // Fetch jobs with filters
   const jobs = await jobService.getJobs({
     status,
     projectId,
-    assignedToId,
+    assignedTo, // Changed from assignedToId to assignedTo
     search,
     startDate,
     endDate,
@@ -55,7 +69,7 @@ export default async function JobsList({ status, projectId, assignedToId, search
   const projects = await projectService.getProjects()
 
   // Helper function to get status badge
-  function getStatusBadge(status: string) {
+  function getStatusBadge(status: string): JSX.Element { // Explicitly type status
     switch (status.toLowerCase()) {
       case "pending":
         return <Badge variant="outline">Pending</Badge>
@@ -75,7 +89,7 @@ export default async function JobsList({ status, projectId, assignedToId, search
   }
 
   // Helper function to get status icon
-  function getStatusIcon(status: string) {
+  function getStatusIcon(status: string): JSX.Element | null { // Explicitly type status
     switch (status.toLowerCase()) {
       case "pending":
         return <PauseCircle className="h-4 w-4 text-muted-foreground" />
@@ -154,98 +168,16 @@ export default async function JobsList({ status, projectId, assignedToId, search
           <CardContent className="p-0">
             <div className="divide-y">
               {jobs.map((job) => {
-                const progress = jobService.calculateProgress(job)
-                const isOverdue = jobService.isOverdue(job)
-
                 return (
-                  <div key={job.id} className="p-4 hover:bg-muted/50">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          {getStatusIcon(job.status)}
-                          <Link href={`/jobs/${job.id}`} className="font-medium hover:underline">
-                            {job.name} {/* Changed from job_name to name */}
-                          </Link>
-                          {getStatusBadge(job.status)}
-                          {isOverdue && (
-                            <Badge variant="destructive" className="ml-2">
-                              Overdue
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {job.project && (
-                            <Link href={`/projects/${job.project.id}`} className="hover:underline">
-                              <Building className="inline-block h-3.5 w-3.5 mr-1" />
-                              {job.project.project_name}
-                            </Link>
-                          )}
-                          {job.scheduled_start_date && (
-                            <span className="ml-4">
-                              <Calendar className="inline-block h-3.5 w-3.5 mr-1" />
-                              {formatDate(job.scheduled_start_date)}
-                            </span>
-                          )}
-                          {job.estimated_hours && (
-                            <span className="ml-4">
-                              <Clock className="inline-block h-3.5 w-3.5 mr-1" />
-                              {job.actual_hours !== null
-                                ? `${job.actual_hours}/${job.estimated_hours} hrs`
-                                : `${job.estimated_hours} hrs`}
-                            </span>
-                          )}
-                        </div>
-                        {job.description && (
-                          <p className="text-sm text-muted-foreground line-clamp-1">{job.description}</p>
-                        )}
-                        <div className="w-full mt-2">
-                          <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                            <span>Progress</span>
-                            <span>{progress}%</span>
-                          </div>
-                          <Progress value={progress} className="h-1.5" />
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {job.assigned_to ? (
-                          <div className="flex items-center" title={`Assigned to: ${job.assigned_to.name}`}>
-                            <User className="h-4 w-4 mr-1 text-muted-foreground" />
-                            <span className="text-sm">{job.assigned_to.name}</span>
-                          </div>
-                        ) : (
-                          <Badge variant="outline" className="text-muted-foreground">
-                            Unassigned
-                          </Badge>
-                        )}
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreHorizontal className="h-4 w-4" />
-                              <span className="sr-only">Open menu</span>
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem asChild>
-                              <Link href={`/jobs/${job.id}`}>View Details</Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem asChild>
-                              <Link href={`/jobs/${job.id}/edit`}>Edit Job</Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem asChild>
-                              <Link href={`/jobs/${job.id}/log-time`}>Log Time</Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem asChild>
-                              <Link href={`/jobs/${job.id}/assign`}>Assign Job</Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-red-600">Delete Job</DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </div>
-                  </div>
+                  <JobListItemClient
+                    key={job.id}
+                    job={job as JobWithAssignedToUser} // Cast to JobWithAssignedToUser
+                    onJobClick={onJobClick || (() => {})} // Provide a default empty function if onJobClick is undefined
+                    calculateProgress={calculateProgress} // Pass helper function
+                    isOverdue={isOverdue} // Pass helper function
+                    getStatusBadge={getStatusBadge}
+                    getStatusIcon={getStatusIcon}
+                  />
                 )
               })}
             </div>
@@ -269,4 +201,29 @@ export default async function JobsList({ status, projectId, assignedToId, search
       )}
     </div>
   )
+}
+
+// Helper functions for progress and overdue status (moved from JobService)
+function calculateProgress(job: any): number {
+  if (!job.estimated_hours || job.estimated_hours === 0) {
+    return 0;
+  }
+  if (job.actual_hours === null) {
+    return 0;
+  }
+  return Math.min(100, Math.round((job.actual_hours / job.estimated_hours) * 100));
+}
+
+function isOverdue(job: any): boolean {
+  if (job.status === 'Completed' || job.status === 'Canceled') {
+    return false;
+  }
+  if (job.due_date) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Normalize today to start of day
+    const dueDate = new Date(job.due_date);
+    dueDate.setHours(0, 0, 0, 0); // Normalize due date to start of day
+    return dueDate < today;
+  }
+  return false;
 }

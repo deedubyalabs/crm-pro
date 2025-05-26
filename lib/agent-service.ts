@@ -1,18 +1,20 @@
+import { ReactNode } from "react"
 import apiClient from "./api-client"
 
 // Types
 export type Agent = {
+  lastActivity: ReactNode
+  tasksProcessed: ReactNode
+  errorRate: number
   id: string
   name: string
   description: string
-  status: "active" | "inactive"
-  model: string
-  systemPrompt: string
-  lastActivity: string
-  tasksProcessed: number
-  errorRate: number
-  createdAt: string
-  updatedAt: string
+  status: "active" | "inactive" | string // Matches database column name
+  model: string // Matches database column name
+  system_prompt: string // Matches database column name
+  user_id: string // Matches database column name
+  created_at: string // Matches database column name
+  updated_at: string // Matches database column name
 }
 
 export type AgentStats = {
@@ -46,7 +48,7 @@ export const AgentService = {
 
   // Create a new agent
   async createAgent(
-    agent: Omit<Agent, "id" | "createdAt" | "updatedAt" | "lastActivity" | "tasksProcessed" | "errorRate">,
+    agent: Omit<Agent, "id" | "created_at" | "updated_at">,
   ): Promise<Agent | null> {
     const response = await apiClient.post<Agent>("/agents", agent)
     return response.data

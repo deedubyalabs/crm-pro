@@ -1,3 +1,6 @@
+"use client"
+
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -13,72 +16,45 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-
-// Sample agent data
-const agents = [
-  {
-    id: "agent-1",
-    name: "InvoiceProcessor",
-    description: "Processes and validates invoices, updates payment status",
-    status: "active",
-    lastActivity: "2 minutes ago",
-    tasksProcessed: 112,
-    errorRate: 1.8,
-    model: "gpt-4o",
-  },
-  {
-    id: "agent-2",
-    name: "LeadQualifier",
-    description: "Evaluates and scores new leads based on criteria",
-    status: "active",
-    lastActivity: "15 minutes ago",
-    tasksProcessed: 87,
-    errorRate: 7.5,
-    model: "gpt-4o",
-  },
-  {
-    id: "agent-3",
-    name: "AppointmentScheduler",
-    description: "Manages calendar and schedules appointments",
-    status: "active",
-    lastActivity: "32 minutes ago",
-    tasksProcessed: 46,
-    errorRate: 4.3,
-    model: "gpt-4o",
-  },
-  {
-    id: "agent-4",
-    name: "ProjectManager",
-    description: "Updates project status and manages tasks",
-    status: "active",
-    lastActivity: "1 hour ago",
-    tasksProcessed: 68,
-    errorRate: 2.9,
-    model: "gpt-4o",
-  },
-  {
-    id: "agent-5",
-    name: "CustomerSupport",
-    description: "Handles customer inquiries and support requests",
-    status: "active",
-    lastActivity: "1 hour ago",
-    tasksProcessed: 75,
-    errorRate: 10.7,
-    model: "gpt-4o",
-  },
-  {
-    id: "agent-6",
-    name: "EstimateGenerator",
-    description: "Creates cost estimates based on project requirements",
-    status: "inactive",
-    lastActivity: "2 days ago",
-    tasksProcessed: 42,
-    errorRate: 5.2,
-    model: "gpt-4o",
-  },
-]
+import { AgentService, Agent } from "@/lib/agent-service"
 
 export default function AgentsPage() {
+  const [agents, setAgents] = useState<Agent[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [searchTerm, setSearchTerm] = useState("")
+
+  useEffect(() => {
+    const fetchAgents = async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        const fetchedAgents = await AgentService.getAgents()
+        setAgents(fetchedAgents || [])
+      } catch (err) {
+        setError((err as Error).message)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchAgents()
+  }, [])
+
+  const filteredAgents = agents.filter(
+    (agent) =>
+      agent.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      agent.description.toLowerCase().includes(searchTerm.toLowerCase()),
+  )
+
+  if (loading) {
+    return <div className="text-center py-8">Loading agents...</div>
+  }
+
+  if (error) {
+    return <div className="text-center py-8 text-red-500">Error: {error}</div>
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -101,7 +77,13 @@ export default function AgentsPage() {
             <div className="flex items-center space-x-2">
               <div className="relative">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input type="search" placeholder="Search agents..." className="pl-8 w-[250px]" />
+                <Input
+                  type="search"
+                  placeholder="Search agents..."
+                  className="pl-8 w-[250px]"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
               </div>
             </div>
           </div>
@@ -120,7 +102,7 @@ export default function AgentsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {agents.map((agent) => (
+              {filteredAgents.map((agent) => (
                 <TableRow key={agent.id}>
                   <TableCell>
                     <div className="flex items-center space-x-2">

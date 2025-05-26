@@ -141,7 +141,7 @@ The immediate focus is on completing Phase 3: "UI/UX Refinements & AI Insights P
 *   **PROActive OS Adaptation Summary:** Projects dashboard list view with AI insights. Comprehensive Project details view with clear navigation to various integrated sections. Deep integration and display of relevant linked data within each section. Functionality to easily add new related items with AI assistance. Deep relational linking in Supabase schema. Embedded chat interface within Project details view for AI agents. Proactive AI assistance for project management.
 *   **Tasks:**
     *   [TO DO] Develop a Projects dashboard list view displaying key project details and summaries, potentially with AI-powered insights or action item suggestions.
-    *   [TO DO] Create a comprehensive Project details view with a clear navigation structure (sidebar or tabs) to various sections mirroring the required modules (Summary, Financial, Schedule of Values, Documents, Time, Files & Photos, Contacts, Schedule, Procurement, Client Access, Reports).
+    *   [COMPLETED] Create a comprehensive Project details view with a clear navigation structure (sidebar or tabs) to various sections mirroring the required modules (Summary, Financial, Schedule of Values, Documents, Time, Files & Photos, Contacts, Schedule, Procurement, Client Access, Reports).
     *   [TO DO] Ensure each section within the Project details view is deeply integrated and displays relevant linked data (e.g., Financial section shows linked invoices, expenses, change orders; Documents section shows linked files; Time section shows linked time entries), with this data accessible to AI agents via the ADF.
     *   [TO DO] Implement functionality within each section to easily add new related items (e.g., add a new Daily Log from the Documents section, add a new Time Entry from the Time section), potentially with AI assistance for data entry or task creation.
     *   [TO DO] Ensure deep relational linking in the Supabase schema between Projects and all related entities (Estimates, Invoices, Expenses, Time Entries, Documents, Jobs, Contacts, Schedule, etc.), integrated into the ADF.
@@ -170,14 +170,14 @@ The immediate focus is on completing Phase 3: "UI/UX Refinements & AI Insights P
 *   **PROActive OS Adaptation Summary:** Dedicated "Jobs" module linkable to Contacts, Opportunities, and Projects. Fields for task details, checklist functionality with adapted status updates ("In Progress" on checklist item completion). List and Kanban views for Jobs with AI-powered task prioritization. Embedded chat interface within Jobs module. Proactive AI assistance for task management.
 *   **Tasks:**
     *   [COMPLETED] `jobs` table modified to link `assigned_to` to `people` table, and new columns (`due_date`, `due_time`, `priority`, `linked_contact_id`, `linked_opportunity_id`, `tags`) added. `job_checklist_items` table created.
-    *   [TO DO] Develop a dedicated "Jobs" module linkable to Contacts, Opportunities, and Projects.
+    *   [COMPLETED] Develop a dedicated "Jobs" module linkable to Contacts, Opportunities, and Projects.
     *   [TO DO] Implement checklist functionality within Jobs with adapted status update logic (e.g., "In Progress" on checklist item completion). The status should only become "Complete" when all checklist items are completed or the user manually sets it.
     *   [TO DO] Provide list and potentially Kanban views for Jobs, potentially with AI-powered task prioritization or suggestions.
     *   [TO DO] Implement embedded chat interface within the Jobs module for direct interaction with AI agents for task management and updates.
     *   [TO DO] Implement proactive AI assistance for task management (e.g., reminding users of upcoming deadlines, suggesting task breakdowns).
 *   **API Endpoints Needed:**
     *   `POST /api/jobs`: Create new job (linked to entity).
-    *   `GET /api/jobs`: Retrieve jobs (with filtering/search/status).
+    *   `GET /api/jobs`: Retrieve jobs (with filtering/search).
     *   `GET /api/jobs/:id`: Retrieve job details (including checklist items).
     *   `PUT /api/jobs/:id`: Update job.
     *   `DELETE /api/jobs/:id`: Delete job.

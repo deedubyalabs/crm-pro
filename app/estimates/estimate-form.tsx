@@ -21,9 +21,20 @@ import { format } from "date-fns"
 import { EstimateLineItemRow } from "./estimate-line-item"
 import { PaymentScheduleItem } from "./payment-schedule-item"
 import { BulkMarkupDialog } from "./bulk-markup-dialog" // Import new dialog
+import { CostItemSelectorDrawer } from "./cost-item-selector-drawer" // Import CostItemSelectorDrawer
+import { EstimateSummary } from "./estimate-summary" // Import EstimateSummary
+import { EstimateReviewDialog } from "./estimate-review-dialog" // Import EstimateReviewDialog
 import type { EstimateLineItem, EstimateWithDetails, EstimatePaymentSchedule } from "@/types/estimates"
 import type { CostItem } from "@/types/cost-items"
 import { Checkbox } from "@/components/ui/checkbox"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog" // Import Dialog components
 
 // Define the form schema
 const formSchema = z.object({
@@ -34,6 +45,9 @@ const formSchema = z.object({
   issue_date: z.date().optional().nullable(),
   expiration_date: z.date().optional().nullable(),
   notes: z.string().optional(),
+  terms_and_conditions: z.string().optional(), // New field
+  scope_of_work: z.string().optional(), // New field
+  cover_sheet_details: z.string().optional(), // New field
   discount_type: z.enum(["percentage", "fixed", ""]).optional(),
   discount_value: z.coerce.number().min(0).optional(),
   tax_rate_percentage: z.coerce.number().min(0).max(100).optional(),
@@ -99,6 +113,8 @@ export function EstimateForm({
   const [sections, setSections] = useState<string[]>([]);
   const [newSectionName, setNewSectionName] = useState("");
   const [isBulkMarkupDialogOpen, setIsBulkMarkupDialogOpen] = useState(false); // State for bulk markup dialog
+  const [isCostItemSelectorOpen, setIsCostItemSelectorOpen] = useState(false); // State for cost item selector drawer
+  const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false); // State for review dialog
 
   // Initialize the form with default values or existing estimate data
   const form = useForm<FormValues>({
@@ -112,6 +128,9 @@ export function EstimateForm({
           issue_date: estimate.issue_date ? new Date(estimate.issue_date) : null,
           expiration_date: estimate.expiration_date ? new Date(estimate.expiration_date) : null,
           notes: estimate.notes || "",
+          terms_and_conditions: estimate.terms_and_conditions || "", // Initialize new field
+          scope_of_work: estimate.scope_of_work || "", // Initialize new field
+          cover_sheet_details: estimate.cover_sheet_details || "", // Initialize new field
           discount_type: estimate.discount_type || "",
           discount_value: estimate.discount_value || 0,
         }
@@ -123,6 +142,9 @@ export function EstimateForm({
           issue_date: null,
           expiration_date: null,
           notes: "",
+          terms_and_conditions: "", // Default for new field
+          scope_of_work: "", // Default for new field
+          cover_sheet_details: "", // Default for new field
           discount_type: "",
           discount_value: 0,
         },
@@ -139,6 +161,9 @@ export function EstimateForm({
         issue_date: estimate.issue_date ? new Date(estimate.issue_date) : null,
         expiration_date: estimate.expiration_date ? new Date(estimate.expiration_date) : null,
         notes: estimate.notes || "",
+        terms_and_conditions: estimate.terms_and_conditions || "", // Include new field
+        scope_of_work: estimate.scope_of_work || "", // Include new field
+        cover_sheet_details: estimate.cover_sheet_details || "", // Include new field
         discount_type: estimate.discount_type || "",
         discount_value: estimate.discount_value || 0,
         tax_rate_percentage: estimate.tax_rate_percentage || 0, // Include tax rate
@@ -233,20 +258,26 @@ export function EstimateForm({
 
   // Handle adding a new line item (uses onLineItemsChange prop)
   const handleAddLineItem = () => {
-    onLineItemsChange([
-      ...lineItems,
-      {
-        description: "",
-        quantity: 1,
-        unit: "EA",
-        unit_cost: 0,
-        markup: 0,
-        total: 0,
-        is_optional: false, // Default for new line items
-        is_taxable: true, // Default for new line items
-        assigned_to_user_id: null, // Default for new line items
-      },
-    ]);
+    setIsCostItemSelectorOpen(true); // Open the cost item selector drawer
+  };
+
+  // Handle selecting a cost item from the drawer
+  const handleSelectCostItemFromDrawer = (selectedCostItem: CostItem) => {
+    const newLineItem: Partial<EstimateLineItem> = {
+      cost_item_id: selectedCostItem.id,
+      description: selectedCostItem.name,
+      quantity: 1,
+      unit: selectedCostItem.unit,
+      unit_cost: selectedCostItem.unit_cost,
+      markup: selectedCostItem.default_markup,
+      total: selectedCostItem.unit_cost * (1 + selectedCostItem.default_markup / 100),
+      is_optional: false,
+      is_taxable: true,
+      assigned_to_user_id: null,
+      costItem: selectedCostItem, // Attach the full cost item for display/reference
+    };
+    onLineItemsChange([...lineItems, newLineItem]);
+    setIsCostItemSelectorOpen(false); // Close the drawer
   };
 
   // Handle updating a line item (uses onLineItemsChange prop)
@@ -330,6 +361,17 @@ export function EstimateForm({
     }
   };
 
+  // Function to handle opening the review dialog
+  const handleReviewAndSubmit = () => {
+    setIsReviewDialogOpen(true);
+  };
+
+  // Function to confirm submission from the review dialog
+  const handleConfirmSubmit = async () => {
+    setIsReviewDialogOpen(false); // Close the review dialog
+    await form.handleSubmit(handleSubmit)(); // Trigger the actual form submission
+  };
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)}>
@@ -339,6 +381,8 @@ export function EstimateForm({
               <TabsTrigger value="details">Details</TabsTrigger> {/* Details Tab */}
               <TabsTrigger value="line-items">Line Items</TabsTrigger>
               <TabsTrigger value="payment-schedule">Payment Schedule</TabsTrigger>
+              <TabsTrigger value="summary">Summary</TabsTrigger> {/* New Summary Tab */}
+              <TabsTrigger value="documents">Documents</TabsTrigger> {/* New Documents Tab */}
             </TabsList>
 
             {/* Details Tab Content */}
@@ -663,7 +707,7 @@ export function EstimateForm({
                         <div className="col-span-1">Qty</div>
                         <div className="col-span-1">Unit</div>
                         <div className="col-span-2 text-right">Unit Cost</div>
-                        <div className="col-span-1 text-right">Markup %</div>
+                        <div className="col-span-1">Markup %</div>
                         <div className="col-span-2 text-right">Total</div>
                         <div className="col-span-1"></div>
                       </div>
@@ -818,14 +862,100 @@ export function EstimateForm({
                 </CardContent>
               </Card>
             </TabsContent>
+
+            {/* New Summary Tab Content */}
+            <TabsContent value="summary">
+              <EstimateSummary
+                estimate={estimate}
+                lineItems={lineItems}
+                subtotalAmount={subtotalAmount}
+                discountedSubtotal={discountedSubtotal}
+                taxAmount={taxAmount}
+                totalAmount={totalAmount}
+              />
+            </TabsContent>
+
+            {/* New Documents Tab Content */}
+            <TabsContent value="documents">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Estimate Documents</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <FormField
+                    control={form.control}
+                    name="terms_and_conditions"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Terms and Conditions</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Enter terms and conditions for this estimate"
+                            className="min-h-[150px]"
+                            {...field}
+                            value={field.value || ""}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          These terms and conditions will be included in the estimate document.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="scope_of_work"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Scope of Work</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Describe the scope of work for this estimate"
+                            className="min-h-[150px]"
+                            {...field}
+                            value={field.value || ""}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          A detailed description of the work to be performed.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="cover_sheet_details"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Cover Sheet Details</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Enter details for the estimate cover sheet"
+                            className="min-h-[100px]"
+                            {...field}
+                            value={field.value || ""}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Additional information to appear on the cover sheet of the estimate.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </CardContent>
+              </Card>
+            </TabsContent>
           </Tabs>
 
           <div className="flex justify-between">
             <Button type="button" variant="outline" onClick={() => router.push("/estimates")}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Saving..." : estimate ? "Update Estimate" : "Create Estimate"}
+            <Button type="button" onClick={handleReviewAndSubmit} disabled={isSubmitting}>
+              Review and Submit
             </Button>
           </div>
         </div> {/* Closes "space-y-6" div */}
@@ -834,6 +964,20 @@ export function EstimateForm({
         isOpen={isBulkMarkupDialogOpen}
         onClose={() => setIsBulkMarkupDialogOpen(false)}
         onApplyMarkup={handleApplyBulkMarkup}
+      />
+      <CostItemSelectorDrawer
+        isOpen={isCostItemSelectorOpen}
+        onClose={() => setIsCostItemSelectorOpen(false)}
+        onSelectCostItem={handleSelectCostItemFromDrawer}
+      />
+      <EstimateReviewDialog
+        isOpen={isReviewDialogOpen}
+        onClose={() => setIsReviewDialogOpen(false)}
+        onConfirmSubmit={handleConfirmSubmit}
+        estimate={estimate}
+        lineItems={lineItems}
+        paymentSchedules={paymentSchedules}
+        totalAmount={totalAmount}
       />
     </Form>
   );

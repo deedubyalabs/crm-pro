@@ -13,6 +13,9 @@ import WeatherImpactsList from "./weather-impacts-list"
 import ScheduleAnalysisSummary from "./schedule-analysis-summary"
 import ScheduleOptimizeButton from "./schedule-optimize-button"
 import ScheduleGenerateButton from "./schedule-generate-button"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge"
+import { format } from "date-fns"
 
 export const metadata = {
   title: "Project Schedule | PROActive OS",
@@ -27,7 +30,7 @@ export default async function ProjectSchedulePage({ params }: { params: { id: st
       notFound()
     }
 
-    // Get project tasks
+    // Get project tasks (jobs)
     const tasks = await schedulerService.getProjectTasks({ projectId: params.id })
 
     // Get scheduling conflicts
@@ -55,7 +58,7 @@ export default async function ProjectSchedulePage({ params }: { params: { id: st
             </div>
           </div>
           <div className="flex space-x-2">
-            <ScheduleGenerateButton projectId={params.id} hasExistingTasks={tasks.length > 0} />
+            <ScheduleGenerateButton projectId={params.id} projectName={project.project_name} hasExistingTasks={tasks.length > 0} />
             {tasks.length > 0 && <ScheduleOptimizeButton projectId={params.id} />}
           </div>
         </div>
@@ -69,7 +72,7 @@ export default async function ProjectSchedulePage({ params }: { params: { id: st
               </CardDescription>
             </CardHeader>
             <CardContent className="flex justify-center py-6">
-              <ScheduleGenerateButton projectId={params.id} hasExistingTasks={false} size="lg" />
+              <ScheduleGenerateButton projectId={params.id} projectName={project.project_name} hasExistingTasks={false} size="lg" />
             </CardContent>
           </Card>
         ) : (
@@ -81,6 +84,39 @@ export default async function ProjectSchedulePage({ params }: { params: { id: st
               </CardHeader>
               <CardContent>
                 <ProjectScheduleGantt tasks={tasks} />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Project Tasks List</CardTitle>
+                <CardDescription>A simple list view of all tasks in this project</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Job Name</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Start Date</TableHead>
+                      <TableHead>End Date</TableHead>
+                      <TableHead>Assignee</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {tasks.map((task) => (
+                      <TableRow key={task.id}>
+                        <TableCell className="font-medium">{task.name}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{task.status}</Badge>
+                        </TableCell>
+                        <TableCell>{task.job?.scheduled_start_date ? format(new Date(task.job.scheduled_start_date), "PPP") : "N/A"}</TableCell>
+                        <TableCell>{task.job?.scheduled_end_date ? format(new Date(task.job.scheduled_end_date), "PPP") : "N/A"}</TableCell>
+                        <TableCell>{task.job?.assigned_to || "Unassigned"}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </CardContent>
             </Card>
 

@@ -1,3 +1,6 @@
+"use client"
+
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -13,66 +16,46 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import Link from "next/link"
-
-// Sample tools data
-const tools = [
-  {
-    id: "tool-1",
-    name: "createAppointment",
-    description: "Schedule a new appointment",
-    endpoint: "POST /api/v1/appointments",
-    status: "enabled",
-    agentsWithAccess: 3,
-    usageCount: 46,
-  },
-  {
-    id: "tool-2",
-    name: "getProjectDetails",
-    description: "Retrieve project information",
-    endpoint: "GET /api/v1/projects/{projectId}",
-    status: "enabled",
-    agentsWithAccess: 5,
-    usageCount: 124,
-  },
-  {
-    id: "tool-3",
-    name: "updateProjectStatus",
-    description: "Update the status of a project",
-    endpoint: "PATCH /api/v1/projects/{projectId}",
-    status: "enabled",
-    agentsWithAccess: 2,
-    usageCount: 68,
-  },
-  {
-    id: "tool-4",
-    name: "createInvoice",
-    description: "Generate a new invoice",
-    endpoint: "POST /api/v1/invoices",
-    status: "enabled",
-    agentsWithAccess: 1,
-    usageCount: 112,
-  },
-  {
-    id: "tool-5",
-    name: "searchPeople",
-    description: "Search for people by criteria",
-    endpoint: "GET /api/v1/people",
-    status: "enabled",
-    agentsWithAccess: 4,
-    usageCount: 215,
-  },
-  {
-    id: "tool-6",
-    name: "createEstimate",
-    description: "Create a new estimate",
-    endpoint: "POST /api/v1/estimates",
-    status: "disabled",
-    agentsWithAccess: 0,
-    usageCount: 0,
-  },
-]
+import { ToolService, Tool } from "@/lib/tool-service"
 
 export default function ToolsPage() {
+  const [tools, setTools] = useState<Tool[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [searchTerm, setSearchTerm] = useState("")
+
+  useEffect(() => {
+    const fetchTools = async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        const fetchedTools = await ToolService.getTools()
+        setTools(fetchedTools || [])
+      } catch (err) {
+        setError((err as Error).message)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchTools()
+  }, [])
+
+  const filteredTools = tools.filter(
+    (tool) =>
+      tool.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      tool.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      tool.endpoint.toLowerCase().includes(searchTerm.toLowerCase()),
+  )
+
+  if (loading) {
+    return <div className="text-center py-8">Loading tools...</div>
+  }
+
+  if (error) {
+    return <div className="text-center py-8 text-red-500">Error: {error}</div>
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -92,7 +75,13 @@ export default function ToolsPage() {
             <div className="flex items-center space-x-2">
               <div className="relative">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input type="search" placeholder="Search tools..." className="pl-8 w-[250px]" />
+                <Input
+                  type="search"
+                  placeholder="Search tools..."
+                  className="pl-8 w-[250px]"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
               </div>
             </div>
           </div>
@@ -110,7 +99,7 @@ export default function ToolsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {tools.map((tool) => (
+              {filteredTools.map((tool) => (
                 <TableRow key={tool.id}>
                   <TableCell>
                     <div className="flex items-center space-x-2">

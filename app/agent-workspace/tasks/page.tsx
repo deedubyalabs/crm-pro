@@ -1,3 +1,6 @@
+"use client"
+
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -14,88 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import Link from "next/link"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-
-// Sample tasks data
-const tasks = [
-  {
-    id: "task-1",
-    agent: "LeadQualifier",
-    type: "Lead Qualification",
-    status: "failed",
-    startTime: "2023-05-03T14:45:00Z",
-    duration: "12s",
-    relatedEntities: {
-      person: { id: "person-1", name: "John Smith" },
-    },
-  },
-  {
-    id: "task-2",
-    agent: "InvoiceProcessor",
-    type: "Invoice Processing",
-    status: "completed",
-    startTime: "2023-05-03T14:30:00Z",
-    duration: "8s",
-    relatedEntities: {
-      invoice: { id: "invoice-1", number: "INV-1042" },
-    },
-  },
-  {
-    id: "task-3",
-    agent: "CustomerSupport",
-    type: "Email Response",
-    status: "pending_approval",
-    startTime: "2023-05-03T14:15:00Z",
-    duration: "15s",
-    relatedEntities: {
-      person: { id: "person-2", name: "Sarah Johnson" },
-    },
-  },
-  {
-    id: "task-4",
-    agent: "AppointmentScheduler",
-    type: "Appointment Creation",
-    status: "completed",
-    startTime: "2023-05-03T14:00:00Z",
-    duration: "10s",
-    relatedEntities: {
-      person: { id: "person-3", name: "Michael Brown" },
-      project: { id: "project-1", name: "Kitchen Remodel" },
-    },
-  },
-  {
-    id: "task-5",
-    agent: "ProjectManager",
-    type: "Status Update",
-    status: "completed",
-    startTime: "2023-05-03T13:45:00Z",
-    duration: "6s",
-    relatedEntities: {
-      project: { id: "project-2", name: "Bathroom Renovation" },
-    },
-  },
-  {
-    id: "task-6",
-    agent: "LeadQualifier",
-    type: "Lead Qualification",
-    status: "running",
-    startTime: "2023-05-03T15:00:00Z",
-    duration: "3s (ongoing)",
-    relatedEntities: {
-      person: { id: "person-4", name: "Emily Wilson" },
-    },
-  },
-  {
-    id: "task-7",
-    agent: "CustomerSupport",
-    type: "Follow-up Scheduling",
-    status: "queued",
-    startTime: "Pending",
-    duration: "-",
-    relatedEntities: {
-      person: { id: "person-5", name: "David Thompson" },
-    },
-  },
-]
+import { TaskService, Task } from "@/lib/task-service"
 
 // Helper function to get status badge
 function getStatusBadge(status: string) {
@@ -141,6 +63,78 @@ function getStatusBadge(status: string) {
 }
 
 export default function TasksPage() {
+  const [tasks, setTasks] = useState<Task[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [statusFilter, setStatusFilter] = useState("all")
+
+  useEffect(() => {
+    const fetchTasks = async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        const fetchedTasks = await TaskService.getTasks()
+        setTasks(fetchedTasks || [])
+      } catch (err) {
+        setError((err as Error).message)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchTasks()
+  }, [])
+
+  const filteredTasks = tasks.filter((task) => {
+    const matchesSearch =
+      task.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      task.agent_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (task.input && JSON.stringify(task.input).toLowerCase().includes(searchTerm.toLowerCase())) || // Search in input JSON
+      (task.output && JSON.stringify(task.output).toLowerCase().includes(searchTerm.toLowerCase())) || // Search in output JSON
+      (task.error && task.error.toLowerCase().includes(searchTerm.toLowerCase())) || // Search in error message
+      (task.metadata && JSON.stringify(task.metadata).toLowerCase().includes(searchTerm.toLowerCase())) // Search in metadata
+
+    const matchesStatus = statusFilter === "all" || task.status === statusFilter
+
+    return matchesSearch && matchesStatus
+  })
+
+  const formatDuration = (start: string, end?: string) => {
+    if (!end) return "Ongoing"
+    const startDate = new Date(start)
+    const endDate = new Date(end)
+    const diffMs = endDate.getTime() - startDate.getTime()
+    const diffSeconds = Math.round(diffMs / 1000)
+    if (diffSeconds < 60) return `${diffSeconds}s`
+    const diffMinutes = Math.round(diffSeconds / 60)
+    return `${diffMinutes}m`
+  }
+
+  const getRelatedEntitiesDisplay = (task: Task) => {
+    if (task.metadata?.relatedEntities) {
+      const entities = task.metadata.relatedEntities
+      if (entities.person?.name) return `Person: ${entities.person.name}`
+      if (entities.project?.name) return `Project: ${entities.project.name}`
+      if (entities.invoice?.number) return `Invoice: ${entities.invoice.number}`
+    }
+    if (task.input) {
+      // Attempt to extract common entity patterns from input
+      const inputString = JSON.stringify(task.input)
+      const personMatch = inputString.match(/"name"\s*:\s*"([^"]+)"/)
+      if (personMatch) return `Input: ${personMatch[1]}`
+    }
+    return "N/A"
+  }
+
+  if (loading) {
+    return <div className="text-center py-8">Loading tasks...</div>
+  }
+
+  if (error) {
+    return <div className="text-center py-8 text-red-500">Error: {error}</div>
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -158,7 +152,7 @@ export default function TasksPage() {
               <CardDescription>Track the execution of individual agent tasks</CardDescription>
             </div>
             <div className="flex items-center space-x-2">
-              <Select defaultValue="all">
+              <Select defaultValue="all" value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-[150px]">
                   <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
@@ -173,7 +167,13 @@ export default function TasksPage() {
               </Select>
               <div className="relative">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input type="search" placeholder="Search tasks..." className="pl-8 w-[250px]" />
+                <Input
+                  type="search"
+                  placeholder="Search tasks..."
+                  className="pl-8 w-[250px]"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
               </div>
             </div>
           </div>
@@ -182,51 +182,29 @@ export default function TasksPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Task ID</TableHead>
+                <TableHead>Run ID</TableHead>
                 <TableHead>Agent</TableHead>
-                <TableHead>Type</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Start Time</TableHead>
                 <TableHead>Duration</TableHead>
-                <TableHead>Related Entities</TableHead>
+                <TableHead>Related Entity</TableHead>
                 <TableHead className="w-[80px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {tasks.map((task) => (
+              {filteredTasks.map((task) => (
                 <TableRow key={task.id}>
                   <TableCell>
                     <div className="flex items-center space-x-2">
                       <ListTodo className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-mono text-sm">{task.id}</span>
+                      <span className="font-mono text-sm">{task.run_id}</span>
                     </div>
                   </TableCell>
-                  <TableCell>{task.agent}</TableCell>
-                  <TableCell>{task.type}</TableCell>
+                  <TableCell>{task.agent_name}</TableCell>
                   <TableCell>{getStatusBadge(task.status)}</TableCell>
-                  <TableCell>
-                    {task.startTime === "Pending" ? "Pending" : new Date(task.startTime).toLocaleTimeString()}
-                  </TableCell>
-                  <TableCell>{task.duration}</TableCell>
-                  <TableCell>
-                    <div className="space-y-1">
-                      {task.relatedEntities.person && (
-                        <div className="text-sm">
-                          Person: <span className="font-medium">{task.relatedEntities.person.name}</span>
-                        </div>
-                      )}
-                      {task.relatedEntities.project && (
-                        <div className="text-sm">
-                          Project: <span className="font-medium">{task.relatedEntities.project.name}</span>
-                        </div>
-                      )}
-                      {task.relatedEntities.invoice && (
-                        <div className="text-sm">
-                          Invoice: <span className="font-medium">{task.relatedEntities.invoice.number}</span>
-                        </div>
-                      )}
-                    </div>
-                  </TableCell>
+                  <TableCell>{new Date(task.start_time).toLocaleTimeString()}</TableCell>
+                  <TableCell>{formatDuration(task.start_time, task.end_time)}</TableCell>
+                  <TableCell>{getRelatedEntitiesDisplay(task)}</TableCell>
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>

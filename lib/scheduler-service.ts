@@ -258,22 +258,28 @@ export const schedulerService = {
         query = query.eq("status", options.status)
       }
 
-      const { data: tasks, error } = await query.order("scheduled_start", { ascending: true })
+      const { data: tasksData, error: tasksError } = await query.order("scheduled_start", { ascending: true })
 
-      if (error) throw error
+      if (tasksError) throw tasksError
+      const tasks = tasksData || [];
 
-      // Get dependencies for each task
+      // Get all people to map assigned_to_user
+      const { data: people, error: peopleError } = await supabase.from("people").select("*")
+      if (peopleError) throw peopleError
+
+      // Get dependencies for all tasks
       const taskIds = tasks.map((task) => task.id)
-      const { data: dependencies, error: depError } = await supabase
+      const { data: dependenciesData, error: depError } = await supabase
         .from("task_dependencies")
         .select("*")
         .in("predecessor_task_id", taskIds)
         .or(`successor_task_id.in.(${taskIds.join(",")})`)
 
       if (depError) throw depError
+      const dependencies = dependenciesData || [];
 
-      // Get resource assignments for each task
-      const { data: assignments, error: assignError } = await supabase
+      // Get resource assignments for all tasks
+      const { data: assignmentsData, error: assignError } = await supabase
         .from("resource_assignments")
         .select(`
           *,
@@ -282,14 +288,16 @@ export const schedulerService = {
         .in("task_id", taskIds)
 
       if (assignError) throw assignError
+      const assignments = assignmentsData || [];
 
-      // Get constraints for each task
-      const { data: constraints, error: constError } = await supabase
+      // Get constraints for all tasks
+      const { data: constraintsData, error: constError } = await supabase
         .from("scheduling_constraints")
         .select("*")
         .in("task_id", taskIds)
 
       if (constError) throw constError
+      const constraints = constraintsData || [];
 
       // Combine all data
       const tasksWithDetails = tasks.map((task) => {
@@ -299,8 +307,15 @@ export const schedulerService = {
         const taskAssignments = assignments?.filter((assign) => assign.task_id === task.id)
         const taskConstraints = constraints?.filter((constraint) => constraint.task_id === task.id)
 
+        // Manually attach assigned_to_user to the job object
+        const jobWithAssignedUser = task.job ? {
+          ...task.job,
+          assigned_to_user: people?.find(p => p.id === task.job?.assigned_to) || null
+        } : null;
+
         return {
           ...task,
+          job: jobWithAssignedUser,
           dependencies: taskDependencies?.filter((dep) => dep.predecessor_task_id === task.id) || [],
           dependents: taskDependencies?.filter((dep) => dep.successor_task_id === task.id) || [],
           resourceAssignments: taskAssignments || [],
@@ -637,8 +652,8 @@ export const schedulerService = {
       // Get existing jobs for this project
       const jobs = await projectService.getProjectJobs(projectId)
 
-      // Start date defaults to project start date or today
-      const startDate = options.startDate || project.start_date || new Date().toISOString()
+      // Start date defaults to project planned start date or today
+      const startDate = options.startDate || project.planned_start_date || new Date().toISOString()
       let currentDate = new Date(startDate)
 
       // Create tasks based on templates or basic structure
@@ -969,7 +984,11 @@ export const schedulerService = {
       // Update tasks in database
       if (updatedTasks.length > 0) {
         for (const task of updatedTasks) {
-          await this.updateProjectTask(task.id, task)
+          if (task.id !== undefined) {
+            if (task.id) {
+              await this.updateProjectTask(task.id, task)
+            }
+          }
         }
       }
 
@@ -1008,8 +1027,8 @@ export const schedulerService = {
         Math.max(...tasks.map((t) => (t.scheduled_end ? new Date(t.scheduled_end).getTime() : Date.now()))),
       )
 
-      // Fetch weather data (mock implementation - would use actual weather service)
-      const weatherData = await weatherService.getWeatherForecast(projectLocation, startDate, endDate)
+      // Fetch weather data
+      const weatherData = await weatherService.getWeatherForecast(projectLocation || "Unknown", startDate, endDate)
 
       // Apply weather impacts to tasks
       const updatedTasks: UpdateProjectTask[] = []
@@ -1641,7 +1660,7 @@ export const schedulerService = {
       )
 
       // Fetch weather data
-      const weatherData = await weatherService.getWeatherForecast(projectLocation, startDate, endDate)
+      const weatherData = await weatherService.getWeatherForecast(projectLocation ?? "Unknown", startDate, endDate)
 
       // Identify impacts
       const impacts: {

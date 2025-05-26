@@ -39,7 +39,7 @@ export class JobService {
     return data;
   }
 
-  async getJobs(filters?: { projectId?: string; assignedTo?: string; status?: string; search?: string }): Promise<Job[]> {
+  async getJobs(filters?: { projectId?: string; assignedTo?: string; status?: "Pending" | "Scheduled" | "In Progress" | "Blocked" | "Completed" | "Canceled"; search?: string; startDate?: string; endDate?: string }): Promise<Job[]> {
     let query = this.supabase
       .from('jobs')
       .select(`
@@ -60,6 +60,12 @@ export class JobService {
     }
     if (filters?.search) {
       query = query.ilike('name', `%${filters.search}%`);
+    }
+    if (filters?.startDate) {
+      query = query.gte('scheduled_start_date', filters.startDate);
+    }
+    if (filters?.endDate) {
+      query = query.lte('scheduled_end_date', filters.endDate);
     }
 
     const { data, error } = await query.order('created_at', { ascending: false });

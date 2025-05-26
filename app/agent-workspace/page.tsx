@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useState, useEffect } from "react"
 import {
   Bot,
   AlertCircle,
@@ -22,68 +23,121 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import ActivityLogsTab from "./components/activity-logs-tab"
 import ConfigurationTab from "./components/configuration-tab"
 import PerformanceTab from "./components/performance-tab"
-
-// Sample data for charts
-const taskData = [
-  { day: "Mon", completed: 12, failed: 2 },
-  { day: "Tue", completed: 18, failed: 1 },
-  { day: "Wed", completed: 15, failed: 3 },
-  { day: "Thu", completed: 22, failed: 2 },
-  { day: "Fri", completed: 20, failed: 0 },
-  { day: "Sat", completed: 8, failed: 1 },
-  { day: "Sun", completed: 5, failed: 0 },
-]
-
-const tokenData = [
-  { day: "Mon", tokens: 24500 },
-  { day: "Tue", tokens: 32100 },
-  { day: "Wed", tokens: 28700 },
-  { day: "Thu", tokens: 41200 },
-  { day: "Fri", tokens: 38500 },
-  { day: "Sat", tokens: 15200 },
-  { day: "Sun", tokens: 9800 },
-]
-
-// Sample activity feed data
-const activityFeed = [
-  {
-    id: 1,
-    agent: "InvoiceProcessor",
-    action: "Processed invoice #1042",
-    time: "2 minutes ago",
-    status: "success",
-  },
-  {
-    id: 2,
-    agent: "LeadQualifier",
-    action: "Failed to process lead - Missing contact information",
-    time: "15 minutes ago",
-    status: "error",
-  },
-  {
-    id: 3,
-    agent: "AppointmentScheduler",
-    action: "Created appointment for Johnson project",
-    time: "32 minutes ago",
-    status: "success",
-  },
-  {
-    id: 4,
-    agent: "ProjectManager",
-    action: "Updated status for Smith project to 'In Progress'",
-    time: "1 hour ago",
-    status: "success",
-  },
-  {
-    id: 5,
-    agent: "CustomerSupport",
-    action: "Waiting for approval - Send follow-up email to client",
-    time: "1 hour ago",
-    status: "warning",
-  },
-]
+import ErrorLogsTab from "./components/error-logs-tab"
+import { AgentService, Agent, AgentStats } from "@/lib/agent-service"
 
 export default function AgentWorkspaceDashboard() {
+  const [agents, setAgents] = useState<Agent[]>([])
+  const [agentStats, setAgentStats] = useState<AgentStats | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        const fetchedAgents = await AgentService.getAgents()
+        setAgents(fetchedAgents || []) // AgentService.getAgents returns Agent[] or [] on error
+
+        // For overall stats, we might need a dedicated endpoint or aggregate from individual agent stats
+        // For now, let's fetch stats for a dummy agent or the first active agent if available
+        if (fetchedAgents && fetchedAgents.length > 0) {
+          const firstAgentId = fetchedAgents[0].id // Or a specific "Pro-pilot" agent ID
+          const fetchedStats = await AgentService.getAgentStats(firstAgentId, "day")
+          setAgentStats(fetchedStats) // AgentService.getAgentStats returns AgentStats | null
+        }
+      } catch (err) {
+        setError((err as Error).message)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [])
+
+  const activeAgentsCount = agents.filter((agent) => agent.status === "active").length
+  const totalAgentsCount = agents.length
+  const activeAgentsProgress = totalAgentsCount > 0 ? (activeAgentsCount / totalAgentsCount) * 100 : 0
+
+  // Placeholder for pending approvals and system health, as these might come from other services
+  const pendingApprovals = 3 // This needs to be fetched from a real source
+  const systemHealth = [
+    { name: "HomePro API", status: "green" },
+    { name: "OpenAI", status: "green" },
+    { name: "Square", status: "green" },
+    { name: "Google Calendar", status: "amber" },
+  ]
+
+  // Sample data for charts (will be replaced with real data later)
+  const taskData = [
+    { day: "Mon", completed: 12, failed: 2 },
+    { day: "Tue", completed: 18, failed: 1 },
+    { day: "Wed", completed: 15, failed: 3 },
+    { day: "Thu", completed: 22, failed: 2 },
+    { day: "Fri", completed: 20, failed: 0 },
+    { day: "Sat", completed: 8, failed: 1 },
+    { day: "Sun", completed: 5, failed: 0 },
+  ]
+
+  const tokenData = [
+    { day: "Mon", tokens: 24500 },
+    { day: "Tue", tokens: 32100 },
+    { day: "Wed", tokens: 28700 },
+    { day: "Thu", tokens: 41200 },
+    { day: "Fri", tokens: 38500 },
+    { day: "Sat", tokens: 15200 },
+    { day: "Sun", tokens: 9800 },
+  ]
+
+  // Sample activity feed data (will be replaced with real data later)
+  const activityFeed = [
+    {
+      id: 1,
+      agent: "InvoiceProcessor",
+      action: "Processed invoice #1042",
+      time: "2 minutes ago",
+      status: "success",
+    },
+    {
+      id: 2,
+      agent: "LeadQualifier",
+      action: "Failed to process lead - Missing contact information",
+      time: "15 minutes ago",
+      status: "error",
+    },
+    {
+      id: 3,
+      agent: "AppointmentScheduler",
+      action: "Created appointment for Johnson project",
+      time: "32 minutes ago",
+      status: "success",
+    },
+    {
+      id: 4,
+      agent: "ProjectManager",
+      action: "Updated status for Smith project to 'In Progress'",
+      time: "1 hour ago",
+      status: "success",
+    },
+    {
+      id: 5,
+      agent: "CustomerSupport",
+      action: "Waiting for approval - Send follow-up email to client",
+      time: "1 hour ago",
+      status: "warning",
+    },
+  ]
+
+  if (loading) {
+    return <div className="text-center py-8">Loading agent workspace data...</div>
+  }
+
+  if (error) {
+    return <div className="text-center py-8 text-red-500">Error: {error}</div>
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col space-y-2">
@@ -91,7 +145,7 @@ export default function AgentWorkspaceDashboard() {
         <p className="text-muted-foreground">Monitor and manage your intelligent agents</p>
       </div>
 
-      <Tabs defaultValue="overview" className="space-y-4">
+      <Tabs defaultValue="dashboard" className="space-y-4">
         <TabsList>
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="activity-logs">Activity Logs</TabsTrigger>
@@ -109,9 +163,11 @@ export default function AgentWorkspaceDashboard() {
                 <Bot className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">5/6</div>
+                <div className="text-2xl font-bold">
+                  {activeAgentsCount}/{totalAgentsCount}
+                </div>
                 <div className="pt-2">
-                  <Progress value={83} className="h-2" />
+                  <Progress value={activeAgentsProgress} className="h-2" />
                 </div>
               </CardContent>
             </Card>
@@ -123,10 +179,11 @@ export default function AgentWorkspaceDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="flex items-baseline space-x-2">
-                  <div className="text-2xl font-bold">87</div>
+                  <div className="text-2xl font-bold">{agentStats?.tasksCompleted || 0}</div>
                   <div className="text-sm text-green-500 flex items-center">
                     <ArrowUpRight className="h-3 w-3 mr-1" />
-                    12%
+                    {/* Placeholder for percentage change */}
+                    N/A
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">vs. previous 24h period</p>
@@ -139,7 +196,7 @@ export default function AgentWorkspaceDashboard() {
                 <Clock className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">3</div>
+                <div className="text-2xl font-bold">{pendingApprovals}</div>
                 <div className="flex items-center mt-1">
                   <Badge variant="outline" className="bg-amber-50 text-amber-700 hover:bg-amber-50">
                     Requires attention
@@ -155,13 +212,14 @@ export default function AgentWorkspaceDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="flex items-baseline space-x-2">
-                  <div className="text-2xl font-bold">190K</div>
+                  <div className="text-2xl font-bold">{(agentStats?.tokenUsage || 0) / 1000}K</div>
                   <div className="text-sm text-red-500 flex items-center">
                     <ArrowUpRight className="h-3 w-3 mr-1" />
-                    8%
+                    {/* Placeholder for percentage change */}
+                    N/A
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">Est. cost: $2.85</p>
+                <p className="text-xs text-muted-foreground mt-1">Est. cost: ${((agentStats?.tokenUsage || 0) / 100000).toFixed(2)}</p>
               </CardContent>
             </Card>
           </div>
@@ -253,83 +311,34 @@ export default function AgentWorkspaceDashboard() {
             </CardHeader>
             <CardContent>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                <div className="flex items-center space-x-4 rounded-md border p-4">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100">
-                    <Bot className="h-4 w-4 text-green-600" />
-                  </div>
-                  <div className="flex-1 space-y-1">
-                    <p className="text-sm font-medium">InvoiceProcessor</p>
-                    <div className="flex items-center">
-                      <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Active</Badge>
-                      <span className="ml-2 text-xs text-muted-foreground">Last active: 2m ago</span>
+                {agents.map((agent) => (
+                  <div key={agent.id} className="flex items-center space-x-4 rounded-md border p-4">
+                    <div
+                      className={`flex h-8 w-8 items-center justify-center rounded-full ${
+                        agent.status === "active" ? "bg-green-100" : "bg-red-100"
+                      }`}
+                    >
+                      <Bot
+                        className={`h-4 w-4 ${agent.status === "active" ? "text-green-600" : "text-red-600"}`}
+                      />
+                    </div>
+                    <div className="flex-1 space-y-1">
+                      <p className="text-sm font-medium">{agent.name}</p>
+                      <div className="flex items-center">
+                        <Badge
+                          className={`${
+                            agent.status === "active"
+                              ? "bg-green-100 text-green-800 hover:bg-green-100"
+                              : "bg-red-100 text-red-800 hover:bg-red-100"
+                          }`}
+                        >
+                          {agent.status === "active" ? "Active" : "Inactive"}
+                        </Badge>
+                        <span className="ml-2 text-xs text-muted-foreground">Last active: {agent.lastActivity}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-
-                <div className="flex items-center space-x-4 rounded-md border p-4">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100">
-                    <Bot className="h-4 w-4 text-green-600" />
-                  </div>
-                  <div className="flex-1 space-y-1">
-                    <p className="text-sm font-medium">LeadQualifier</p>
-                    <div className="flex items-center">
-                      <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Active</Badge>
-                      <span className="ml-2 text-xs text-muted-foreground">Last active: 15m ago</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-4 rounded-md border p-4">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100">
-                    <Bot className="h-4 w-4 text-green-600" />
-                  </div>
-                  <div className="flex-1 space-y-1">
-                    <p className="text-sm font-medium">AppointmentScheduler</p>
-                    <div className="flex items-center">
-                      <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Active</Badge>
-                      <span className="ml-2 text-xs text-muted-foreground">Last active: 32m ago</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-4 rounded-md border p-4">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100">
-                    <Bot className="h-4 w-4 text-green-600" />
-                  </div>
-                  <div className="flex-1 space-y-1">
-                    <p className="text-sm font-medium">ProjectManager</p>
-                    <div className="flex items-center">
-                      <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Active</Badge>
-                      <span className="ml-2 text-xs text-muted-foreground">Last active: 1h ago</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-4 rounded-md border p-4">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100">
-                    <Bot className="h-4 w-4 text-green-600" />
-                  </div>
-                  <div className="flex-1 space-y-1">
-                    <p className="text-sm font-medium">CustomerSupport</p>
-                    <div className="flex items-center">
-                      <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Active</Badge>
-                      <span className="ml-2 text-xs text-muted-foreground">Last active: 1h ago</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-4 rounded-md border p-4">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-red-100">
-                    <Bot className="h-4 w-4 text-red-600" />
-                  </div>
-                  <div className="flex-1 space-y-1">
-                    <p className="text-sm font-medium">EstimateGenerator</p>
-                    <div className="flex items-center">
-                      <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Inactive</Badge>
-                      <span className="ml-2 text-xs text-muted-foreground">Last active: 2d ago</span>
-                    </div>
-                  </div>
-                </div>
+                ))}
               </div>
             </CardContent>
           </Card>
@@ -342,22 +351,12 @@ export default function AgentWorkspaceDashboard() {
             </CardHeader>
             <CardContent>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <div className="flex items-center space-x-2">
-                  <div className="h-3 w-3 rounded-full bg-green-500"></div>
-                  <span className="text-sm">HomePro API</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="h-3 w-3 rounded-full bg-green-500"></div>
-                  <span className="text-sm">OpenAI</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="h-3 w-3 rounded-full bg-green-500"></div>
-                  <span className="text-sm">Square</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="h-3 w-3 rounded-full bg-amber-500"></div>
-                  <span className="text-sm">Google Calendar</span>
-                </div>
+                {systemHealth.map((system) => (
+                  <div key={system.name} className="flex items-center space-x-2">
+                    <div className={`h-3 w-3 rounded-full bg-${system.status}-500`}></div>
+                    <span className="text-sm">{system.name}</span>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>
@@ -376,70 +375,7 @@ export default function AgentWorkspaceDashboard() {
         </TabsContent>
 
         <TabsContent value="error-logs" className="space-y-4">
-          {/* Error Summary */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Error Summary</CardTitle>
-              <CardDescription>Recent and frequent errors across all agents</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="rounded-md bg-red-50 p-4">
-                  <div className="flex items-start">
-                    <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 mr-3" />
-                    <div>
-                      <h3 className="text-sm font-medium text-red-800">LeadQualifier - Missing Contact Information</h3>
-                      <div className="mt-1 text-sm text-red-700">
-                        <p>Failed to process lead due to missing required contact information (email or phone).</p>
-                      </div>
-                      <div className="mt-2">
-                        <div className="flex items-center space-x-4 text-xs">
-                          <span className="text-red-700">Occurred 5 times today</span>
-                          <span className="text-red-700">Last occurrence: 15 minutes ago</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="rounded-md bg-red-50 p-4">
-                  <div className="flex items-start">
-                    <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 mr-3" />
-                    <div>
-                      <h3 className="text-sm font-medium text-red-800">CustomerSupport - API Rate Limit</h3>
-                      <div className="mt-1 text-sm text-red-700">
-                        <p>Encountered API rate limit when attempting to fetch customer history.</p>
-                      </div>
-                      <div className="mt-2">
-                        <div className="flex items-center space-x-4 text-xs">
-                          <span className="text-red-700">Occurred 2 times today</span>
-                          <span className="text-red-700">Last occurrence: 2 hours ago</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="rounded-md bg-amber-50 p-4">
-                  <div className="flex items-start">
-                    <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 mr-3" />
-                    <div>
-                      <h3 className="text-sm font-medium text-amber-800">AppointmentScheduler - Calendar Sync Delay</h3>
-                      <div className="mt-1 text-sm text-amber-700">
-                        <p>Google Calendar synchronization delayed by more than 5 minutes.</p>
-                      </div>
-                      <div className="mt-2">
-                        <div className="flex items-center space-x-4 text-xs">
-                          <span className="text-amber-700">Occurred 1 time today</span>
-                          <span className="text-amber-700">Last occurrence: 45 minutes ago</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <ErrorLogsTab />
         </TabsContent>
       </Tabs>
     </div>

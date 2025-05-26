@@ -12,7 +12,7 @@ class ApiClient {
   private apiKey: string | null
 
   constructor() {
-    this.baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1"
+    this.baseUrl = process.env.NEXT_PUBLIC_API_URL || "/api/v1"
     this.apiKey = null
   }
 

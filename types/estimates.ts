@@ -21,6 +21,9 @@ export interface Estimate {
   discount_value: number | null
   total_amount: number
   notes: string | null
+  terms_and_conditions: string | null // New field
+  scope_of_work: string | null // New field
+  cover_sheet_details: string | null // New field
   created_at: string
   updated_at: string
   created_by: string | null
@@ -42,6 +45,9 @@ export interface NewEstimate {
   discount_value?: number | null
   total_amount?: number
   notes?: string | null
+  terms_and_conditions?: string | null // New field
+  scope_of_work?: string | null // New field
+  cover_sheet_details?: string | null // New field
   created_by?: string | null
   deposit_required?: boolean
   deposit_amount?: number | null
@@ -60,6 +66,9 @@ export interface UpdateEstimate {
   discount_value?: number | null
   total_amount?: number
   notes?: string | null
+  terms_and_conditions?: string | null // New field
+  scope_of_work?: string | null // New field
+  cover_sheet_details?: string | null // New field
   updated_by?: string | null
   deposit_required?: boolean
   deposit_amount?: number | null
