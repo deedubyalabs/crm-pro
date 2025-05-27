@@ -2,14 +2,14 @@
 
 import { useState, useEffect } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
-import type { ProjectTaskWithDetails } from "@/types/scheduler"
+import type { ProjectJobWithDetails } from "@/types/scheduler"
 import { formatDate } from "@/lib/utils"
 
 interface ProjectScheduleGanttProps {
-  tasks: ProjectTaskWithDetails[]
+  jobs: ProjectJobWithDetails[]
 }
 
-export default function ProjectScheduleGantt({ tasks }: ProjectScheduleGanttProps) {
+export default function ProjectScheduleGantt({ jobs }: ProjectScheduleGanttProps) {
   const [isClient, setIsClient] = useState(false)
 
   useEffect(() => {
@@ -25,12 +25,12 @@ export default function ProjectScheduleGantt({ tasks }: ProjectScheduleGanttProp
   let projectEnd = new Date()
   projectEnd.setMonth(projectEnd.getMonth() + 1) // Default to 1 month from now
 
-  tasks.forEach((task) => {
-    if (task.scheduled_start && new Date(task.scheduled_start) < projectStart) {
-      projectStart = new Date(task.scheduled_start)
+  jobs.forEach((job) => {
+    if (job.scheduled_start_date && new Date(job.scheduled_start_date) < projectStart) {
+      projectStart = new Date(job.scheduled_start_date)
     }
-    if (task.scheduled_end && new Date(task.scheduled_end) > projectEnd) {
-      projectEnd = new Date(task.scheduled_end)
+    if (job.scheduled_end_date && new Date(job.scheduled_end_date) > projectEnd) {
+      projectEnd = new Date(job.scheduled_end_date)
     }
   })
 
@@ -45,11 +45,11 @@ export default function ProjectScheduleGantt({ tasks }: ProjectScheduleGanttProp
     currentDate.setDate(currentDate.getDate() + 1)
   }
 
-  // Sort tasks by start date
-  const sortedTasks = [...tasks].sort((a, b) => {
-    if (!a.scheduled_start) return 1
-    if (!b.scheduled_start) return -1
-    return new Date(a.scheduled_start).getTime() - new Date(b.scheduled_start).getTime()
+  // Sort jobs by start date
+  const sortedJobs = [...jobs].sort((a, b) => {
+    if (!a.scheduled_start_date) return 1
+    if (!b.scheduled_start_date) return -1
+    return new Date(a.scheduled_start_date).getTime() - new Date(b.scheduled_start_date).getTime()
   })
 
   return (
@@ -57,7 +57,7 @@ export default function ProjectScheduleGantt({ tasks }: ProjectScheduleGanttProp
       <div className="min-w-[800px]">
         {/* Date headers */}
         <div className="flex border-b">
-          <div className="w-48 flex-shrink-0 p-2 font-medium">Task</div>
+          <div className="w-48 flex-shrink-0 p-2 font-medium">Job</div>
           <div className="flex-grow flex">
             {dateHeaders.map((date, index) => (
               <div
@@ -75,21 +75,21 @@ export default function ProjectScheduleGantt({ tasks }: ProjectScheduleGanttProp
           </div>
         </div>
 
-        {/* Tasks */}
-        {sortedTasks.map((task) => {
-          if (!task.scheduled_start || !task.scheduled_end) return null
+        {/* Jobs */}
+        {sortedJobs.map((job) => {
+          if (!job.scheduled_start_date || !job.scheduled_end_date) return null
 
-          const taskStart = new Date(task.scheduled_start)
-          const taskEnd = new Date(task.scheduled_end)
+          const jobStart = new Date(job.scheduled_start_date)
+          const jobEnd = new Date(job.scheduled_end_date)
 
           // Calculate position and width
-          const startDays = Math.floor((taskStart.getTime() - projectStart.getTime()) / (1000 * 60 * 60 * 24))
-          const duration = Math.ceil((taskEnd.getTime() - taskStart.getTime()) / (1000 * 60 * 60 * 24))
+          const startDays = Math.floor((jobStart.getTime() - projectStart.getTime()) / (1000 * 60 * 60 * 24))
+          const duration = Math.ceil((jobEnd.getTime() - jobStart.getTime()) / (1000 * 60 * 60 * 24))
 
           // Determine bar color based on status
           let barColor = "bg-blue-500"
-          switch (task.status) {
-            case "completed":
+          switch (job.status) {
+            case "Completed":
               barColor = "bg-green-500"
               break
             case "in_progress":
@@ -107,9 +107,9 @@ export default function ProjectScheduleGantt({ tasks }: ProjectScheduleGanttProp
           }
 
           return (
-            <div key={task.id} className="flex border-b hover:bg-gray-50">
-              <div className="w-48 flex-shrink-0 p-2 truncate" title={task.name}>
-                {task.name}
+            <div key={job.id} className="flex border-b hover:bg-gray-50">
+              <div className="w-48 flex-shrink-0 p-2 truncate" title={job.name}>
+                {job.name}
               </div>
               <div className="flex-grow flex relative h-10">
                 <div
@@ -118,10 +118,10 @@ export default function ProjectScheduleGantt({ tasks }: ProjectScheduleGanttProp
                     left: `${startDays * 2}rem`,
                     width: `${duration * 2}rem`,
                   }}
-                  title={`${task.name}: ${formatDate(task.scheduled_start)} - ${formatDate(task.scheduled_end)}`}
+                  title={`${job.name}: ${formatDate(job.scheduled_start_date)} - ${formatDate(job.scheduled_end_date)}`}
                 >
                   <div className="px-2 text-xs text-white truncate h-full flex items-center">
-                    {duration > 3 ? task.name : ""}
+                    {duration > 3 ? job.name : ""}
                   </div>
                 </div>
               </div>

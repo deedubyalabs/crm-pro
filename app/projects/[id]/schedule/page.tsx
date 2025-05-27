@@ -5,7 +5,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ArrowLeft, Calendar, BarChart, AlertTriangle } from "lucide-react"
 import { projectService } from "@/lib/projects"
-import { schedulerService } from "@/lib/scheduler-service"
+import { projectJobService } from "@/lib/scheduler/project-job-service"
+import { schedulingConflictService } from "@/lib/scheduler/scheduling-conflict-service"
+import { scheduleAnalysisService } from "@/lib/scheduler/schedule-analysis-service"
 import ProjectScheduleGantt from "./project-schedule-gantt"
 import ResourceAllocationChart from "./resource-allocation-chart"
 import ScheduleConflictsList from "./schedule-conflicts-list"
@@ -31,15 +33,15 @@ export default async function ProjectSchedulePage({ params }: { params: { id: st
     }
 
     // Get project tasks (jobs)
-    const tasks = await schedulerService.getProjectTasks({ projectId: params.id })
+    const jobs = await projectJobService.getProjectJobs({ projectId: params.id })
 
     // Get scheduling conflicts
-    const conflicts = await schedulerService.getSchedulingConflicts(params.id)
+    const conflicts = await schedulingConflictService.getSchedulingConflicts(params.id)
 
     // Get schedule analysis if tasks exist
     let analysis = null
-    if (tasks.length > 0) {
-      analysis = await schedulerService.analyzeSchedule(params.id)
+    if (jobs.length > 0) {
+      analysis = await scheduleAnalysisService.analyzeSchedule(params.id)
     }
 
     return (
@@ -58,12 +60,12 @@ export default async function ProjectSchedulePage({ params }: { params: { id: st
             </div>
           </div>
           <div className="flex space-x-2">
-            <ScheduleGenerateButton projectId={params.id} projectName={project.project_name} hasExistingTasks={tasks.length > 0} />
-            {tasks.length > 0 && <ScheduleOptimizeButton projectId={params.id} />}
+            <ScheduleGenerateButton projectId={params.id} projectName={project.project_name} hasExistingJobs={jobs.length > 0} />
+            {jobs.length > 0 && <ScheduleOptimizeButton projectId={params.id} />}
           </div>
         </div>
 
-        {tasks.length === 0 ? (
+        {jobs.length === 0 ? (
           <Card>
             <CardHeader>
               <CardTitle>No Schedule Found</CardTitle>
@@ -72,7 +74,7 @@ export default async function ProjectSchedulePage({ params }: { params: { id: st
               </CardDescription>
             </CardHeader>
             <CardContent className="flex justify-center py-6">
-              <ScheduleGenerateButton projectId={params.id} projectName={project.project_name} hasExistingTasks={false} size="lg" />
+              <ScheduleGenerateButton projectId={params.id} projectName={project.project_name} hasExistingJobs={false} size="lg" />
             </CardContent>
           </Card>
         ) : (
@@ -80,17 +82,17 @@ export default async function ProjectSchedulePage({ params }: { params: { id: st
             <Card>
               <CardHeader>
                 <CardTitle>Project Timeline</CardTitle>
-                <CardDescription>Gantt chart view of project tasks and dependencies</CardDescription>
+                <CardDescription>Gantt chart view of project jobs and dependencies</CardDescription>
               </CardHeader>
               <CardContent>
-                <ProjectScheduleGantt tasks={tasks} />
+                <ProjectScheduleGantt jobs={jobs} />
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>Project Tasks List</CardTitle>
-                <CardDescription>A simple list view of all tasks in this project</CardDescription>
+                <CardTitle>Project Jobs List</CardTitle>
+                <CardDescription>A simple list view of all jobs in this project</CardDescription>
               </CardHeader>
               <CardContent>
                 <Table>
@@ -104,15 +106,15 @@ export default async function ProjectSchedulePage({ params }: { params: { id: st
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {tasks.map((task) => (
-                      <TableRow key={task.id}>
-                        <TableCell className="font-medium">{task.name}</TableCell>
+                    {jobs.map((job) => (
+                      <TableRow key={job.id}>
+                        <TableCell className="font-medium">{job.name}</TableCell>
                         <TableCell>
-                          <Badge variant="outline">{task.status}</Badge>
+                          <Badge variant="outline">{job.status}</Badge>
                         </TableCell>
-                        <TableCell>{task.job?.scheduled_start_date ? format(new Date(task.job.scheduled_start_date), "PPP") : "N/A"}</TableCell>
-                        <TableCell>{task.job?.scheduled_end_date ? format(new Date(task.job.scheduled_end_date), "PPP") : "N/A"}</TableCell>
-                        <TableCell>{task.job?.assigned_to || "Unassigned"}</TableCell>
+                        <TableCell>{job.scheduled_start_date ? format(new Date(job.scheduled_start_date), "PPP") : "N/A"}</TableCell>
+                        <TableCell>{job.scheduled_end_date ? format(new Date(job.scheduled_end_date), "PPP") : "N/A"}</TableCell>
+                        <TableCell>{job.assigned_to || "Unassigned"}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -129,7 +131,7 @@ export default async function ProjectSchedulePage({ params }: { params: { id: st
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <ScheduleConflictsList conflicts={conflicts} tasks={tasks} />
+                  <ScheduleConflictsList conflicts={conflicts} jobs={jobs} />
                 </CardContent>
               </Card>
             )}
@@ -151,9 +153,6 @@ export default async function ProjectSchedulePage({ params }: { params: { id: st
               </TabsList>
               <TabsContent value="analysis" className="mt-4">
                 {analysis && <ScheduleAnalysisSummary analysis={analysis} />}
-              </TabsContent>
-              <TabsContent value="resources" className="mt-4">
-                <ResourceAllocationChart tasks={tasks} />
               </TabsContent>
               <TabsContent value="weather" className="mt-4">
                 {analysis && <WeatherImpactsList weatherImpacts={analysis.weatherImpacts} />}

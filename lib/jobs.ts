@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import type { Job, CreateJobPayload, UpdateJobPayload, JobChecklistItem, CreateJobChecklistItemPayload, UpdateJobChecklistItemPayload } from '../types/job';
+import type { Database } from '../types/supabase'; // Import Database type
 
 export class JobService {
   private supabase;
@@ -39,7 +40,7 @@ export class JobService {
     return data;
   }
 
-  async getJobs(filters?: { projectId?: string; assignedTo?: string; status?: "Pending" | "Scheduled" | "In Progress" | "Blocked" | "Completed" | "Canceled"; search?: string; startDate?: string; endDate?: string }): Promise<Job[]> {
+  async getJobs(filters?: { projectId?: string; assignedTo?: string; status?: Database["public"]["Enums"]["job_status"]; search?: string; startDate?: string; endDate?: string }): Promise<Job[]> {
     let query = this.supabase
       .from('jobs')
       .select(`

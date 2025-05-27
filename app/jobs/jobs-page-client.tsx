@@ -11,7 +11,7 @@ import JobsList from "./jobs-list" // Assuming this is the existing JobsList com
 interface JobsPageClientProps {
   status?: string
   projectId?: string
-  assignedToId?: string
+  assignedTo?: string // Renamed from assignedToId
   search?: string
   startDate?: string
   endDate?: string
@@ -20,7 +20,7 @@ interface JobsPageClientProps {
 export default function JobsPageClient({
   status,
   projectId,
-  assignedToId,
+  assignedTo, // Renamed from assignedToId
   search,
   startDate,
   endDate,
@@ -68,7 +68,7 @@ export default function JobsPageClient({
       <JobsList
         status={status}
         projectId={projectId}
-        assignedTo={assignedToId}
+        assignedTo={assignedTo} // Pass the renamed prop
         search={search}
         startDate={startDate}
         endDate={endDate}

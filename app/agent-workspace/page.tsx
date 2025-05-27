@@ -21,7 +21,6 @@ import Link from "next/link"
 import { Line, LineChart, ResponsiveContainer, XAxis, YAxis } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import ActivityLogsTab from "./components/activity-logs-tab"
-import ConfigurationTab from "./components/configuration-tab"
 import PerformanceTab from "./components/performance-tab"
 import ErrorLogsTab from "./components/error-logs-tab"
 import { AgentService, Agent, AgentStats } from "@/lib/agent-service"
@@ -150,7 +149,6 @@ export default function AgentWorkspaceDashboard() {
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="activity-logs">Activity Logs</TabsTrigger>
           <TabsTrigger value="performance-metrics">Performance</TabsTrigger>
-          <TabsTrigger value="configuration">Configuration</TabsTrigger>
           <TabsTrigger value="error-logs">Error Logs</TabsTrigger>
         </TabsList>
 
@@ -368,10 +366,6 @@ export default function AgentWorkspaceDashboard() {
 
         <TabsContent value="performance-metrics" className="space-y-4">
           <PerformanceTab />
-        </TabsContent>
-
-        <TabsContent value="configuration" className="space-y-4">
-          <ConfigurationTab />
         </TabsContent>
 
         <TabsContent value="error-logs" className="space-y-4">

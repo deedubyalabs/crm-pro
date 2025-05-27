@@ -12,17 +12,17 @@ export default async function NewDocumentPage() {
   // Fetch projects, jobs, people, and opportunities for the form
   const [projectsResponse, jobsResponse, peopleResponse, opportunitiesResponse] = await Promise.all([
     supabase.from("projects").select("id, project_name").order("project_name"),
-    supabase.from("jobs").select("id, job_name").order("job_name"),
+    supabase.from("jobs").select("id, name").order("name"),
     supabase.from("people").select("id, first_name, last_name, business_name").order("last_name"),
     supabase.from("opportunities").select("id, opportunity_name").order("opportunity_name"),
   ])
 
   if (projectsResponse.error || jobsResponse.error || peopleResponse.error || opportunitiesResponse.error) {
     console.error("Error fetching data:", {
-      projects: projectsResponse.error,
-      jobs: jobsResponse.error,
-      people: peopleResponse.error,
-      opportunities: opportunitiesResponse.error,
+      projects: JSON.stringify(projectsResponse.error),
+      jobs: JSON.stringify(jobsResponse.error),
+      people: JSON.stringify(peopleResponse.error),
+      opportunities: JSON.stringify(opportunitiesResponse.error),
     })
     redirect("/documents?error=fetch-failed")
   }
@@ -35,7 +35,7 @@ export default async function NewDocumentPage() {
 
   const jobs = jobsResponse.data.map((job) => ({
     id: job.id,
-    name: job.job_name,
+    name: job.name,
   }))
 
   const people = peopleResponse.data.map((person) => ({

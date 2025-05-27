@@ -22,7 +22,7 @@ export const storageService = {
 
       return urlData.publicUrl
     } catch (error) {
-      console.error("Error uploading file:", error)
+      console.error("Error uploading file:", JSON.stringify(error))
       throw new Error("Failed to upload file. Please try again.")
     }
   },

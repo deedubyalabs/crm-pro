@@ -100,9 +100,9 @@ export default function JobListItemClient({
         </div>
         <div className="flex items-center gap-2">
           {job.assigned_to ? (
-            <div className="flex items-center" title={`Assigned to: ${job.assigned_to.name}`}>
+            <div className="flex items-center" title={`Assigned to: ${typeof job.assigned_to === 'string' ? job.assigned_to : job.assigned_to}`}>
               <User className="h-4 w-4 mr-1 text-muted-foreground" />
-              <span className="text-sm">{job.assigned_to.name}</span>
+              <span className="text-sm">{typeof job.assigned_to === 'string' ? job.assigned_to : job.assigned_to}</span>
             </div>
           ) : (
             <Badge variant="outline" className="text-muted-foreground">

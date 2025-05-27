@@ -1,19 +1,20 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import type { SchedulingConflict, ProjectTaskWithDetails } from "@/types/scheduler"
+import type { SchedulingConflict } from "@/types/scheduler"
+import type { JobWithAssignedToUser } from "@/types/job"
 import { AlertTriangle, CheckCircle } from "lucide-react"
 
 interface ScheduleConflictsListProps {
   conflicts: SchedulingConflict[]
-  tasks: ProjectTaskWithDetails[]
+  jobs: JobWithAssignedToUser[]
 }
 
-export default function ScheduleConflictsList({ conflicts, tasks }: ScheduleConflictsListProps) {
-  // Function to get task name by ID
-  const getTaskName = (taskId: string) => {
-    const task = tasks.find((t) => t.id === taskId)
-    return task ? task.name : "Unknown Task"
+export default function ScheduleConflictsList({ conflicts, jobs }: ScheduleConflictsListProps) {
+  // Function to get job name by ID
+  const getJobName = (jobId: string) => {
+    const job = jobs.find((j) => j.id === jobId)
+    return job ? job.name : "Unknown Job"
   }
 
   // Group conflicts by type
@@ -58,9 +59,9 @@ export default function ScheduleConflictsList({ conflicts, tasks }: ScheduleConf
                 <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
                 <div className="flex-grow">
                   <p>{conflict.description}</p>
-                  {conflict.affected_tasks && conflict.affected_tasks.length > 0 && (
+                  {conflict.affected_jobs && conflict.affected_jobs.length > 0 && (
                     <p className="text-sm text-muted-foreground mt-1">
-                      Affected tasks: {conflict.affected_tasks.map((id) => getTaskName(id)).join(", ")}
+                      Affected jobs: {conflict.affected_jobs.map((id) => getJobName(id)).join(", ")}
                     </p>
                   )}
                   {conflict.resolution_status !== "unresolved" && (

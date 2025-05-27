@@ -1,13 +1,13 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import type { ProjectTaskWithDetails } from "@/types/scheduler"
+import type { ProjectJobWithDetails } from "@/types/scheduler"
 import { Cloud, CloudRain, CloudSnow, Wind } from "lucide-react"
 
 interface WeatherImpactsListProps {
   weatherImpacts: {
     date: string
-    affectedTasks: ProjectTaskWithDetails[]
+    affectedJobs: ProjectJobWithDetails[]
     impact: string
   }[]
 }
@@ -50,7 +50,7 @@ export default function WeatherImpactsList({ weatherImpacts }: WeatherImpactsLis
                     <div>
                       <p className="font-medium">{impact.impact}</p>
                       <p className="text-sm text-muted-foreground">
-                        Affected tasks: {impact.affectedTasks.map((task) => task.name).join(", ")}
+                        Affected tasks: {impact.affectedJobs.map((task) => task.name).join(", ")}
                       </p>
                     </div>
                   </li>

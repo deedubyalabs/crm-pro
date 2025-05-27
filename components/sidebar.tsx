@@ -84,9 +84,9 @@ export default function Sidebar({ className }: SidebarProps) {
       icon: Briefcase,
     },
     {
-      title: "Appointments",
-      href: "/appointments",
-      icon: Clock,
+      title: "Activities",
+      href: "/app/activities",
+      icon: ClipboardList,
     },
   ]
 

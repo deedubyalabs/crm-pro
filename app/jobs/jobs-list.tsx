@@ -6,15 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 
-// Define JOB_STATUSES here as it's not exported from lib/jobs
-const JOB_STATUSES = [
-  "Pending",
-  "Scheduled",
-  "In Progress",
-  "Blocked",
-  "Completed",
-  "Canceled",
-];
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,9 +34,10 @@ import { projectService } from "@/lib/projects"
 import { Progress } from "@/components/ui/progress"
 import JobListItemClient from "./job-list-item-client" // Import the new client component
 import { JobWithAssignedToUser } from "@/types/job" // Import JobWithAssignedToUser
+import { Database, Constants } from "@/types/supabase" // Import Database and Constants
 
 interface JobsListProps {
-  status?: string
+  status?: string // Revert to string due to persistent type issues with Select component
   projectId?: string
   assignedTo?: string // Changed from assignedToId to assignedTo
   search?: string
@@ -55,9 +47,16 @@ interface JobsListProps {
 }
 
 export default async function JobsList({ status, projectId, assignedTo, search, startDate, endDate, onJobClick }: JobsListProps) {
+  // Map incoming status to valid database enum values
+  const validStatus = status ? 
+    (['Pending', 'Scheduled', 'In Progress', 'Blocked', 'Completed', 'Canceled'].includes(status) ? 
+      status as Database["public"]["Enums"]["job_status"] : 
+      undefined) : 
+    undefined;
+
   // Fetch jobs with filters
   const jobs = await jobService.getJobs({
-    status,
+    status: validStatus,
     projectId,
     assignedTo, // Changed from assignedToId to assignedTo
     search,
@@ -70,19 +69,27 @@ export default async function JobsList({ status, projectId, assignedTo, search, 
 
   // Helper function to get status badge
   function getStatusBadge(status: string): JSX.Element { // Explicitly type status
-    switch (status.toLowerCase()) {
-      case "pending":
+    switch (status) {
+      case "Pending":
         return <Badge variant="outline">Pending</Badge>
-      case "scheduled":
+      case "Scheduled":
         return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Scheduled</Badge>
-      case "in progress":
+      case "In Progress":
         return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">In Progress</Badge>
-      case "blocked":
+      case "Blocked":
         return <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">Blocked</Badge>
-      case "completed":
+      case "Completed":
         return <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-100">Completed</Badge>
-      case "canceled":
+      case "Canceled":
         return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Canceled</Badge>
+      case "not_started":
+        return <Badge variant="outline">Not Started</Badge>
+      case "in_progress":
+        return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">In Progress</Badge>
+      case "delayed":
+        return <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">Delayed</Badge>
+      case "cancelled":
+        return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Cancelled</Badge>
       default:
         return <Badge variant="outline">{status}</Badge>
     }
@@ -90,18 +97,26 @@ export default async function JobsList({ status, projectId, assignedTo, search, 
 
   // Helper function to get status icon
   function getStatusIcon(status: string): JSX.Element | null { // Explicitly type status
-    switch (status.toLowerCase()) {
-      case "pending":
+    switch (status) {
+      case "Pending":
         return <PauseCircle className="h-4 w-4 text-muted-foreground" />
-      case "scheduled":
+      case "Scheduled":
         return <Calendar className="h-4 w-4 text-blue-600" />
-      case "in progress":
+      case "In Progress":
         return <PlayCircle className="h-4 w-4 text-green-600" />
-      case "blocked":
+      case "Blocked":
         return <AlertCircle className="h-4 w-4 text-amber-600" />
-      case "completed":
+      case "Completed":
         return <CheckCircle className="h-4 w-4 text-purple-600" />
-      case "canceled":
+      case "Canceled":
+        return <XCircle className="h-4 w-4 text-red-600" />
+      case "not_started":
+        return <PauseCircle className="h-4 w-4 text-muted-foreground" />
+      case "in_progress":
+        return <PlayCircle className="h-4 w-4 text-green-600" />
+      case "delayed":
+        return <AlertCircle className="h-4 w-4 text-amber-600" />
+      case "cancelled":
         return <XCircle className="h-4 w-4 text-red-600" />
       default:
         return null
@@ -125,15 +140,15 @@ export default async function JobsList({ status, projectId, assignedTo, search, 
           </form>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Select name="status" defaultValue={status || ""}>
+          <Select name="status" defaultValue={status || "all"}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Filter by status" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Statuses</SelectItem>
-              {JOB_STATUSES.map((status) => (
-                <SelectItem key={status} value={status.toLowerCase()}>
-                  {status}
+              {Object.values(Constants.public.Enums.job_status).map((s) => (
+                <SelectItem key={s} value={s}>
+                  {s}
                 </SelectItem>
               ))}
             </SelectContent>

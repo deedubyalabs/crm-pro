@@ -24,7 +24,7 @@ interface DocumentsPageProps {
 }
 
 export default async function DocumentsPage({ searchParams }: DocumentsPageProps) {
-  const { documentType, status, search, tab = "all" } = searchParams
+  const { documentType, status, search, tab = "all" } = await searchParams
 
   // Fetch documents based on filters
   const documents = await documentService.getDocuments({
@@ -36,10 +36,10 @@ export default async function DocumentsPage({ searchParams }: DocumentsPageProps
   // Filter documents based on the selected tab
   const filteredDocuments = documents.filter((doc) => {
     if (tab === "all") return true
-    if (tab === "projects") return doc.project_id !== null
-    if (tab === "jobs") return doc.job_id !== null
     if (tab === "contacts") return doc.person_id !== null
     if (tab === "opportunities") return doc.opportunity_id !== null
+    if (tab === "projects") return doc.project_id !== null
+    if (tab === "jobs") return doc.job_id !== null    
     return true
   })
 
@@ -68,20 +68,6 @@ export default async function DocumentsPage({ searchParams }: DocumentsPageProps
                 All
               </Link>
             </TabsTrigger>
-            <TabsTrigger value="projects" asChild>
-              <Link
-                href={`/documents?tab=projects${documentType ? `&documentType=${documentType}` : ""}${status ? `&status=${status}` : ""}${search ? `&search=${search}` : ""}`}
-              >
-                Projects
-              </Link>
-            </TabsTrigger>
-            <TabsTrigger value="jobs" asChild>
-              <Link
-                href={`/documents?tab=jobs${documentType ? `&documentType=${documentType}` : ""}${status ? `&status=${status}` : ""}${search ? `&search=${search}` : ""}`}
-              >
-                Jobs
-              </Link>
-            </TabsTrigger>
             <TabsTrigger value="contacts" asChild>
               <Link
                 href={`/documents?tab=contacts${documentType ? `&documentType=${documentType}` : ""}${status ? `&status=${status}` : ""}${search ? `&search=${search}` : ""}`}
@@ -94,6 +80,20 @@ export default async function DocumentsPage({ searchParams }: DocumentsPageProps
                 href={`/documents?tab=opportunities${documentType ? `&documentType=${documentType}` : ""}${status ? `&status=${status}` : ""}${search ? `&search=${search}` : ""}`}
               >
                 Opportunities
+              </Link>
+            </TabsTrigger>
+            <TabsTrigger value="projects" asChild>
+              <Link
+                href={`/documents?tab=projects${documentType ? `&documentType=${documentType}` : ""}${status ? `&status=${status}` : ""}${search ? `&search=${search}` : ""}`}
+              >
+                Projects
+              </Link>
+            </TabsTrigger>
+            <TabsTrigger value="jobs" asChild>
+              <Link
+                href={`/documents?tab=jobs${documentType ? `&documentType=${documentType}` : ""}${status ? `&status=${status}` : ""}${search ? `&search=${search}` : ""}`}
+              >
+                Jobs
               </Link>
             </TabsTrigger>
           </TabsList>

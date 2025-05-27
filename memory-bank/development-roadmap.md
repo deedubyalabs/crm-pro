@@ -171,7 +171,7 @@ The immediate focus is on completing Phase 3: "UI/UX Refinements & AI Insights P
 *   **Tasks:**
     *   [COMPLETED] `jobs` table modified to link `assigned_to` to `people` table, and new columns (`due_date`, `due_time`, `priority`, `linked_contact_id`, `linked_opportunity_id`, `tags`) added. `job_checklist_items` table created.
     *   [COMPLETED] Develop a dedicated "Jobs" module linkable to Contacts, Opportunities, and Projects.
-    *   [TO DO] Implement checklist functionality within Jobs with adapted status update logic (e.g., "In Progress" on checklist item completion). The status should only become "Complete" when all checklist items are completed or the user manually sets it.
+    *   [COMPLETED] Implement checklist functionality within Jobs with adapted status update logic (e.g., "In Progress" on checklist item completion). The status should only become "Complete" when all checklist items are completed or the user manually sets it. (Schema updated, services refactored, and UI components adjusted for 'jobs' terminology and new status values.)
     *   [TO DO] Provide list and potentially Kanban views for Jobs, potentially with AI-powered task prioritization or suggestions.
     *   [TO DO] Implement embedded chat interface within the Jobs module for direct interaction with AI agents for task management and updates.
     *   [TO DO] Implement proactive AI assistance for task management (e.g., reminding users of upcoming deadlines, suggesting task breakdowns).

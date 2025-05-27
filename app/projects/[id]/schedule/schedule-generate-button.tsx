@@ -22,14 +22,14 @@ import ClientOnly from "@/components/ClientOnly"
 interface ScheduleGenerateButtonProps {
   projectId: string
   projectName: string // Added projectName prop
-  hasExistingTasks: boolean
+  hasExistingJobs: boolean
   size?: "default" | "sm" | "lg"
 }
 
 export default function ScheduleGenerateButton({
   projectId,
   projectName,
-  hasExistingTasks,
+  hasExistingJobs,
   size = "default",
 }: ScheduleGenerateButtonProps) {
   const { setAssistantOpen, setContext } = useAIContext()
@@ -52,14 +52,14 @@ export default function ScheduleGenerateButton({
     <ClientOnly>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
-          <Button size={size}>{hasExistingTasks ? "Regenerate Schedule" : "Generate Schedule with Pro-pilot"}</Button>
+          <Button size={size}>{hasExistingJobs ? "Regenerate Schedule" : "Generate Schedule with Pro-pilot"}</Button>
         </DialogTrigger>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Generate Project Schedule with Pro-pilot</DialogTitle>
             <DialogDescription>
               Initiate a conversation with Pro-pilot to collaboratively build or refine your project schedule.
-              {hasExistingTasks && " This will allow you to modify the existing schedule."}
+              {hasExistingJobs && " This will allow you to modify the existing schedule."}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">

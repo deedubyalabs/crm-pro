@@ -3,10 +3,17 @@ import type { Tables } from "./supabase" // Import Tables type from supabase
 
 export type Person = Tables<'people'>; // Define Person type from supabase tables
 
-export type Job = Database["public"]["Tables"]["jobs"]["Row"]
+export type Job = Database["public"]["Tables"]["jobs"]["Row"];
+
+import type { JobDependency, SchedulingConstraint } from "@/types/scheduler";
+
 export interface JobWithAssignedToUser extends Job {
   project: any;
   assigned_to_user?: Person | null; // Made optional
+  dependencies?: JobDependency[];
+  dependents?: JobDependency[];
+  resourceAssignments?: any[]; // Assuming resourceAssignments might be reintroduced or need a placeholder
+  constraints?: SchedulingConstraint[];
 }
 export type NewJob = Database["public"]["Tables"]["jobs"]["Insert"]
 export type UpdateJob = Database["public"]["Tables"]["jobs"]["Update"]
