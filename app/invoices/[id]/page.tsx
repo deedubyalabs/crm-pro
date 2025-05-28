@@ -10,7 +10,7 @@ import { ArrowLeft, FileEdit, Printer } from "lucide-react"
 import { formatCurrency } from "@/lib/utils"
 
 export const metadata: Metadata = {
-  title: "Invoice Details | PROActive OS",
+  title: "Invoice Details | PROActive ONE",
   description: "View invoice details",
 }
 

@@ -78,7 +78,7 @@ export const materialListService = {
         .single()
 
       if (error) throw error
-      if (!materialList) return null
+      if (!materialList || !materialList.project) return null
 
       // Get material list items
       const { data: items, error: itemsError } = await supabase
@@ -99,7 +99,12 @@ export const materialListService = {
 
       return {
         ...materialList,
+        project: materialList.project!,
         items: items || [],
+        estimate: materialList.estimate ? {
+          ...materialList.estimate,
+          estimate_number: materialList.estimate.estimate_number || ''
+        } : null
       }
     } catch (error) {
       throw new Error(handleSupabaseError(error))

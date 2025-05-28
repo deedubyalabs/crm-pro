@@ -5,7 +5,7 @@ import JobsListSkeleton from "./jobs-list-skeleton"
 import JobsPageClient from "./jobs-page-client" // Import the new client component
 
 export const metadata: Metadata = {
-  title: "Jobs | PROActive OS",
+  title: "Jobs | PROActive ONE",
   description: "Manage and track all jobs across your projects",
 }
 

@@ -20,7 +20,7 @@ import { Badge } from "@/components/ui/badge"
 import { format } from "date-fns"
 
 export const metadata = {
-  title: "Project Schedule | PROActive OS",
+  title: "Project Schedule | PROActive ONE",
   description: "Intelligent project scheduling and resource allocation",
 }
 

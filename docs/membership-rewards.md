@@ -2,7 +2,7 @@
 
 ## Overview
 
-Below is a comprehensive outline of modules required to effectively manage contractors offering maintenance membership programs and rewards programs. This system would integrate with the existing PROActive OS architecture while adding specialized functionality for recurring service relationships and customer loyalty.
+Below is a comprehensive outline of modules required to effectively manage contractors offering maintenance membership programs and rewards programs. This system would integrate with the existing PROActive ONE architecture while adding specialized functionality for recurring service relationships and customer loyalty.
 
 ## Core Modules
 
@@ -57,7 +57,7 @@ Below is a comprehensive outline of modules required to effectively manage contr
 
 **Integrations:**
 
-- Customer database (existing PROActive OS)
+- Customer database (existing PROActive ONE)
 - Payment processing system
 - Service scheduling system
 - Notification system

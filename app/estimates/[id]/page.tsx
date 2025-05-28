@@ -12,7 +12,7 @@ import { PaymentScheduleList } from "../payment-schedule-list"
 import { CreateProjectButton } from "./create-bid-button" // Updated import name
 
 export const metadata: Metadata = {
-  title: "Estimate Details | PROActive OS",
+  title: "Estimate Details | PROActive ONE",
   description: "View estimate details",
 }
 

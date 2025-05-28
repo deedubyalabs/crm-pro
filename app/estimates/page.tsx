@@ -3,7 +3,7 @@ import { estimateService } from "@/lib/estimates"
 import { EstimatesList } from "./estimates-list"
 
 export const metadata: Metadata = {
-  title: "Estimates | PROActive OS",
+  title: "Estimates | PROActive ONE",
   description: "Manage your estimates",
 }
 

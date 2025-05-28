@@ -1,11 +1,11 @@
-# Project Overview: PROActive OS - AI-Powered Operations Hub
+# Project Overview: PROActive ONE - AI-Powered Operations Hub
 
 **Version:** 1.0
 **Date:** May 26, 2025
 
 ## 1. Project Title
 
-PROActive OS: AI-Powered Operations Hub for Solo Residential Contractors
+PROActive ONE: AI-Powered Operations Hub for Solo Residential Contractors
 
 ## 2. Project Mission
 
@@ -28,15 +28,15 @@ Solo residential contractors face significant challenges managing the diverse as
 
 Existing generic business software is often too complex, too expensive, or not tailored to the specific workflows of a solo contractor in the construction/home services industry.
 
-## 5. Proposed Solution: PROActive OS (Optimized)
+## 5. Proposed Solution: PROActive ONE (Optimized)
 
-PROActive OS will be evolved into a comprehensive, AI-powered operations hub and indispensable co-pilot for solo residential contractors. This involves:
+PROActive ONE will be evolved into a comprehensive, AI-powered operations hub and indispensable co-pilot for solo residential contractors. This involves:
 
 1.  **Building a Robust Agent Data Fabric:** Leveraging LangGraph's checkpointer mechanism with Supabase Postgres and TypeScript tools for memory and knowledge components on top of the Supabase database to provide agents with context, memory, and access to relevant information.
-2.  **Integrating LangGraph Agents:** Integrating specialized LangGraph agents (e.g., `EstimatorPro`, communication drafting agents, project description agents) directly into PROActive OS within Next.js API routes.
-3.  **Enhancing Existing Modules:** Supercharging current PROActive OS modules (Estimates, Projects, Clients, etc.) with AI capabilities and conversational interfaces.
-4.  **Integrating Key Prototypes:** Incorporating the conversational AI strengths of the "EstiMATE Pro" prototype and the visual takeoff capabilities of the "FloorPlan Pro" (Konva.js) prototype into the PROActive OS workflows.
-5.  **Seamless Third-Party API Orchestration:** Intelligently connecting PROActive OS and its agents to essential third-party services (Square, Cal.com, Google Calendar, BigBox API, Accounting API, Sendbird) via dedicated API clients and Python tools within serverless functions, potentially leveraging MCP.
+2.  **Integrating LangGraph Agents:** Integrating specialized LangGraph agents (e.g., `EstimatorPro`, communication drafting agents, project description agents) directly into PROActive ONE within Next.js API routes.
+3.  **Enhancing Existing Modules:** Supercharging current PROActive ONE modules (Estimates, Projects, Clients, etc.) with AI capabilities and conversational interfaces.
+4.  **Integrating Key Prototypes:** Incorporating the conversational AI strengths of the "EstiMATE Pro" prototype and the visual takeoff capabilities of the "FloorPlan Pro" (Konva.js) prototype into the PROActive ONE workflows.
+5.  **Seamless Third-Party API Orchestration:** Intelligently connecting PROActive ONE and its agents to essential third-party services (Square, Cal.com, Google Calendar, BigBox API, Accounting API, Sendbird) via dedicated API clients and Python tools within serverless functions, potentially leveraging MCP.
 6.  **New Feature Development:** Adding modules for Subcontractor Management, Change Order Management, Maintenance Membership Plans, and a simple Rewards Program, enhanced by AI where applicable.
 
 The platform will feel like a single, cohesive application, with AI simplifying interactions, automating tasks, and providing proactive assistance.
@@ -81,11 +81,11 @@ Solo residential contractors are the backbone of many home improvement and maint
 *   **Client Management:** Keeping track of client interactions, preferences, and project history can become disorganized.
 *   **Adopting New Technology:** Many existing solutions are too complex, expensive, or not tailored to the specific, often mobile, workflow of a solo operator.
 
-PROActive OS aims to alleviate these burdens by providing a smart, centralized, and easy-to-use platform.
+PROActive ONE aims to alleviate these burdens by providing a smart, centralized, and easy-to-use platform.
 
 ## 10. Problems It Solves
 
-PROActive OS, with its AI enhancements and strategic integrations, directly addresses the solo contractor's pain points by:
+PROActive ONE, with its AI enhancements and strategic integrations, directly addresses the solo contractor's pain points by:
 
 1.  **Streamlining CRM Management:** Providing efficient tools for organizing and maintaining contact data through easy deletion, bulk actions, and quick filtering/searching, enhanced by AI for lead qualification and follow-up, including automated Lead-to-Customer conversion and "add as you go" functionality for categories (Source, Stage, Type).
 2.  **Efficient Task Management:** Introducing a dedicated "Jobs" module linkable to Contacts, Opportunities, and Projects, including fields for task details, checklist functionality with adapted status updates (e.g., "In Progress" on checklist item completion), and potential for AI assistance in generating checklists, task prioritization, or suggestions.
@@ -108,7 +108,7 @@ PROActive OS, with its AI enhancements and strategic integrations, directly addr
 The platform should feel like an intelligent and indispensable AI-powered co-pilot to the solo contractor:
 
 *   **Conversational First:** Interaction with the system, especially for data-intensive tasks, should be as simple and natural as having a conversation with an intelligent LangGraph.js assistant via embedded chat interfaces. The AI should understand natural language, ask clarifying questions, and proactively guide the user. This includes an embedded chat interface within the Estimate view for direct interaction with the AI Estimator agent, an embedded chat interface within the Project details view for project updates, task management, and information retrieval, an embedded chat interface within the Jobs module for direct interaction with AI agents for task management and updates, embedded chat interfaces within Work Orders and Service Tickets modules for AI assistance, an embedded chat interface within the Change Orders module for AI assistance, an embedded chat interface within the Daily Logs module for AI assistance, an embedded chat interface within the Expenses module for AI assistance, and an embedded chat interface within the Purchase Orders module for AI assistance.
-*   **Intuitive & Uncluttered:** The UI (adapted from the existing PROActive OS, EstiMATE Pro, and FloorPlan Pro) should be clean, easy to navigate, and mobile-friendly. Avoid overwhelming users with excessive options or complex configurations, presenting information and AI suggestions contextually.
+*   **Intuitive & Uncluttered:** The UI (adapted from the existing PROActive ONE, EstiMATE Pro, and FloorPlan Pro) should be clean, easy to navigate, and mobile-friendly. Avoid overwhelming users with excessive options or complex configurations, presenting information and AI suggestions contextually.
 *   **Efficient & Fast:** Key workflows, especially estimate creation and data retrieval, must be quick and responsive, leveraging the performance of the Agent Data Fabric and optimized AI models.
 *   **Efficient Data Management:** Enabling users to easily clean up and organize their contact list through efficient deletion and filtering options, with AI potentially assisting in data hygiene and categorization.
 *   **Integrated & Seamless:** Data should flow logically between modules and integrated third-party services, minimizing redundant data entry. The experience should feel like one cohesive application, with LangGraph.js agents orchestrating interactions behind the scenes. The integration of AI-suggested line items directly into the estimate form's line items section provides a unified view for both AI and manual input, contributing to this seamless experience. Utilize modals for initial creation forms for Contacts, Opportunities, and Jobs, ensuring a streamlined UI. This also includes seamless integration with the Cost Items database from the Estimate items view via a side drawer, and utilizing modals/sidedrawers for adding items, sections, and new cost items. Furthermore, it will feature an Estimates list dashboard and a Bidding section within the Estimate view for creating bid packages and managing submissions. Upon estimate approval, a clear UI element will present options for adding items to Schedule of Values, generating initial invoices, and creating projects/schedules. It will also feature a Projects dashboard list view and a comprehensive Project details view with clear navigation to various integrated sections (Summary, Financial, Schedule of Values, Documents, Time, Files & Photos, Contacts, Schedule, Procurement, Client Access, Reports). Dedicated "Work Orders" and "Service Tickets" modules will be implemented, deeply integrated with clients, projects, and membership plans, including electronic signature support. A dedicated "Change Orders" module will be implemented, deeply linked to Projects and Customers, with a process for adding items (import from Estimate/SOV), a workflow for submission/approval (email, client e-signature), status tracking, and automatic updates to project financials/SOV. A dedicated "Daily Logs" module will be implemented, deeply linked to Projects, with sections for people on site, materials, equipment, notes, files, and incidents. A dedicated "Expenses" module will be implemented, deeply linked to Projects, with comprehensive fields for tracking details, and an option to mark as Billable. A "Purchase Orders" module will be implemented, deeply linked to Projects and Suppliers, with comprehensive fields for tracking details, and the ability to add items (import from Cost Items Database/SOV, or manually).

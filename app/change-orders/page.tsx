@@ -3,7 +3,7 @@ import { getChangeOrders } from "@/lib/change-orders"
 import ChangeOrdersList from "./change-orders-list"
 
 export const metadata: Metadata = {
-  title: "Change Orders | PROActive OS",
+  title: "Change Orders | PROActive ONE",
   description: "Manage your change orders",
 }
 

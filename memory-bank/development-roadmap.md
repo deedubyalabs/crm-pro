@@ -1,4 +1,4 @@
-# Development Roadmap: PROActive OS - AI-Powered Operations Hub
+# Development Roadmap: PROActive ONE - AI-Powered Operations Hub
 
 **Version:** 1.0
 **Date:** May 26, 2025
@@ -18,7 +18,7 @@ The immediate focus is on completing Phase 3: "UI/UX Refinements & AI Insights P
 
 ### 1. CRM Workflow (Leads and Opportunities)
 
-*   **PROActive OS Adaptation Summary:** Unified Contact entity in Supabase with a `type` field, automated Lead-to-Customer conversion, "add as you go" categories, dedicated "Jobs" feature linkable to entities, streamlined UI with modals, deep relational linking for AI access, embedded chat, and proactive AI assistance.
+*   **PROActive ONE Adaptation Summary:** Unified Contact entity in Supabase with a `type` field, automated Lead-to-Customer conversion, "add as you go" categories, dedicated "Jobs" feature linkable to entities, streamlined UI with modals, deep relational linking for AI access, embedded chat, and proactive AI assistance.
 *   **Tasks:**
     *   [COMPLETED] Refine design and responsiveness for `app/people/person-form.tsx` and `app/opportunities/opportunity-form.tsx` by adding `ScrollArea`.
     *   [COMPLETED] Convert `app/people/[id]/edit/page.tsx`, `app/opportunities/[id]/edit/page.tsx`, `app/people/new/page.tsx`, and `app/opportunities/new/page.tsx` to side drawers and increased their width.
@@ -50,7 +50,7 @@ The immediate focus is on completing Phase 3: "UI/UX Refinements & AI Insights P
 
 ### 2. Estimate Creation Workflow (from Opportunity and Items View)
 
-*   **PROActive OS Adaptation Summary:** Enhanced Estimate items view with sections, optional items, tax marking, and item assignment. Comprehensive Cost Items database UI with tabbed views and item groups. Seamless integration with Cost Items database via side drawer. Bulk markup functionality with AI suggestions. BigBoxAPI integration. "Add as you go" for line items and cost item categories. Summary view, dedicated UI sections for Terms, Scope of Work, Bidding, Files, Cover Sheet, Notes. "Review and Submit" workflow with preview and AI assistance. Embedded chat interface within the Estimate view for AI Estimator agent.
+*   **PROActive ONE Adaptation Summary:** Enhanced Estimate items view with sections, optional items, tax marking, and item assignment. Comprehensive Cost Items database UI with tabbed views and item groups. Seamless integration with Cost Items database via side drawer. Bulk markup functionality with AI suggestions. BigBoxAPI integration. "Add as you go" for line items and cost item categories. Summary view, dedicated UI sections for Terms, Scope of Work, Bidding, Files, Cover Sheet, Notes. "Review and Submit" workflow with preview and AI assistance. Embedded chat interface within the Estimate view for AI Estimator agent.
 *   **Tasks:**
     *   [COMPLETED] Enhance existing Estimate items view to replicate the robust functionality, including sections (with optional), item options (optional, tax), and item assignment.
     *   [COMPLETED] Develop a comprehensive Cost Items database UI with a tabbed view (Material, Equipment, Labor, Subcontractor, Other, Groups), search, filtering, and the ability to create and manage item groups, with this data accessible to AI agents via the ADF.
@@ -95,7 +95,7 @@ The immediate focus is on completing Phase 3: "UI/UX Refinements & AI Insights P
 
 ### 3. Contractor/Bids Workflow (from Estimate)
 
-*   **PROActive OS Adaptation Summary:** Estimates list dashboard, Bidding section within Estimate (bid package creation, item selection), unified Contact entity for contractors, centralized Documents module for all contractor-related documents, email bid packages with subcontractor interface for submission, "Submissions" section for review and status management, apply awarded bid price to estimate item, deep relational linking, and AI assistance for bid analysis.
+*   **PROActive ONE Adaptation Summary:** Estimates list dashboard, Bidding section within Estimate (bid package creation, item selection), unified Contact entity for contractors, centralized Documents module for all contractor-related documents, email bid packages with subcontractor interface for submission, "Submissions" section for review and status management, apply awarded bid price to estimate item, deep relational linking, and AI assistance for bid analysis.
 *   **Tasks:**
     *   [TO DO] Develop an Estimates list dashboard providing status summaries and a detailed list view.
     *   [TO DO] Implement a Bidding section within the Estimate view, allowing users to create bid packages and select specific estimate items to include.
@@ -124,7 +124,7 @@ The immediate focus is on completing Phase 3: "UI/UX Refinements & AI Insights P
 
 ### 4. Post-Estimate Approval Workflow
 
-*   **PROActive OS Adaptation Summary:** Implement a modal or clear UI element upon estimate approval presenting the user with key next steps: adding items to Schedule of Values, generating an initial Invoice, and creating a Project/Schedule. Ensure seamless transitions to relevant modules with AI assistance. Deep relational linking between approved Estimate and new entities.
+*   **PROActive ONE Adaptation Summary:** Implement a modal or clear UI element upon estimate approval presenting the user with key next steps: adding items to Schedule of Values, generating an initial Invoice, and creating a Project/Schedule. Ensure seamless transitions to relevant modules with AI assistance. Deep relational linking between approved Estimate and new entities.
 *   **Tasks:**
     *   [TO DO] Implement a similar modal or clear UI element upon estimate approval presenting the user with key next steps: adding items to Schedule of Values, generating an initial Invoice, and creating a Project/Schedule.
     *   [TO DO] Ensure these options seamlessly transition the user to the relevant module or initiate the respective process, potentially with AI assistance in initiating these processes.
@@ -138,7 +138,7 @@ The immediate focus is on completing Phase 3: "UI/UX Refinements & AI Insights P
 
 ### 5. Project Management Workflow (Dashboard and Details)
 
-*   **PROActive OS Adaptation Summary:** Projects dashboard list view with AI insights. Comprehensive Project details view with clear navigation to various integrated sections. Deep integration and display of relevant linked data within each section. Functionality to easily add new related items with AI assistance. Deep relational linking in Supabase schema. Embedded chat interface within Project details view for AI agents. Proactive AI assistance for project management.
+*   **PROActive ONE Adaptation Summary:** Projects dashboard list view with AI insights. Comprehensive Project details view with clear navigation to various integrated sections. Deep integration and display of relevant linked data within each section. Functionality to easily add new related items with AI assistance. Deep relational linking in Supabase schema. Embedded chat interface within Project details view for AI agents. Proactive AI assistance for project management.
 *   **Tasks:**
     *   [TO DO] Develop a Projects dashboard list view displaying key project details and summaries, potentially with AI-powered insights or action item suggestions.
     *   [COMPLETED] Create a comprehensive Project details view with a clear navigation structure (sidebar or tabs) to various sections mirroring the required modules (Summary, Financial, Schedule of Values, Documents, Time, Files & Photos, Contacts, Schedule, Procurement, Client Access, Reports).
@@ -167,7 +167,7 @@ The immediate focus is on completing Phase 3: "UI/UX Refinements & AI Insights P
 
 ### 6. Job Management Workflow
 
-*   **PROActive OS Adaptation Summary:** Dedicated "Jobs" module linkable to Contacts, Opportunities, and Projects. Fields for task details, checklist functionality with adapted status updates ("In Progress" on checklist item completion). List and Kanban views for Jobs with AI-powered task prioritization. Embedded chat interface within Jobs module. Proactive AI assistance for task management.
+*   **PROActive ONE Adaptation Summary:** Dedicated "Jobs" module linkable to Contacts, Opportunities, and Projects. Fields for task details, checklist functionality with adapted status updates ("In Progress" on checklist item completion). List and Kanban views for Jobs with AI-powered task prioritization. Embedded chat interface within Jobs module. Proactive AI assistance for task management.
 *   **Tasks:**
     *   [COMPLETED] `jobs` table modified to link `assigned_to` to `people` table, and new columns (`due_date`, `due_time`, `priority`, `linked_contact_id`, `linked_opportunity_id`, `tags`) added. `job_checklist_items` table created.
     *   [COMPLETED] Develop a dedicated "Jobs" module linkable to Contacts, Opportunities, and Projects.
@@ -188,7 +188,7 @@ The immediate focus is on completing Phase 3: "UI/UX Refinements & AI Insights P
 
 ### 7. Work Orders and Service Tickets Workflow
 
-*   **PROActive OS Adaptation Summary:** Dedicated "Work Orders" and "Service Tickets" modules. Work Orders linked to clients and projects. Service Tickets integrated with membership plans. Electronic signature support for Service Tickets. Embedded chat interfaces and proactive AI assistance.
+*   **PROActive ONE Adaptation Summary:** Dedicated "Work Orders" and "Service Tickets" modules. Work Orders linked to clients and projects. Service Tickets integrated with membership plans. Electronic signature support for Service Tickets. Embedded chat interfaces and proactive AI assistance.
 *   **Tasks:**
     *   [TO DO] Implement dedicated "Work Orders" and "Service Tickets" modules.
     *   [TO DO] Ensure Work Orders can be linked to clients and projects, with this data integrated into the ADF.
@@ -215,7 +215,7 @@ The immediate focus is on completing Phase 3: "UI/UX Refinements & AI Insights P
 
 ### 8. Change Order Workflow
 
-*   **PROActive OS Adaptation Summary:** Dedicated "Change Orders" module. Deeply linked to Projects and Customers. Comprehensive fields for details. Process for adding Change Order Items (import from Estimate/SOV). Workflow for submitting for approval (email, client e-signature). Status tracking. Automatic updates to Project financials and Schedule of Values. Embedded chat interface and proactive AI assistance.
+*   **PROActive ONE Adaptation Summary:** Dedicated "Change Orders" module. Deeply linked to Projects and Customers. Comprehensive fields for details. Process for adding Change Order Items (import from Estimate/SOV). Workflow for submitting for approval (email, client e-signature). Status tracking. Automatic updates to Project financials and Schedule of Values. Embedded chat interface and proactive AI assistance.
 *   **Tasks:**
     *   [TO DO] Implement a dedicated "Change Orders" module.
     *   [TO DO] Ensure Change Orders can be created and deeply linked to Projects and Customers, with this data integrated into the ADF.
@@ -245,7 +245,7 @@ The immediate focus is on completing Phase 3: "UI/UX Refinements & AI Insights P
 
 ### 9. Daily Log Workflow
 
-*   **PROActive OS Adaptation Summary:** Dedicated "Daily Logs" module. Deeply linked to Projects. Comprehensive fields for daily site information. Sections for People on Site, Material details, Equipment details, Notes, Files, and Incidents & Accidents. Embedded chat interface and proactive AI assistance.
+*   **PROActive ONE Adaptation Summary:** Dedicated "Daily Logs" module. Deeply linked to Projects. Comprehensive fields for daily site information. Sections for People on Site, Material details, Equipment details, Notes, Files, and Incidents & Accidents. Embedded chat interface and proactive AI assistance.
 *   **Tasks:**
     *   [TO DO] Implement a dedicated "Daily Logs" module.
     *   [TO DO] Ensure Daily Logs can be created and deeply linked to Projects, with this data integrated into the ADF.
@@ -270,7 +270,7 @@ The immediate focus is on completing Phase 3: "UI/UX Refinements & AI Insights P
 
 ### 10. Expense Workflow
 
-*   **PROActive OS Adaptation Summary:** Dedicated "Expenses" module. Deeply linked to Projects. Comprehensive fields for details. Option to mark as Billable. Reflection in Project financials and reports. Embedded chat interface and proactive AI assistance.
+*   **PROActive ONE Adaptation Summary:** Dedicated "Expenses" module. Deeply linked to Projects. Comprehensive fields for details. Option to mark as Billable. Reflection in Project financials and reports. Embedded chat interface and proactive AI assistance.
 *   **Tasks:**
     *   [TO DO] Implement a dedicated "Expenses" module.
     *   [TO DO] Ensure Expenses can be created and deeply linked to Projects, with this data integrated into the ADF.
@@ -290,7 +290,7 @@ The immediate focus is on completing Phase 3: "UI/UX Refinements & AI Insights P
 
 ### 11. Purchase Order Workflow
 
-*   **PROActive OS Adaptation Summary:** "Purchase Orders" module. Deeply linked to Projects and Suppliers. Comprehensive fields for details. Ability to add PO Items (import from Cost Items Database, Schedule of Values, or manually). Attachment support. Delivered item tracking (consider if needed). Embedded chat interface and proactive AI assistance.
+*   **PROActive ONE Adaptation Summary:** "Purchase Orders" module. Deeply linked to Projects and Suppliers. Comprehensive fields for details. Ability to add PO Items (import from Cost Items Database, Schedule of Values, or manually). Attachment support. Delivered item tracking (consider if needed). Embedded chat interface and proactive AI assistance.
 *   **Tasks:**
     *   [TO DO] Implement a "Purchase Orders" module.
     *   [TO DO] Ensure POs can be created and deeply linked to Projects and Suppliers (Contacts), with this data integrated into the ADF.
@@ -315,7 +315,7 @@ The immediate focus is on completing Phase 3: "UI/UX Refinements & AI Insights P
 
 ### 12. Subcontracts Workflow
 
-*   **PROActive OS Adaptation Summary:** "Subcontracts" module. Deeply linked to Projects and Subcontractors. Comprehensive fields for details. Ability to add Original Scope items. Sections for Documents, Terms, and Notes. Embedded chat interface and proactive AI assistance.
+*   **PROActive ONE Adaptation Summary:** "Subcontracts" module. Deeply linked to Projects and Subcontractors. Comprehensive fields for details. Ability to add Original Scope items. Sections for Documents, Terms, and Notes. Embedded chat interface and proactive AI assistance.
 *   **Tasks:**
     *   [TO DO] Implement a "Subcontracts" module.
     *   [TO DO] Ensure Subcontracts can be created and deeply linked to Projects and Subcontractors (Contacts), with this data integrated into the ADF.
@@ -341,7 +341,7 @@ The immediate focus is on completing Phase 3: "UI/UX Refinements & AI Insights P
 
 ### 13. Time Cards Workflow
 
-*   **PROActive OS Adaptation Summary:** Dedicated "Time Cards" module. Features for viewing time stats, upcoming days off, time spent on projects, and weekly timesheet. User-friendly interface for adding time entries with clock-in/out, project/location linking, and cost code selection. Detailed activity log. Deeply linked to Projects and Cost Codes for job costing. Improvement Area: Address lack of offline functionality. Embedded chat interface and proactive AI assistance.
+*   **PROActive ONE Adaptation Summary:** Dedicated "Time Cards" module. Features for viewing time stats, upcoming days off, time spent on projects, and weekly timesheet. User-friendly interface for adding time entries with clock-in/out, project/location linking, and cost code selection. Detailed activity log. Deeply linked to Projects and Cost Codes for job costing. Improvement Area: Address lack of offline functionality. Embedded chat interface and proactive AI assistance.
 *   **Tasks:**
     *   [TO DO] Implement a dedicated "Time Cards" module.
     *   [TO DO] Include features for viewing time stats, upcoming days off, time spent on current projects, and a weekly timesheet, potentially with AI analysis of time allocation.
@@ -363,7 +363,7 @@ The immediate focus is on completing Phase 3: "UI/UX Refinements & AI Insights P
 
 ### 14. Invoicing, Payments, and Job Costing Workflow
 
-*   **PROActive OS Adaptation Summary:** Dedicated "Invoices" and "Payments" modules. Invoices deeply linked to Projects and Customers. Robust functionality for adding items to Invoices (import from CID, SOV, Approved Estimates; manual; discounts; retainage; time & material - unbilled only). Comprehensive Payments workflow. Robust Job Costing system automatically aggregating data from all relevant linked modules. Job Costing reports with AI-powered analysis. Embedded chat interfaces and proactive AI assistance.
+*   **PROActive ONE Adaptation Summary:** Dedicated "Invoices" and "Payments" modules. Invoices deeply linked to Projects and Customers. Robust functionality for adding items to Invoices (import from CID, SOV, Approved Estimates; manual; discounts; retainage; time & material - unbilled only). Comprehensive Payments workflow. Robust Job Costing system automatically aggregating data from all relevant linked modules. Job Costing reports with AI-powered analysis. Embedded chat interfaces and proactive AI assistance.
 *   **Tasks:**
     *   [TO DO] Implement dedicated "Invoices" and "Payments" modules.
     *   [TO DO] Ensure Invoices can be created and deeply linked to Projects and Customers, with this data integrated into the ADF.
@@ -399,7 +399,7 @@ The immediate focus is on completing Phase 3: "UI/UX Refinements & AI Insights P
 
 ### 15. Client Portal Workflow
 
-*   **PROActive OS Adaptation Summary:** Dedicated Client Portal per project. Secure access to project progress, updates, shared files, estimates, invoices, and change orders. Integrated chat with client-facing AI assistant. Electronic signature capabilities. Online payment processing via Square API. Granular controls for contractors on shared information. Embedded chat interface for clients.
+*   **PROActive ONE Adaptation Summary:** Dedicated Client Portal per project. Secure access to project progress, updates, shared files, estimates, invoices, and change orders. Integrated chat with client-facing AI assistant. Electronic signature capabilities. Online payment processing via Square API. Granular controls for contractors on shared information. Embedded chat interface for clients.
 *   **Tasks:**
     *   [TO DO] Implement a dedicated Client Portal for each project.
     *   [TO DO] Provide clients with secure access to view project progress, updates, shared files, estimates, invoices, and change orders, with this data integrated into the ADF.
@@ -419,7 +419,7 @@ The immediate focus is on completing Phase 3: "UI/UX Refinements & AI Insights P
 
 ### 16. Reporting Workflow
 
-*   **PROActive OS Adaptation Summary:** Comprehensive "Reporting" module. Wide range of pre-built reports. Flexible custom report builder. Prioritize interactive in-app viewing. Optimized report performance. Embedded chat interface and proactive AI assistance. AI-powered analysis and insights.
+*   **PROActive ONE Adaptation Summary:** Comprehensive "Reporting" module. Wide range of pre-built reports. Flexible custom report builder. Prioritize interactive in-app viewing. Optimized report performance. Embedded chat interface and proactive AI assistance. AI-powered analysis and insights.
 *   **Tasks:**
     *   [TO DO] Implement a comprehensive "Reporting" module.
     *   [TO DO] Provide a wide range of pre-built reports covering all modules, with data accessible to AI agents via the ADF.
@@ -441,7 +441,7 @@ The immediate focus is on completing Phase 3: "UI/UX Refinements & AI Insights P
 
 ### 17. Membership/Rewards Management Workflow
 
-*   **PROActive OS Adaptation Summary:** Dedicated "Membership/Rewards" module. Flexible membership tiers. Points earning and redemption system. Various methods for earning points. Process for redeeming points for discounts. Functionality to manage optional add-on packages. Integration with CRM. Consider email marketing/in-app chat messaging. Embedded chat interface and proactive AI assistance.
+*   **PROActive ONE Adaptation Summary:** Dedicated "Membership/Rewards" module. Flexible membership tiers. Points earning and redemption system. Various methods for earning points. Process for redeeming points for discounts. Functionality to manage optional add-on packages. Integration with CRM. Consider email marketing/in-app chat messaging. Embedded chat interface and proactive AI assistance.
 *   **Tasks:**
     *   [TO DO] Implement a dedicated "Membership/Rewards" module.
     *   [TO DO] Define flexible membership tiers with customizable benefits and point multipliers.

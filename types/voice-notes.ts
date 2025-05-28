@@ -15,6 +15,7 @@ export interface VoiceNote {
 export interface VoiceNoteCreateParams {
   title: string
   audio_blob: Blob
+  user_id: string // Added user_id
   project_id?: string
   job_id?: string
   duration: number

@@ -102,11 +102,16 @@ export const purchaseOrderService = {
 
       if (deliveriesError) throw deliveriesError
 
-      return {
+      if (!purchaseOrder.supplier) {
+        throw new Error("Purchase order supplier not found")
+      }
+
+      const result = {
         ...purchaseOrder,
         items: items || [],
         deliveries: deliveries || [],
-      }
+      } as PurchaseOrderWithDetails
+      return result
     } catch (error) {
       throw new Error(handleSupabaseError(error))
     }
@@ -437,6 +442,7 @@ export const purchaseOrderService = {
             tax_amount: 0,
             total_amount: 0,
             notes: `Generated from material list: ${materialList.name}`,
+            po_number: ""
           }
 
           // If project has an address, use it for shipping
@@ -498,6 +504,7 @@ export const purchaseOrderService = {
             tax_amount: 0,
             total_amount: 0,
             notes: `Generated from material list: ${materialList.name} (Unassigned items)`,
+            po_number: ""
           }
 
           // If project has an address, use it for shipping
@@ -557,6 +564,7 @@ export const purchaseOrderService = {
           tax_amount: 0,
           total_amount: 0,
           notes: `Generated from material list: ${materialList.name}`,
+          po_number: ""
         }
 
         // If project has an address, use it for shipping

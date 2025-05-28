@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase"
 import type {
   VoiceNote,
   VoiceNoteCreateParams,
@@ -7,8 +7,6 @@ import type {
 } from "@/types/voice-notes"
 
 export async function getVoiceNotes(filters: VoiceNoteFilterParams = {}): Promise<VoiceNote[]> {
-  const supabase = createClient()
-
   let query = supabase.from("voice_notes").select("*").order("created_at", { ascending: false })
 
   if (filters.project_id) {
@@ -34,8 +32,6 @@ export async function getVoiceNotes(filters: VoiceNoteFilterParams = {}): Promis
 }
 
 export async function getVoiceNoteById(id: string): Promise<VoiceNote> {
-  const supabase = createClient()
-
   const { data, error } = await supabase.from("voice_notes").select("*").eq("id", id).single()
 
   if (error) {
@@ -47,8 +43,6 @@ export async function getVoiceNoteById(id: string): Promise<VoiceNote> {
 }
 
 export async function createVoiceNote(params: VoiceNoteCreateParams): Promise<VoiceNote> {
-  const supabase = createClient()
-
   // First, upload the audio file
   const fileName = `voice-notes/${Date.now()}.webm`
   const { data: uploadData, error: uploadError } = await supabase.storage
@@ -73,6 +67,7 @@ export async function createVoiceNote(params: VoiceNoteCreateParams): Promise<Vo
     .insert({
       title: params.title,
       audio_url: audioUrl,
+      user_id: params.user_id, // Added user_id
       project_id: params.project_id || null,
       job_id: params.job_id || null,
       duration: params.duration,
@@ -90,8 +85,6 @@ export async function createVoiceNote(params: VoiceNoteCreateParams): Promise<Vo
 }
 
 export async function updateVoiceNote(params: VoiceNoteUpdateParams): Promise<VoiceNote> {
-  const supabase = createClient()
-
   const updates: Partial<VoiceNote> = {}
 
   if (params.title) {
@@ -119,8 +112,6 @@ export async function updateVoiceNote(params: VoiceNoteUpdateParams): Promise<Vo
 }
 
 export async function deleteVoiceNote(id: string): Promise<void> {
-  const supabase = createClient()
-
   // First get the voice note to get the audio URL
   const voiceNote = await getVoiceNoteById(id)
 

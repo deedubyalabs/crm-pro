@@ -16,7 +16,7 @@ import AssistantChatDrawer from "@/components/ai/AssistantChatDrawer" // Import 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata = {
-  title: "PROActive OS",
+  title: "PROActive ONE",
   description: "Agent-optimized business operations platform",
     generator: 'v0.dev'
 }

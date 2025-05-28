@@ -11,7 +11,7 @@ import { CostItemType } from "@/types/cost-items" // Import CostItemType
 import { CostItemSearchInput } from "./cost-item-search-input" // Import the new client component
 
 export const metadata: Metadata = {
-  title: "Cost Items | PROActive OS",
+  title: "Cost Items | PROActive ONE",
   description: "Manage your cost items catalog",
 }
 

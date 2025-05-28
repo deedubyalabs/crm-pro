@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import NewCostItemClientPage from "./NewCostItemClientPage"
 
 export const metadata: Metadata = {
-  title: "New Cost Item | PROActive OS",
+  title: "New Cost Item | PROActive ONE",
   description: "Create a new cost item",
 }
 

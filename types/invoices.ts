@@ -1,7 +1,8 @@
 export type Invoice = {
   id: string
-  project_id: string
+  project_id: string | null // Made nullable as per schema
   person_id: string
+  linked_estimate_id: string | null // New field
   invoice_number: string | null
   status: InvoiceStatus
   invoice_type: InvoiceType
@@ -9,6 +10,7 @@ export type Invoice = {
   due_date: string | null
   total_amount: number
   amount_paid: number
+  is_paid_in_full: boolean // New field
   notes: string | null
   created_by_user_id: string | null
   created_at: string
@@ -49,6 +51,9 @@ export type InvoiceLineItem = {
   sort_order: number
   source_type: string | null
   source_id: string | null
+  linked_change_order_id: string | null // New field
+  linked_expense_id: string | null // New field
+  linked_time_entry_id: string | null // New field
   section_title: string | null
   is_section_header: boolean
   created_at: string

@@ -14,7 +14,11 @@ export async function getTimeEntries(): Promise<TimeEntryWithDetails[]> {
       .order("date", { ascending: false })
 
     if (error) throw error
-    return data || []
+    return (data || []).map(entry => ({
+      ...entry,
+      created_at: entry.created_at || new Date().toISOString(),
+      updated_at: entry.updated_at || new Date().toISOString()
+    }))
   } catch (error) {
     console.error("Error fetching time entries:", error)
     throw new Error(handleSupabaseError(error))
@@ -137,7 +141,11 @@ export async function getBillableTimeEntriesByProject(
     const { data, error } = await query.order("date", { ascending: false })
 
     if (error) throw error
-    return data || []
+    return (data || []).map(entry => ({
+      ...entry,
+      created_at: entry.created_at || new Date().toISOString(),
+      updated_at: entry.updated_at || new Date().toISOString()
+    }))
   } catch (error) {
     console.error("Error fetching billable time entries:", error)
     throw new Error(handleSupabaseError(error))

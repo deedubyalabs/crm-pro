@@ -1,4 +1,4 @@
-# PROActive OS: Your Operations Hub for Construction Success
+# PROActive ONE: Your Operations Hub for Construction Success
 
 **Version:** 1.0 (Production-Grade Manual System)
 **Last Updated:** May 21, 2025
@@ -22,11 +22,11 @@ Solo residential contractors and small construction firms often juggle numerous 
 *   Handling change orders systematically.
 *   Maintaining a professional image and ensuring client satisfaction.
 
-PROActive OS is designed to be the central nervous system for their business, bringing all these functions into one integrated and user-friendly platform.
+PROActive ONE is designed to be the central nervous system for their business, bringing all these functions into one integrated and user-friendly platform.
 
 ## 3. High-Level System Overview
 
-PROActive OS is a web-based application built with a modern tech stack (Next.js, Supabase) designed for performance, reliability, and ease of use. It provides a suite of interconnected modules covering the full spectrum of a contractor's operational needs. The system prioritizes a clean user interface, logical workflows, and deep relational linking of data to provide a holistic view of the business.
+PROActive ONE is a web-based application built with a modern tech stack (Next.js, Supabase) designed for performance, reliability, and ease of use. It provides a suite of interconnected modules covering the full spectrum of a contractor's operational needs. The system prioritizes a clean user interface, logical workflows, and deep relational linking of data to provide a holistic view of the business.
 
 **Key Modules:**
 
@@ -97,7 +97,7 @@ PROActive OS is a web-based application built with a modern tech stack (Next.js,
 
 ## 7. Key Features & Functionality (Manual System - End Goal)
 
-*(This section would be very detailed, drawing heavily from your `contractor-foreman-review.md` "PROActive OS Adaptation" sections for each module. Below is a high-level summary; the full version would list out specific fields, actions, and sub-features for each.)*
+*(This section would be very detailed, drawing heavily from your `contractor-foreman-review.md` "PROActive ONE Adaptation" sections for each module. Below is a high-level summary; the full version would list out specific fields, actions, and sub-features for each.)*
 
 ### 7.1. Dashboard
     * Customizable widgets for:
@@ -131,7 +131,7 @@ PROActive OS is a web-based application built with a modern tech stack (Next.js,
             *   Related entities tabs: Tasks/Jobs, Estimates, Files, Notes, Activity Log.
         *   "Add as yougo" for Opportunity Stage, Project Type.
     *   **Inbox (Future - Manual Email Integration):**
-        *   Connect personal email (Gmail/Outlook) to send/receive emails within PROActive OS, automatically linking them to contacts/projects.
+        *   Connect personal email (Gmail/Outlook) to send/receive emails within PROActive ONE, automatically linking them to contacts/projects.
 
 ### 7.3. Operations
     *   **Projects Module:**

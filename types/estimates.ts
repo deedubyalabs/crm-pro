@@ -12,7 +12,8 @@ export interface Estimate {
   id: string
   estimate_number: string | null
   person_id: string
-  opportunity_id: string | null
+  opportunity_id: string // Corrected based on database schema (NOT NULL)
+  project_id: string | null // New field
   status: EstimateStatus
   issue_date: string | null
   expiration_date: string | null
@@ -24,6 +25,9 @@ export interface Estimate {
   terms_and_conditions: string | null // New field
   scope_of_work: string | null // New field
   cover_sheet_details: string | null // New field
+  is_converted_to_project: boolean // New field
+  is_converted_to_sov: boolean // New field
+  is_initial_invoice_generated: boolean // New field
   created_at: string
   updated_at: string
   created_by: string | null
@@ -36,7 +40,8 @@ export interface Estimate {
 export interface NewEstimate {
   estimate_number?: string | null
   person_id: string
-  opportunity_id?: string | null
+  opportunity_id: string // Corrected based on database schema (NOT NULL)
+  project_id?: string | null // New field
   status?: EstimateStatus
   issue_date?: string | null
   expiration_date?: string | null
@@ -48,6 +53,9 @@ export interface NewEstimate {
   terms_and_conditions?: string | null // New field
   scope_of_work?: string | null // New field
   cover_sheet_details?: string | null // New field
+  is_converted_to_project?: boolean // New field
+  is_converted_to_sov?: boolean // New field
+  is_initial_invoice_generated?: boolean // New field
   created_by?: string | null
   deposit_required?: boolean
   deposit_amount?: number | null
@@ -57,7 +65,8 @@ export interface NewEstimate {
 export interface UpdateEstimate {
   estimate_number?: string | null
   person_id?: string
-  opportunity_id?: string | null
+  opportunity_id?: string // Corrected based on database schema (NOT NULL)
+  project_id?: string | null // New field
   status?: EstimateStatus
   issue_date?: string | null
   expiration_date?: string | null
@@ -69,6 +78,9 @@ export interface UpdateEstimate {
   terms_and_conditions?: string | null // New field
   scope_of_work?: string | null // New field
   cover_sheet_details?: string | null // New field
+  is_converted_to_project?: boolean // New field
+  is_converted_to_sov?: boolean // New field
+  is_initial_invoice_generated?: boolean // New field
   updated_by?: string | null
   deposit_required?: boolean
   deposit_amount?: number | null
@@ -76,7 +88,6 @@ export interface UpdateEstimate {
 }
 
 export interface EstimateLineItem {
-  name: any
   id: string
   estimate_id: string
   cost_item_id: string | null

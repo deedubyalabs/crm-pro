@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import UnifiedEstimateClientPage from "../UnifiedEstimateClientPage" // Import UnifiedEstimateClientPage
 
 export const metadata: Metadata = {
-  title: "New Estimate | PROActive OS",
+  title: "New Estimate | PROActive ONE",
   description: "Create a new estimate",
 }
 

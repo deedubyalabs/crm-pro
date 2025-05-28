@@ -21,17 +21,17 @@ import {
 //     const opportunity = await opportunityService.getOpportunityById(params.id)
 //     if (!opportunity) {
 //       return {
-//         title: "Opportunity Not Found | PROActive OS",
+//         title: "Opportunity Not Found | PROActive ONE",
 //         description: "The requested opportunity could not be found",
 //       }
 //     }
 //     return {
-//       title: `Edit ${opportunity.opportunity_name} | PROActive OS`,
+//       title: `Edit ${opportunity.opportunity_name} | PROActive ONE`,
 //       description: `Edit details for ${opportunity.opportunity_name}`,
 //     }
 //   } catch (error) {
 //     return {
-//       title: "Opportunity Not Found | PROActive OS",
+//       title: "Opportunity Not Found | PROActive ONE",
 //       description: "The requested opportunity could not be found",
 //     }
 //   }

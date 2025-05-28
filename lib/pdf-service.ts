@@ -43,8 +43,8 @@ export const pdfService = {
 
     doc.setFontSize(10)
     doc.setFont("helvetica", "normal")
-    doc.text(`Date: ${formatDate(invoice.issue_date)}`, 140, 25, { align: "right" })
-    doc.text(`Due Date: ${formatDate(invoice.due_date)}`, 140, 30, { align: "right" })
+    doc.text(`Date: ${formatDate(invoice.issue_date ?? new Date().toISOString())}`, 140, 25, { align: "right" })
+    doc.text(`Due Date: ${formatDate(invoice.due_date ?? new Date().toISOString())}`, 140, 30, { align: "right" })
     doc.text(`Status: ${invoice.status}`, 140, 35, { align: "right" })
 
     // Add customer information

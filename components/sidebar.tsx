@@ -234,7 +234,7 @@ export default function Sidebar({ className }: SidebarProps) {
           {!isCollapsed && (
             <Link href="/" className="flex items-center space-x-2">
               <Home className="h-5 w-5" />
-              <span className="font-bold text-xl">PROActive OS</span>
+              <span className="font-bold text-xl">PROActive ONE</span>
             </Link>
           )}
           {isCollapsed && (

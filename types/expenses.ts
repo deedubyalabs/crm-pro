@@ -26,27 +26,9 @@ export type ExpensePaymentMethod =
   | "personal_funds"
   | "other"
 
-export interface Expense {
-  id: string
-  project_id: string | null
-  job_id: string | null
-  user_id: string
-  category: ExpenseCategory
-  description: string
-  amount: number
-  tax_amount: number | null
-  date: string
-  receipt_url: string | null
-  status: ExpenseStatus
-  payment_method: ExpensePaymentMethod
-  vendor: string | null
-  notes: string | null
-  billable: boolean
-  reimbursable: boolean
-  reimbursed_date: string | null
-  created_at: string
-  updated_at: string
-}
+export type Expense = Database["public"]["Tables"]["expenses"]["Row"]
+export type NewExpense = Database["public"]["Tables"]["expenses"]["Insert"]
+export type ExpenseUpdate = Database["public"]["Tables"]["expenses"]["Update"]
 
 export interface ExpenseWithDetails extends Expense {
   project: {
@@ -61,13 +43,5 @@ export interface ExpenseWithDetails extends Expense {
     id: string
     name: string
     email: string
-  }
+  } | null // user can be null if created_by_user_id is null
 }
-
-export type NewExpense = Omit<Expense, "id" | "created_at" | "updated_at">
-
-export type ExpenseUpdate = Partial<Omit<Expense, "id" | "created_at" | "updated_at">>
-
-export type ExpenseRow = Database["public"]["Tables"]["expenses"]["Row"]
-export type ExpenseInsert = Database["public"]["Tables"]["expenses"]["Insert"]
-export type ExpenseUpdate_DB = Database["public"]["Tables"]["expenses"]["Update"]

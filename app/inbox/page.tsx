@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth-service"
 import { InboxView } from "./inbox-view"
 
 export const metadata: Metadata = {
-  title: "Inbox | PROActive OS",
+  title: "Inbox | PROActive ONE",
   description: "Manage all your communications in one place",
 }
 

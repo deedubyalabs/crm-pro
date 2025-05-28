@@ -3,8 +3,8 @@ import Link from "next/link"
 import { ResetPasswordForm } from "./reset-password-form"
 
 export const metadata: Metadata = {
-  title: "Reset Password | PROActive OS",
-  description: "Reset your PROActive OS account password",
+  title: "Reset Password | PROActive ONE",
+  description: "Reset your PROActive ONE account password",
 }
 
 export default function ResetPasswordPage() {

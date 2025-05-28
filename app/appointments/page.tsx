@@ -11,7 +11,7 @@ import AppointmentStatusFilter from "./appointment-status-filter"
 import { DateRangePicker } from "./date-range-picker"
 
 export const metadata: Metadata = {
-  title: "Appointments | PROActive OS",
+  title: "Appointments | PROActive ONE",
   description: "Manage your appointments and meetings",
 }
 

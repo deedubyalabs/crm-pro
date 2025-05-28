@@ -27,7 +27,7 @@ export const takeoffService = {
         .order("created_at", { ascending: false })
 
       if (error) throw error
-      return data || []
+      return (data || []) as Takeoff[]
     } catch (error) {
       throw new Error(handleSupabaseError(error))
     }

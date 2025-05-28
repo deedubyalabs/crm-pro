@@ -5,7 +5,7 @@ import { PlusCircle } from "lucide-react"
 import MaterialListsTable from "./material-lists-table"
 
 export const metadata = {
-  title: "Material Lists | PROActive OS",
+  title: "Material Lists | PROActive ONE",
   description: "Manage material lists for your projects",
 }
 

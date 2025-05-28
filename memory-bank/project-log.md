@@ -1,4 +1,4 @@
-# Project Log: PROActive OS - AI-Powered Operations Hub
+# Project Log: PROActive ONE - AI-Powered Operations Hub
 
 **Version:** 1.0
 **Date:** May 26, 2025

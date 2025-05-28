@@ -22,10 +22,7 @@ export async function inspectTable(tableName: string) {
 
 export async function listTables() {
   try {
-    const { data, error } = await supabase
-      .from("information_schema.tables")
-      .select("table_name")
-      .eq("table_schema", "public")
+    const { data, error } = await supabase.rpc('get_tables')
 
     if (error) {
       console.error("Error listing tables:", error)
@@ -33,7 +30,7 @@ export async function listTables() {
     }
 
     console.log("Available tables:", data)
-    return data.map((t) => t.table_name)
+    return (data as Array<{ table_name: string }>).map((t) => t.table_name)
   } catch (error) {
     console.error("Error in listing tables:", error)
     return []

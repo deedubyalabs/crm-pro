@@ -3,8 +3,8 @@ import { ProfileForm } from "./profile-form"
 // import { authService } from "@/lib/auth-service"
 
 export const metadata: Metadata = {
-  title: "Profile Settings | PROActive OS",
-  description: "Manage your PROActive OS profile settings",
+  title: "Profile Settings | PROActive ONE",
+  description: "Manage your PROActive ONE profile settings",
 }
 
 export default async function ProfilePage() {

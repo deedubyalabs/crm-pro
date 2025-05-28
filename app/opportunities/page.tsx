@@ -9,7 +9,7 @@ import OpportunityListSkeleton from "./opportunity-list-skeleton"
 import OpportunityStatusFilter from "./opportunity-status-filter"
 
 export const metadata: Metadata = {
-  title: "Opportunities | PROActive OS",
+  title: "Opportunities | PROActive ONE",
   description: "Manage your sales opportunities and leads",
 }
 

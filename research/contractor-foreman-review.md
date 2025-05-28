@@ -1,10 +1,10 @@
-# Contractor Foreman Review & PROActive OS Alignment
+# Contractor Foreman Review & PROActive ONE Alignment
 
-**NOTE:** The detailed workflow analysis and PROActive OS adaptations from this document have been integrated into `memory-bank/development-roadmap.md` for active project tracking. This file now serves as a historical reference.
+**NOTE:** The detailed workflow analysis and PROActive ONE adaptations from this document have been integrated into `memory-bank/development-roadmap.md` for active project tracking. This file now serves as a historical reference.
 
 ## Introduction
 
-This document tracks the review of the Contractor Foreman construction management software platform and the planning process for aligning PROActive OS with desired functionalities, while leveraging PROActive OS's modern architecture, advanced AI capabilities powered by the Agno framework and Agent Data Fabric (ADF), and a strong focus on intuitive UI/UX with embedded chat interfaces and proactive assistance. The goal is to identify key workflows, analyze Contractor Foreman's approach, determine likes and dislikes, and define adaptations for PROActive OS, emphasizing deep integration, relational linking, embedded AI, and necessary API endpoints.
+This document tracks the review of the Contractor Foreman construction management software platform and the planning process for aligning PROActive ONE with desired functionalities, while leveraging PROActive ONE's modern architecture, advanced AI capabilities powered by the Agno framework and Agent Data Fabric (ADF), and a strong focus on intuitive UI/UX with embedded chat interfaces and proactive assistance. The goal is to identify key workflows, analyze Contractor Foreman's approach, determine likes and dislikes, and define adaptations for PROActive ONE, emphasizing deep integration, relational linking, embedded AI, and necessary API endpoints.
 
 ## Reviewed Workflows
 
@@ -23,7 +23,7 @@ This document tracks the review of the Contractor Foreman construction managemen
 *   **Contractor Foreman UI/Features:** Centralized Directory, distinct contact types, Leads Manager module, Opportunities module, fields for tracking lead/opportunity details (source, stage, etc.), ability to add tasks/files/notes, linking to Estimates/Projects, modals for creation forms.
 *   **Likes (User Feedback):** Ability to add contacts from various forms. Concept of converting Lead to Customer upon estimate approval/project creation. Ability to add categories ("add as you go"). Inclusion of "Tasks" distinct from Appointments. Use of modals for initial creation. Interconnectedness of entities (tasks, files, notes linked to opportunities).
 *   **Dislikes (User Feedback):** Potential workflow quirk in manual lead conversion (inferred from CF analysis).
-*   **PROActive OS Adaptation:**
+*   **PROActive ONE Adaptation:**
     *   Unified Contact entity in Supabase with a `type` field, integrated into the Agent Data Fabric (ADF).
     *   Implement automated Lead-to-Customer conversion workflow upon project creation, potentially with AI assistance for data enrichment.
     *   Implement "add as you go" functionality for categories (Source, Stage, Type) via separate Supabase tables and associated UI/API, with these categories accessible to AI agents via the ADF.
@@ -73,7 +73,7 @@ This document tracks the review of the Contractor Foreman construction managemen
 *   **Contractor Foreman UI/Features:** Estimate details view, "Items" view with dropdown for adding items/sections, side drawer for Cost Items Database import (tabbed view, search, favorites, selected items list), modal/side drawer for adding new Cost Items ("add as you go"), functionality for item groups, manual item addition, sections, optional items/sections, tax marking, bulk markup options, item assignment, summary view, dedicated sections for Terms, Scope of Work, Bidding, Files, Cover Sheet, Notes, "Review and Submit" with preview.
 *   **Likes (User Feedback):** Integration with Cost Items Database (tabbed view, groups, "add as you go" via side drawer, never leaving the screen, showing selected items, favorites, "Save & Add Another Item"). Ability to create optional sections for upsells. "Add as you go" functionality for items/categories. Use of modals/sidedrawers. Ability to mark for Tax. Bulk markup functionality. Item assignment. Comprehensive summary view. Inclusion of Terms, Scope of Work, Bidding, Files, Cover Sheet, Notes sections. "Review and Submit" with preview.
 *   **Dislikes (User Feedback):** None explicitly stated for this workflow so far.
-*   **PROActive OS Adaptation:**
+*   **PROActive ONE Adaptation:**
     *   Enhance existing Estimate items view to replicate the robust functionality, including sections (with optional), item options (optional, tax), and item assignment.
     *   Develop a comprehensive Cost Items database UI with a tabbed view (Material, Equipment, Labor, Subcontractor, Other, Groups), search, filtering, and the ability to create and manage item groups, with this data accessible to AI agents via the ADF.
     *   Implement seamless integration with the Cost Items database from the Estimate items view via a side drawer, allowing import of existing items and adding new ones "as you go".
@@ -138,7 +138,7 @@ This document tracks the review of the Contractor Foreman construction managemen
 *   **Contractor Foreman UI/Features:** Estimates list dashboard (status summaries, list view with details), Bidding section within Estimate (Bid Package creation, item selection from estimate, bidder management, status setting, email option), Subcontractor bid submission interface (external to main app), Submissions section within Bidding (review bids, status options - Award, Request rebid, Decline, In Review), option to apply bid price to estimate item price, Contractor Directory view (separate sections for Licenses & Certifications, Insurance Certificates, Files).
 *   **Likes (User Feedback):** Estimates list dashboard provides a good overview. The Bidding section allows choosing specific items from the estimate for a bid package. Simple process for subcontractors to submit bids. Ability to review bid submissions and manage their status. Powerful feature to apply awarded bid price to estimate item price.
 *   **Dislikes (User Feedback):** Contractor Directory splits documents (insurance, licenses, files) into separate sections.
-*   **PROActive OS Adaptation:**
+*   **PROActive ONE Adaptation:**
     *   Develop an Estimates list dashboard providing status summaries and a detailed list view.
     *   Implement a Bidding section within the Estimate view, allowing users to create bid packages and select specific estimate items to include.
     *   Ensure contractor details are managed within the unified Contact entity in the CRM, integrated into the ADF.
@@ -172,7 +172,7 @@ This document tracks the review of the Contractor Foreman construction managemen
 *   **Contractor Foreman UI/Features:** Modal with post-approval options (Add to Schedule of Values, Generate Invoice, Create Schedule).
 *   **Likes (User Feedback):** The clear presentation of next steps upon estimate approval.
 *   **Dislikes (User Feedback):** None explicitly stated for this workflow so far.
-*   **PROActive OS Adaptation:**
+*   **PROActive ONE Adaptation:**
     *   Implement a similar modal or clear UI element upon estimate approval presenting the user with key next steps: adding items to Schedule of Values, generating an initial Invoice, and creating a Project/Schedule.
     *   Ensure these options seamlessly transition the user to the relevant module or initiate the respective process, potentially with AI assistance in initiating these processes.
     *   Ensure deep relational linking between the approved Estimate and the newly created/updated entities (Schedule of Values, Invoice, Project, Schedule), integrated into the ADF.
@@ -194,7 +194,7 @@ This document tracks the review of the Contractor Foreman construction managemen
 *   **Contractor Foreman UI/Features:** Projects dashboard list view (project list with details, status summaries, action items, weekly tasks, unpaid items), Project details view with a sidebar navigation to various sections (Summary, Financial, Schedule of Values, Documents, Time, Files & Photos, Contacts, Schedule, Procurement, Client Access, Reports), buttons/options for adding related items within sections.
 *   **Likes (User Feedback):** Comprehensive project details view with various linked sections. The ability to see everything related to a project in one place.
 *   **Dislikes (User Feedback):** None explicitly stated for this workflow so far.
-*   **PROActive OS Adaptation:**
+*   **PROActive ONE Adaptation:**
     *   Develop a Projects dashboard list view displaying key project details and summaries, potentially with AI-powered insights or action item suggestions.
     *   Create a comprehensive Project details view with a clear navigation structure (sidebar or tabs) to various sections mirroring the required modules (Summary, Financial, Schedule of Values, Documents, Time, Files & Photos, Contacts, Schedule, Procurement, Client Access, Reports).
     *   Ensure each section within the Project details view is deeply integrated and displays relevant linked data (e.g., Financial section shows linked invoices, expenses, change orders; Documents section shows linked files; Time section shows linked time entries), with this data accessible to AI agents via the ADF.
@@ -230,7 +230,7 @@ This document tracks the review of the Contractor Foreman construction managemen
 *   **Contractor Foreman UI/Features:** To-Do's module, form for creating/editing To-Do's (linking to project/opportunity, fields for details, assignments), checklist functionality within To-Do's, automatic status update on checklist completion, list and Kanban views for To-Do's.
 *   **Likes (User Feedback):** Inclusion of Tasks (To-Do's) in addition to Appointments. Ability to link tasks to projects/opportunities. Checklist functionality.
 *   **Dislikes (User Feedback):** The naming convention "To-Do's" might be unconventional. The automatic status change to "incomplete" on checklist completion might not align with desired workflow (should be "in progress").
-*   **PROActive OS Adaptation:**
+*   **PROActive ONE Adaptation:**
     *   Implement a dedicated "Jobs" module (corresponding to Contractor Foreman's "To-Do's").
     *   Ensure Jobs can be created and linked to Contacts, Opportunities, and Projects, with this data integrated into the ADF.
     *   Include fields for task name, due date/time, priority, assigned user, description, and support for custom fields, accessible to AI agents.
@@ -262,7 +262,7 @@ This document tracks the review of the Contractor Foreman construction managemen
 *   **Contractor Foreman UI/Features:** Work Orders module, Service Tickets module, forms for creating/editing Work Orders/Service Tickets, fields for relevant details, linking to projects/clients/membership plans, electronic signature support (Service Tickets).
 *   **Likes (User Feedback):** The concept of dedicated modules for Work Orders and Service Tickets.
 *   **Dislikes (User Feedback):** None explicitly stated for this workflow so far.
-*   **PROActive OS Adaptation:**
+*   **PROActive ONE Adaptation:**
     *   Implement dedicated "Work Orders" and "Service Tickets" modules.
     *   Ensure Work Orders can be linked to clients and projects, with this data integrated into the ADF.
     *   Ensure Service Tickets are deeply integrated with the planned membership plans feature, linking to specific plans and included services/tasks, with this data integrated into the ADF.
@@ -300,7 +300,7 @@ This document tracks the review of the Contractor Foreman construction managemen
 *   **Contractor Foreman UI/Features:** Change Orders module (list view, pending approval summary), form for creating/editing Change Orders (linking to project/customer, fields for details), ability to add Change Order Items (import options), preview functionality, submission for approval workflow (email, client review interface, electronic signature), status tracking, integration with Project financials/Schedule of Values.
 *   **Likes (User Feedback):** The dedicated Change Order module and workflow. Electronic signature support. Seamless integration with Project financials. Ability to import items from Estimate or SOV.
 *   **Dislikes (User Feedback):** None explicitly stated for this workflow so far.
-*   **PROActive OS Adaptation:**
+*   **PROActive ONE Adaptation:**
     *   Implement a dedicated "Change Orders" module.
     *   Ensure Change Orders can be created and deeply linked to Projects and Customers, with this data integrated into the ADF.
     *   Include comprehensive fields for tracking change order details, accessible to AI agents.
@@ -340,7 +340,7 @@ This document tracks the review of the Contractor Foreman construction managemen
 *   **Contractor Foreman UI/Features:** Daily Logs module (list view, calendar navigation), form for creating/editing Daily Logs (linking to project, fields for date/time, tasks, weather, jobsite conditions, delays), sections for adding People on Site (with time entries), Material details, Equipment details, Notes, Files, and Incidents & Accidents.
 *   **Likes (User Feedback):** Comprehensive fields for capturing daily site information. Ability to link various types of data (people, materials, equipment, incidents) to the daily log.
 *   **Dislikes (User Feedback):** None explicitly stated for this workflow so far.
-*   **PROActive OS Adaptation:**
+*   **PROActive ONE Adaptation:**
     *   Implement a dedicated "Daily Logs" module.
     *   Ensure Daily Logs can be created and deeply linked to Projects, with this data integrated into the ADF.
     *   Include comprehensive fields for capturing daily site information, mirroring the Contractor Foreman approach (date, time, tasks, weather, jobsite conditions, delays), accessible to AI agents.
@@ -373,7 +373,7 @@ This document tracks the review of the Contractor Foreman construction managemen
 *   **Contractor Foreman UI/Features:** Expenses module (list view, charts by month/type), form for creating/editing Expenses (linking to project, fields for details), option to mark as Billable, fields for reference number and receipt attachment.
 *   **Likes (User Feedback):** Ability to link expenses to projects. Comprehensive fields for tracking expense details. Option to mark as Billable.
 *   **Dislikes (User Feedback):** None explicitly stated for this workflow so far.
-*   **PROActive OS Adaptation:**
+*   **PROActive ONE Adaptation:**
     *   Implement a dedicated "Expenses" module.
     *   Ensure Expenses can be created and deeply linked to Projects, with this data integrated into the ADF.
     *   Include comprehensive fields for tracking expense details (date, vendor, name, total, bank account, category, notes, reference number, receipt), accessible to AI agents.
@@ -401,7 +401,7 @@ This document tracks the review of the Contractor Foreman construction managemen
 *   **Contractor Foreman UI/Features:** Purchase Orders module (list view), form for creating/editing POs (linking to project/supplier, fields for details), ability to add PO Items (import options, manual), attachment support, delivered item tracking.
 *   **Likes (User Feedback):** Ability to link POs to projects and suppliers. Options to import items from other modules.
 *   **Dislikes (User Feedback):** User does not use POs much.
-*   **PROActive OS Adaptation:**
+*   **PROActive ONE Adaptation:**
     *   Implement a "Purchase Orders" module.
     *   Ensure POs can be created and deeply linked to Projects and Suppliers (Contacts), with this data integrated into the ADF.
     *   Include comprehensive fields for tracking PO details, accessible to AI agents.
@@ -433,7 +433,7 @@ This document tracks the review of the Contractor Foreman construction managemen
 *   **Contractor Foreman UI/Features:** Sub-Contracts module (list view, stats summaries), form for creating/editing Sub-Contracts (linking to project/subcontractor, fields for details), ability to add Original Scope items, sections for Documents, Terms, and Notes.
 *   **Likes (User Feedback):** Ability to link subcontracts to projects and subcontractors. Inclusion of sections for documents, terms, and notes.
 *   **Dislikes (User Feedback):** User does not use subcontracts much.
-*   **PROActive OS Adaptation:**
+*   **PROActive ONE Adaptation:**
     *   Implement a "Subcontracts" module.
     *   Ensure Subcontracts can be created and deeply linked to Projects and Subcontractors (Contacts), with this data integrated into the ADF.
     *   Include comprehensive fields for tracking subcontract details, accessible to AI agents.
@@ -469,7 +469,7 @@ This document tracks the review of the Contractor Foreman construction managemen
 *   **Contractor Foreman UI/Features:** Time Cards module (calendar view, stats, upcoming days off, time spent on projects, weekly timesheet), form for adding time entries (clock-in/out, project/location, cost code), detailed activity log.
 *   **Likes (User Feedback):** Comprehensive time tracking features. Linking time entries to projects and cost codes.
 *   **Dislikes (User Feedback):** None explicitly stated for this workflow so far.
-*   **PROActive OS Adaptation:**
+*   **PROActive ONE Adaptation:**
     *   Implement a dedicated "Time Cards" module.
     *   Include features for viewing time stats, upcoming days off, time spent on current projects, and a weekly timesheet, potentially with AI analysis of time allocation.
     *   Develop a user-friendly interface for adding time entries with clock-in/out, project/location linking, and cost code selection, potentially with AI assistance for faster entry or suggestions.
@@ -509,7 +509,7 @@ This document tracks the review of the Contractor Foreman construction managemen
 *   **Contractor Foreman UI/Features:** Invoices module (list view, status summaries), form for creating/editing Invoices (linking to project/customer, fields for details), options for adding various item types to invoices (import from CID, SOV, Estimate; manual; discounts; retainage; time & material from linked modules - showing only unbilled), Payments module (list view, stats summaries), form for adding Payments (linking to invoice, fields for details, status options), Payment details view, Job Costing calculations (backend), Job Costing reports.
 *   **Likes (User Feedback):** Ability to add various item types to invoices, especially time and materials from linked modules. Only showing unbilled items when adding time and materials to invoices. Comprehensive Job Costing based on integrated data.
 *   **Dislikes (User Feedback):** None explicitly stated for this workflow so far.
-*   **PROActive OS Adaptation:**
+*   **PROActive ONE Adaptation:**
     *   Implement dedicated "Invoices" and "Payments" modules.
     *   Ensure Invoices can be created and deeply linked to Projects and Customers, with this data integrated into the ADF.
     *   Implement robust functionality for adding items to Invoices, including importing from the Cost Items Database, Schedule of Values, and Approved Estimates, potentially with AI assistance in identifying items to bill.
@@ -554,7 +554,7 @@ This document tracks the review of the Contractor Foreman construction managemen
 *   **Contractor Foreman UI/Features:** Dedicated Client Portal interface (web-based), sections for project updates, progress tracking (photos, change orders), integrated chat, document access, e-signature capability, online payment option, contractor controls for shared information.
 *   **Likes (User Feedback):** Provides transparency and access for clients. Integrated chat for communication. Ability to access documents and e-sign.
 *   **Dislikes (User Feedback):** None explicitly stated for this workflow so far.
-*   **PROActive OS Adaptation:**
+*   **PROActive ONE Adaptation:**
     *   Implement a dedicated Client Portal for each project.
     *   Provide clients with secure access to view project progress, updates, shared files, estimates, invoices, and change orders, with this data integrated into the ADF.
     *   Integrate with the planned communication features (Sendbird) for client-contractor chat within the portal, potentially with a client-facing AI assistant.
@@ -582,7 +582,7 @@ This document tracks the review of the Contractor Foreman construction managemen
 *   **Contractor Foreman UI/Features:** Reports module (categorized list of reports, option to create custom report), filtering options for reports, report generation.
 *   **Likes (User Feedback):** Ability to customize what is needed for each module in reporting.
 *   **Dislikes (User Feedback):** Reports are primarily downloadable spreadsheets, lacking interactive in-app viewing. Limited customization flexibility compared to some competitors. Performance issues with large datasets.
-*   **PROActive OS Adaptation:**
+*   **PROActive ONE Adaptation:**
     *   Implement a comprehensive "Reporting" module.
     *   Provide a wide range of pre-built reports covering all modules, with data accessible to AI agents via the ADF.
     *   Develop a flexible custom report builder allowing users to select data points and apply advanced filtering.
@@ -602,10 +602,10 @@ This document tracks the review of the Contractor Foreman construction managemen
 
 ### 17. Membership/Rewards Management Workflow
 
-*   **PROActive OS Prototype Features:** Membership tiers and benefits, points earning and redemption history, ways to earn points (spending, sign-up bonus, referrals, social media engagement), redeeming points for discounts, optional add-on packages.
+*   **PROActive ONE Prototype Features:** Membership tiers and benefits, points earning and redemption history, ways to earn points (spending, sign-up bonus, referrals, social media engagement), redeeming points for discounts, optional add-on packages.
 *   **Likes (User Feedback):** The concept of membership tiers and a points-based rewards system. Various ways to earn points. Ability to redeem points for discounts. Optional add-on packages.
 *   **Dislikes (User Feedback):** None explicitly stated for this workflow so far.
-*   **PROActive OS Adaptation:**
+*   **PROActive ONE Adaptation:**
     *   Implement a dedicated "Membership/Rewards" module.
     *   Define flexible membership tiers with customizable benefits and point multipliers.
     *   Develop a system for tracking points earned and redeemed by clients, with this data integrated into the ADF.

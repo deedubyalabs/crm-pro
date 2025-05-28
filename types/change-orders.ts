@@ -32,6 +32,8 @@ export type ChangeOrderLineItem = {
   unit_price: number
   total: number
   sort_order: number
+  is_billed: boolean // New field
+  invoice_line_item_id: string | null // New field
   created_at: string
   updated_at: string
 }

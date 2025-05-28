@@ -17,7 +17,7 @@ export type Payment = {
 
 export type PaymentWithDetails = Payment & {
   invoice: {
-    invoice_number: string
+    invoice_number: string | null
   }
   project: {
     project_name: string
@@ -35,8 +35,8 @@ export type PaymentMethod = {
   description: string | null
   is_online: boolean
   is_active: boolean
-  created_at: string
-  updated_at: string
+  created_at: string | null
+  updated_at: string | null
 }
 
 export type CreatePaymentParams = Omit<Payment, "id" | "created_at" | "updated_at">
