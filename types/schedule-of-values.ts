@@ -27,6 +27,7 @@ export type ScheduleOfValueItem = {
 };
 
 export type ScheduleOfValueWithItems = ScheduleOfValue & {
+  sov_number: string | null; // Explicitly add sov_number
   items: ScheduleOfValueItem[];
   project: {
     project_name: string;

@@ -1,6 +1,7 @@
 export type ChangeOrder = {
   id: string
   project_id: string
+  person_id: string // Added person_id based on schema update
   change_order_number: string | null
   status: ChangeOrderStatus
   title: string
@@ -11,6 +12,7 @@ export type ChangeOrder = {
   approval_date: string | null
   total_amount: number
   impact_on_timeline: number | null
+  approved_by_person_id: string | null // Added approved_by_person_id based on schema update
   created_by_user_id: string | null
   created_at: string
   updated_at: string
@@ -19,8 +21,15 @@ export type ChangeOrder = {
 export type ChangeOrderWithDetails = ChangeOrder & {
   project: {
     project_name: string
-  }
-  line_items: ChangeOrderLineItem[]
+  };
+  line_items: ChangeOrderLineItem[];
+  approved_by?: { // Add approved_by relationship
+    id: string;
+    first_name: string | null;
+    last_name: string | null;
+    business_name: string | null;
+    full_name: string; // Assuming full_name is derived in the service
+  } | null;
 }
 
 export type ChangeOrderLineItem = {
@@ -30,6 +39,7 @@ export type ChangeOrderLineItem = {
   quantity: number
   unit: string
   unit_price: number
+  // Removed markup as it's not a database column
   total: number
   sort_order: number
   is_billed: boolean // New field
@@ -45,7 +55,7 @@ export type CreateChangeOrderParams = {
   change_order_number?: string
   status?: ChangeOrderStatus
   title: string
-  description?: string
+  description: string // Made description required
   reason?: string
   requested_by?: string
   issue_date?: string

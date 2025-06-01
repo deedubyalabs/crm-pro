@@ -211,7 +211,7 @@ export const invoiceService = {
           if (item.linked_change_order_id) {
             // Assuming changeOrderService.updateChangeOrderLineItem exists and takes change_order_line_item_id
             // and updates is_billed and invoice_line_item_id
-            await changeOrderService.updateChangeOrderLineItem(item.linked_change_order_id, { is_billed: true, invoice_line_item_id: item.id, cost_item_id: null }); // Added cost_item_id: null
+            await changeOrderService.updateChangeOrderLineItem(item.linked_change_order_id, { is_billed: true, invoice_line_item_id: item.id });
           }
         }
       }
@@ -274,7 +274,7 @@ export const invoiceService = {
             await timeEntryService.updateTimeEntry(item.linked_time_entry_id, { billed: false, invoice_id: null });
           }
           if (item.linked_change_order_id) {
-            await changeOrderService.updateChangeOrderLineItem(item.linked_change_order_id, { is_billed: false, invoice_line_item_id: null, cost_item_id: null }); // Added cost_item_id: null
+            await changeOrderService.updateChangeOrderLineItem(item.linked_change_order_id, { is_billed: false, invoice_line_item_id: null });
           }
         }
 
@@ -299,7 +299,7 @@ export const invoiceService = {
             await timeEntryService.updateTimeEntry(item.linked_time_entry_id, { billed: true, invoice_id: id });
           }
           if (item.linked_change_order_id) {
-            await changeOrderService.updateChangeOrderLineItem(item.linked_change_order_id, { is_billed: true, invoice_line_item_id: item.id, cost_item_id: null }); // Added cost_item_id: null
+            await changeOrderService.updateChangeOrderLineItem(item.linked_change_order_id, { is_billed: true, invoice_line_item_id: item.id });
           }
         }
       }
@@ -349,7 +349,7 @@ export const invoiceService = {
             await timeEntryService.updateTimeEntry(item.linked_time_entry_id, { billed: false, invoice_id: null });
           }
           if (item.linked_change_order_id) {
-            await changeOrderService.updateChangeOrderLineItem(item.linked_change_order_id, { is_billed: false, invoice_line_item_id: null, cost_item_id: null }); // Added cost_item_id: null
+            await changeOrderService.updateChangeOrderLineItem(item.linked_change_order_id, { is_billed: false, invoice_line_item_id: null });
           }
         }
       }

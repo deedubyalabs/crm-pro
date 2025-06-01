@@ -5,11 +5,12 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { ArrowLeft, Edit, Download, Send, Check, X } from "lucide-react"
+import { ArrowLeft, Edit, Download, Send } from "lucide-react"
 import { estimateService } from "@/lib/estimates"
 import { formatCurrency, formatDate } from "@/lib/utils"
 import { PaymentScheduleList } from "../payment-schedule-list"
-import { CreateProjectButton } from "./create-bid-button" // Updated import name
+import { CreateProjectButton } from "./create-bid-button"
+import { EstimateStatusActions } from "./estimate-status-actions"
 
 export const metadata: Metadata = {
   title: "Estimate Details | PROActive ONE",
@@ -99,28 +100,42 @@ export default async function EstimateDetailPage({ params }: { params: { id: str
               </Button>
             </>
           )}
-          {estimate.status === "Sent" && (
-            <>
-              <Button variant="outline">
-                <X className="mr-2 h-4 w-4" />
-                Mark as Rejected
-              </Button>
-              <Button variant="outline">
-                <Check className="mr-2 h-4 w-4" />
-                Mark as Accepted
-              </Button>
-            </>
-          )}
+          <EstimateStatusActions estimate={estimate} />
           <Button variant="outline">
             <Download className="mr-2 h-4 w-4" />
             Download PDF
           </Button>
-          {/* Conditionally render the Create Project button if the estimate is accepted */}
-          {estimate.status === "Accepted" && (
+          {/* Conditionally render the Create Project button if the estimate is accepted and not converted to project */}
+          {estimate.status === "Accepted" && !estimate.is_converted_to_project && (
             <CreateProjectButton estimateId={estimate.id} />
           )}
         </div>
       </div>
+
+      {/* Display links to generated SOV and Invoice if available */}
+      {(estimate.is_converted_to_sov || estimate.is_initial_invoice_generated) && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Generated Documents</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {estimate.is_converted_to_sov && estimate.schedule_of_value_id && (
+              <p>
+                <Link href={`/schedule-of-values/${estimate.schedule_of_value_id}`} className="text-blue-600 hover:underline">
+                  View Schedule of Values
+                </Link>
+              </p>
+            )}
+            {estimate.is_initial_invoice_generated && estimate.initial_invoice_id && (
+              <p>
+                <Link href={`/invoices/${estimate.initial_invoice_id}`} className="text-blue-600 hover:underline">
+                  View Initial Deposit Invoice
+                </Link>
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
         <Card>

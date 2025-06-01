@@ -1,173 +1,141 @@
+import { Suspense } from "react"
 import { notFound } from "next/navigation"
 import Link from "next/link"
-import { getChangeOrderById } from "@/lib/change-orders"
-import { formatCurrency, formatDate } from "@/lib/utils"
+import { Edit } from "lucide-react"
+
+import { Heading } from "@/components/ui/heading"
+import { Separator } from "@/components/ui/separator"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { CreateBidButton } from "./create-bid-button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { changeOrderService, ChangeOrderWithDetails } from "@/lib/change-orders"
+import { formatCurrency } from "@/lib/utils"
+import { format } from "date-fns"
 
-export const dynamic = "force-dynamic"
+export const revalidate = 0
 
-interface ChangeOrderPageProps {
+interface ChangeOrderDetailPageProps {
   params: {
     id: string
   }
 }
 
-export default async function ChangeOrderPage({ params }: ChangeOrderPageProps) {
-  const changeOrder = await getChangeOrderById(params.id)
+export default async function ChangeOrderDetailPage({ params }: ChangeOrderDetailPageProps) {
+  const changeOrder = await changeOrderService.getChangeOrderById(params.id)
 
   if (!changeOrder) {
     notFound()
   }
 
-  const getStatusBadgeColor = (status: string) => {
-    switch (status) {
-      case "Requested":
-        return "bg-blue-100 text-blue-800"
-      case "Pending":
-        return "bg-yellow-100 text-yellow-800"
-      case "Approved":
-        return "bg-green-100 text-green-800"
-      case "Rejected":
-        return "bg-red-100 text-red-800"
-      case "Completed":
-        return "bg-purple-100 text-purple-800"
-      default:
-        return "bg-gray-100 text-gray-800"
-    }
-  }
-
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Change Order: {changeOrder.co_number || "Draft"}</h1>
-        <div className="flex space-x-4">
-          <Button variant="outline" asChild>
-            <Link href="/change-orders">Back to List</Link>
-          </Button>
-          <Button asChild>
-            <Link href={`/change-orders/${params.id}/edit`}>Edit</Link>
-          </Button>
-          <CreateBidButton changeOrderId={params.id} />
-        </div>
-      </div>
+    <Suspense fallback={<ChangeOrderDetailSkeleton />}>
+      <ChangeOrderDetail changeOrder={changeOrder} />
+    </Suspense>
+  )
+}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+interface ChangeOrderDetailProps {
+  changeOrder: ChangeOrderWithDetails
+}
+
+function ChangeOrderDetail({ changeOrder }: ChangeOrderDetailProps) {
+  return (
+    <>
+      <div className="flex items-start justify-between">
+        <Heading
+          title={`Change Order: ${changeOrder.change_order_number}`}
+          description={changeOrder.title}
+        />
+        <Link href={`/change-orders/${changeOrder.id}/edit`}>
+          <Button variant="outline" className="text-sm md:text-base">
+            <Edit className="mr-2 h-4 w-4" /> Edit
+          </Button>
+        </Link>
+      </div>
+      <Separator />
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Change Order Details</CardTitle>
-            <CardDescription>Basic information about this change order</CardDescription>
+            <CardTitle>Details</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Status</p>
-              <Badge className={getStatusBadgeColor(changeOrder.status)}>{changeOrder.status}</Badge>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Project</p>
-              <p>{changeOrder.project?.project_name || "Unknown Project"}</p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Created</p>
-              <p>{formatDate(changeOrder.created_at)}</p>
-            </div>
-            {changeOrder.status === "Approved" && (
-              <>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Approved By</p>
-                  <p>{changeOrder.approved_by_person_id || "Not specified"}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Approval Date</p>
-                  <p>{formatDate(changeOrder.approved_at) || "Not specified"}</p>
-                </div>
-              </>
+          <CardContent className="space-y-2">
+            <p><strong>Project:</strong> {changeOrder.project?.project_name || "N/A"}</p>
+            <p><strong>Customer:</strong> {changeOrder.person_id || "N/A"}</p>
+            <p><strong>Status:</strong> {changeOrder.status}</p>
+            <p><strong>Total Amount:</strong> {formatCurrency(changeOrder.total_amount)}</p>
+            <p><strong>Time Impact:</strong> {changeOrder.impact_on_timeline} days</p>
+            {changeOrder.approval_date && (
+              <p><strong>Approval Date:</strong> {format(new Date(changeOrder.approval_date), "PPP")}</p>
+            )}
+            {changeOrder.approved_by_person_id && (
+              <p><strong>Approved By:</strong> {changeOrder.approved_by_person_id}</p>
             )}
           </CardContent>
         </Card>
 
         <Card className="md:col-span-2">
           <CardHeader>
-            <CardTitle>Description</CardTitle>
+            <CardTitle>Description & Reason</CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="whitespace-pre-wrap">{changeOrder.description}</p>
+          <CardContent className="space-y-2">
+            <div>
+              <h4 className="font-medium">Description:</h4>
+              <p>{changeOrder.description}</p>
+            </div>
             {changeOrder.reason && (
-              <div className="mt-4">
-                <h3 className="font-medium mb-2">Reason for Change:</h3>
-                <p className="whitespace-pre-wrap">{changeOrder.reason}</p>
+              <div>
+                <h4 className="font-medium">Reason:</h4>
+                <p>{changeOrder.reason}</p>
               </div>
             )}
           </CardContent>
         </Card>
-
-        <Card className="md:col-span-3">
-          <CardHeader>
-            <CardTitle>Line Items</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Description</TableHead>
-                  <TableHead className="text-right">Quantity</TableHead>
-                  <TableHead className="text-right">Unit</TableHead>
-                  <TableHead className="text-right">Unit Cost</TableHead>
-                  <TableHead className="text-right">Markup %</TableHead>
-                  <TableHead className="text-right">Total</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {changeOrder.line_items.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center">
-                      No line items found.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  changeOrder.line_items.map((item: any) => (
-                    <TableRow key={item.id}>
-                      <TableCell>{item.description}</TableCell>
-                      <TableCell className="text-right">{item.quantity}</TableCell>
-                      <TableCell className="text-right">{item.unit}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(item.unit_cost)}</TableCell>
-                      <TableCell className="text-right">{item.markup}%</TableCell>
-                      <TableCell className="text-right">{formatCurrency(item.total)}</TableCell>
-                    </TableRow>
-                  ))
-                )}
-                <TableRow>
-                  <TableCell colSpan={5} className="text-right font-bold">
-                    Total Cost Impact:
-                  </TableCell>
-                  <TableCell className="text-right font-bold">{formatCurrency(changeOrder.cost_impact)}</TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-
-        <Card className="md:col-span-3">
-          <CardHeader>
-            <CardTitle>Project Impact</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h3 className="font-medium mb-2">Cost Impact:</h3>
-                <p className="text-2xl font-bold">{formatCurrency(changeOrder.cost_impact)}</p>
-              </div>
-              <div>
-                <h3 className="font-medium mb-2">Time Impact:</h3>
-                <p className="text-2xl font-bold">{changeOrder.time_impact_days || 0} days</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Line Items</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {changeOrder.line_items && changeOrder.line_items.length > 0 ? (
+            <div className="space-y-4">
+              {changeOrder.line_items.map((item, index) => (
+                <div key={item.id || index} className="border p-4 rounded-md">
+                  <p><strong>Description:</strong> {item.description}</p>
+                  <p><strong>Quantity:</strong> {item.quantity} {item.unit}</p>
+                  <p><strong>Unit Price:</strong> {formatCurrency(item.unit_price)}</p>
+                  <p><strong>Total:</strong> {formatCurrency(item.total)}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-muted-foreground">No line items for this change order.</p>
+          )}
+        </CardContent>
+      </Card>
+    </>
+  )
+}
+
+function ChangeOrderDetailSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="flex items-start justify-between">
+        <div className="space-y-2">
+          <Skeleton className="h-8 w-64" />
+          <Skeleton className="h-6 w-96" />
+        </div>
+        <Skeleton className="h-10 w-24" />
+      </div>
+      <Separator />
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <Skeleton className="h-[200px] w-full" />
+        <Skeleton className="h-[200px] w-full md:col-span-2" />
+      </div>
+
+      <Skeleton className="h-[300px] w-full" />
     </div>
   )
 }

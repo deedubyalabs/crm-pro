@@ -18,23 +18,26 @@ import { invoiceService, Invoice } from "./invoices"; // Import Invoice type fro
 
 export const estimateService = {
   // Helper to handle actions when an estimate is accepted
-  async handleEstimateAccepted(estimateId: string, userId: string | null): Promise<{ sovGenerated: boolean; initialInvoiceGenerated: boolean }> {
+  async handleEstimateAccepted(estimateId: string, userId: string | null): Promise<{ sovGenerated: boolean; initialInvoiceGenerated: boolean; sovId: string | null; invoiceId: string | null }> {
     let sovGenerated = false;
     let initialInvoiceGenerated = false;
+    let sovId: string | null = null;
+    let invoiceId: string | null = null;
 
     try {
       const estimate = await this.getEstimateById(estimateId);
       if (!estimate) {
         console.warn(`Estimate with ID ${estimateId} not found for handling acceptance.`);
-        return { sovGenerated, initialInvoiceGenerated };
+        return { sovGenerated, initialInvoiceGenerated, sovId: null, invoiceId: null };
       }
 
       // 1. Generate Schedule of Values (SOV) if not already converted
       if (!estimate.is_converted_to_sov) {
         try {
-          await scheduleOfValuesService.convertEstimateToScheduleOfValue(estimateId, userId);
+          const newSov = await scheduleOfValuesService.convertEstimateToScheduleOfValue(estimateId, userId);
           sovGenerated = true;
-          console.log(`SOV generated for estimate ${estimateId}`);
+          sovId = newSov.id;
+          console.log(`SOV generated for estimate ${estimateId} with ID ${sovId}`);
         } catch (error) {
           console.error(`Failed to generate SOV for estimate ${estimateId}:`, error);
           // Continue even if SOV generation fails
@@ -64,13 +67,15 @@ export const estimateService = {
               sort_order: 0,
             }],
           };
-          await invoiceService.createInvoice(newInvoice);
+          const createdInvoiceId = await invoiceService.createInvoice(newInvoice);
           initialInvoiceGenerated = true;
-          console.log(`Initial deposit invoice generated for estimate ${estimateId}`);
+          invoiceId = createdInvoiceId;
+          console.log(`Initial deposit invoice generated for estimate ${estimateId} with ID ${invoiceId}`);
 
-          // Update the estimate to mark it as initial invoice generated
+          // Update the estimate to mark it as initial invoice generated and link the invoice
           await supabase.from("estimates").update({
             is_initial_invoice_generated: true,
+            initial_invoice_id: invoiceId,
             updated_at: new Date().toISOString(),
           }).eq("id", estimateId);
 
@@ -79,10 +84,48 @@ export const estimateService = {
           // Continue even if invoice generation fails
         }
       }
+
+      // Update the estimate with SOV ID if generated
+      if (sovId) {
+        await supabase.from("estimates").update({
+          schedule_of_value_id: sovId,
+          updated_at: new Date().toISOString(),
+        }).eq("id", estimateId);
+      }
+
     } catch (error) {
       console.error("Error in handleEstimateAccepted:", error);
     }
-    return { sovGenerated, initialInvoiceGenerated };
+    return { sovGenerated, initialInvoiceGenerated, sovId, invoiceId };
+  },
+
+  async getEstimatesByProjectId(projectId: string): Promise<EstimateWithDetails[]> {
+    try {
+      const { data, error } = await supabase
+        .from("estimates")
+        .select(`
+          id,
+          estimate_number,
+          title,
+          status,
+          project_id,
+          lineItems:estimate_line_items (
+            id,
+            description,
+            quantity,
+            unit,
+            unit_price,
+            total
+          )
+        `)
+        .eq("project_id", projectId)
+        .order("created_at", { ascending: false })
+
+      if (error) throw error
+      return (data || []) as unknown as EstimateWithDetails[]
+    } catch (error) {
+      throw new Error(handleSupabaseError(error))
+    }
   },
 
   async getEstimates(filters?: EstimateFilters): Promise<Estimate[]> {
@@ -109,6 +152,8 @@ export const estimateService = {
           is_converted_to_project,
           is_converted_to_sov,
           is_initial_invoice_generated,
+          schedule_of_value_id,
+          initial_invoice_id,
           created_at,
           updated_at,
           created_by,
@@ -194,6 +239,8 @@ export const estimateService = {
           is_converted_to_project,
           is_converted_to_sov,
           is_initial_invoice_generated,
+          schedule_of_value_id,
+          initial_invoice_id,
           created_at,
           updated_at,
           created_by,
@@ -333,6 +380,8 @@ export const estimateService = {
           is_converted_to_project: estimate.is_converted_to_project ?? false,
           is_converted_to_sov: estimate.is_converted_to_sov ?? false,
           is_initial_invoice_generated: estimate.is_initial_invoice_generated ?? false,
+          schedule_of_value_id: estimate.schedule_of_value_id ?? null,
+          initial_invoice_id: estimate.initial_invoice_id ?? null,
         } as any) // Cast to any to bypass strict type checking
         .select(`
           id,
@@ -354,6 +403,8 @@ export const estimateService = {
           is_converted_to_project,
           is_converted_to_sov,
           is_initial_invoice_generated,
+          schedule_of_value_id,
+          initial_invoice_id,
           created_at,
           updated_at,
           created_by,
@@ -463,6 +514,8 @@ export const estimateService = {
           is_converted_to_project,
           is_converted_to_sov,
           is_initial_invoice_generated,
+          schedule_of_value_id,
+          initial_invoice_id,
           created_at,
           updated_at,
           created_by,

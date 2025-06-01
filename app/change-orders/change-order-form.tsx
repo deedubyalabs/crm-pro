@@ -15,29 +15,31 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { Card, CardContent } from "@/components/ui/card"
-import { createChangeOrder, getNextChangeOrderNumber, updateChangeOrder } from "@/lib/change-orders"
+import { changeOrderService } from "@/lib/change-orders" // Import the service
+import { ChangeOrder, ChangeOrderLineItem, ChangeOrderWithDetails, CreateChangeOrderParams, UpdateChangeOrderParams } from "@/types/change-orders" // Import types
+import { ImportLineItemsDrawer } from "./components/import-line-items-drawer" // Import the new drawer
 
 const changeOrderSchema = z.object({
   project_id: z.string().min(1, "Project is required"),
   person_id: z.string().min(1, "Customer is required"),
-  co_number: z.string().optional(),
-  status: z.enum(["Requested", "Pending", "Approved", "Rejected", "Completed"]),
+  change_order_number: z.string().optional(),
+  status: z.enum(["Draft", "Pending Approval", "Approved", "Rejected", "Implemented", "Canceled"]),
+  title: z.string().min(1, "Title is required"),
   description: z.string().min(1, "Description is required"),
   reason: z.string().optional(),
-  cost_impact: z.coerce.number().default(0),
-  time_impact_days: z.coerce.number().default(0),
+  total_amount: z.coerce.number().default(0),
+  impact_on_timeline: z.coerce.number().default(0),
   approved_by_person_id: z.string().optional(),
-  approved_at: z.date().optional(),
+  approval_date: z.date().optional(),
   line_items: z
     .array(
       z.object({
         id: z.string().optional(),
-        cost_item_id: z.string().optional(),
         description: z.string().min(1, "Description is required"),
         quantity: z.coerce.number().min(0.01, "Quantity must be greater than 0"),
         unit: z.string().min(1, "Unit is required"),
-        unit_cost: z.coerce.number().min(0, "Unit cost must be 0 or greater"),
-        markup: z.coerce.number().min(0, "Markup must be 0 or greater"),
+        unit_price: z.coerce.number().min(0, "Unit price must be 0 or greater"),
+        // Removed markup from schema as it's not a database column
         total: z.coerce.number(),
         sort_order: z.number().default(0),
       }),
@@ -45,37 +47,81 @@ const changeOrderSchema = z.object({
     .default([]),
 })
 
-type ChangeOrderFormValues = z.infer<typeof changeOrderSchema>
+export interface ChangeOrderFormValues { // Exported the interface
+  project_id: string;
+  person_id: string;
+  change_order_number?: string;
+  status: "Draft" | "Pending Approval" | "Approved" | "Rejected" | "Implemented" | "Canceled";
+  title: string;
+  description: string;
+  reason?: string;
+  total_amount: number;
+  impact_on_timeline: number;
+  approved_by_person_id?: string;
+  approval_date?: Date;
+  line_items: Array<{
+    id?: string; // Optional ID for existing items
+    description: string;
+    quantity: number;
+    unit: string;
+    unit_price: number;
+    // Removed markup from type
+    total: number;
+    sort_order: number;
+  }>;
+}
 
 interface ChangeOrderFormProps {
   projects: { id: string; project_name: string }[]
   people: { id: string; full_name: string }[]
-  initialData?: any
+  initialData?: ChangeOrderWithDetails
+  onSubmit: (data: ChangeOrderFormValues) => Promise<void>
 }
 
-export default function ChangeOrderForm({ projects, people, initialData }: ChangeOrderFormProps) {
+export default function ChangeOrderForm({ projects, people, initialData, onSubmit }: ChangeOrderFormProps) {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [totalCost, setTotalCost] = useState(initialData?.cost_impact || 0)
+  const [totalAmount, setTotalAmount] = useState(initialData?.total_amount || 0) // Renamed totalCost to totalAmount
   const isCalculating = useRef(false)
+  const [isImportDrawerOpen, setIsImportDrawerOpen] = useState(false) // State for import drawer
 
-  const form = useForm<ChangeOrderFormValues>({
+  const form = useForm<any>({ // Use any to bypass complex type inference issues
     resolver: zodResolver(changeOrderSchema),
-    defaultValues: initialData
-      ? {
-          ...initialData,
-          approved_at: initialData.approved_at ? new Date(initialData.approved_at) : undefined,
-          line_items: initialData.line_items || [],
-        }
-      : {
-          status: "Requested",
-          cost_impact: 0,
-          time_impact_days: 0,
-          line_items: [],
-        },
+    defaultValues: (initialData ? {
+      project_id: initialData.project_id,
+      person_id: initialData.person_id,
+      change_order_number: initialData.change_order_number ?? undefined,
+      status: initialData.status,
+      title: initialData.title,
+      description: initialData.description ?? "",
+      reason: initialData.reason ?? undefined,
+      total_amount: initialData.total_amount,
+      impact_on_timeline: initialData.impact_on_timeline ?? 0,
+      approved_by_person_id: initialData.approved_by_person_id ?? undefined,
+      approval_date: initialData.approval_date ? new Date(initialData.approval_date) : undefined,
+      line_items: initialData.line_items?.map((item: ChangeOrderLineItem) => ({
+        ...item,
+        description: item.description || "",
+        quantity: item.quantity || 0,
+        unit: item.unit || "",
+        unit_price: item.unit_price || 0,
+        // markup is not a database column, so it's not included here
+        total: item.total || 0,
+        sort_order: item.sort_order || 0,
+      })) || [],
+    } : {
+      project_id: "",
+      person_id: "",
+      status: "Draft",
+      title: "",
+      description: "",
+      total_amount: 0,
+      impact_on_timeline: 0,
+      line_items: [],
+    }),
   })
 
-  // Watch for changes to quantity, unit_cost, and markup
+  // Watch for changes to quantity, unit_price, and markup
   const watchLineItems = form.watch("line_items")
 
   // Calculate line item totals when relevant fields change
@@ -88,9 +134,9 @@ export default function ChangeOrderForm({ projects, people, initialData }: Chang
       const lineItems = form.getValues("line_items")
       let needsUpdate = false
 
-      // Calculate each line item's total only if needed
-      const updatedLineItems = lineItems.map((item) => {
-        const calculatedTotal = Number(item.quantity) * Number(item.unit_cost) * (1 + Number(item.markup) / 100)
+      // Calculate each line item's total only if needed (removed markup from calculation)
+      const updatedLineItems = lineItems.map((item: { quantity: number; unit_price: number; total: number }) => {
+        const calculatedTotal = Number(item.quantity) * Number(item.unit_price)
         const roundedTotal = Number.parseFloat(calculatedTotal.toFixed(2))
 
         if (Math.abs(roundedTotal - item.total) > 0.001) {
@@ -106,26 +152,26 @@ export default function ChangeOrderForm({ projects, people, initialData }: Chang
         form.setValue("line_items", updatedLineItems, { shouldDirty: true })
       }
 
-      // Calculate total cost impact
-      const newTotalCost = updatedLineItems.reduce((sum, item) => sum + (item.total || 0), 0)
-      const roundedTotalCost = Number.parseFloat(newTotalCost.toFixed(2))
+      // Calculate total amount
+      const newTotalAmount = updatedLineItems.reduce((sum: number, item: { total: number }) => sum + (item.total || 0), 0)
+      const roundedTotalAmount = Number.parseFloat(newTotalAmount.toFixed(2))
 
-      if (Math.abs(roundedTotalCost - totalCost) > 0.001) {
-        setTotalCost(roundedTotalCost)
-        form.setValue("cost_impact", roundedTotalCost, { shouldDirty: true })
+      if (Math.abs(roundedTotalAmount - totalAmount) > 0.001) {
+        setTotalAmount(roundedTotalAmount)
+        form.setValue("total_amount", roundedTotalAmount, { shouldDirty: true })
       }
     } finally {
       isCalculating.current = false
     }
-  }, [watchLineItems, form, totalCost])
+  }, [watchLineItems, form, totalAmount])
 
-  // Fetch next change order number if creating new
+  // Fetch next change order number if creating new and co_number is not set
   useEffect(() => {
-    if (!initialData) {
+    if (!initialData?.change_order_number) { // Check if initialData exists and co_number is not set
       const fetchNextNumber = async () => {
         try {
-          const nextNumber = await getNextChangeOrderNumber()
-          form.setValue("co_number", nextNumber)
+          const nextNumber = await changeOrderService.getNextChangeOrderNumber()
+          form.setValue("change_order_number", nextNumber)
         } catch (error) {
           console.error("Error fetching next change order number:", error)
         }
@@ -142,7 +188,7 @@ export default function ChangeOrderForm({ projects, people, initialData }: Chang
         description: "",
         quantity: 1,
         unit: "ea",
-        unit_cost: 0,
+        unit_price: 0, // Renamed unit_cost to unit_price
         markup: 0,
         total: 0,
         sort_order: currentLineItems.length,
@@ -152,23 +198,14 @@ export default function ChangeOrderForm({ projects, people, initialData }: Chang
 
   const removeLineItem = (index: number) => {
     const currentLineItems = form.getValues("line_items")
-    const updatedLineItems = currentLineItems.filter((_, i) => i !== index)
+    const updatedLineItems = currentLineItems.filter((_item: any, i: number) => i !== index) // Explicitly type _item and i
     form.setValue("line_items", updatedLineItems)
   }
 
-  const onSubmit = async (data: ChangeOrderFormValues) => {
+  const handleFormSubmit = async (data: ChangeOrderFormValues) => {
     setIsSubmitting(true)
     try {
-      if (initialData) {
-        await updateChangeOrder(initialData.id, data)
-      } else {
-        const id = await createChangeOrder(data)
-        router.push(`/change-orders/${id}`)
-        return
-      }
-      router.push("/change-orders")
-    } catch (error) {
-      console.error("Error saving change order:", error)
+      await onSubmit(data) // Call the onSubmit prop
     } finally {
       setIsSubmitting(false)
     }
@@ -176,7 +213,7 @@ export default function ChangeOrderForm({ projects, people, initialData }: Chang
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+      <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormField
             control={form.control}
@@ -230,7 +267,7 @@ export default function ChangeOrderForm({ projects, people, initialData }: Chang
 
           <FormField
             control={form.control}
-            name="co_number"
+            name="change_order_number" // Renamed
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Change Order Number</FormLabel>
@@ -256,11 +293,12 @@ export default function ChangeOrderForm({ projects, people, initialData }: Chang
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="Requested">Requested</SelectItem>
-                    <SelectItem value="Pending">Pending</SelectItem>
+                    <SelectItem value="Draft">Draft</SelectItem>
+                    <SelectItem value="Pending Approval">Pending Approval</SelectItem>
                     <SelectItem value="Approved">Approved</SelectItem>
                     <SelectItem value="Rejected">Rejected</SelectItem>
-                    <SelectItem value="Completed">Completed</SelectItem>
+                    <SelectItem value="Implemented">Implemented</SelectItem>
+                    <SelectItem value="Canceled">Canceled</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -268,6 +306,20 @@ export default function ChangeOrderForm({ projects, people, initialData }: Chang
             )}
           />
         </div>
+
+        <FormField
+          control={form.control}
+          name="title" // Added title field
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Title</FormLabel>
+              <FormControl>
+                <Input placeholder="Short title for the change order" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <FormField
           control={form.control}
@@ -305,7 +357,7 @@ export default function ChangeOrderForm({ projects, people, initialData }: Chang
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormField
             control={form.control}
-            name="time_impact_days"
+            name="impact_on_timeline" // Renamed
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Time Impact (Days)</FormLabel>
@@ -347,7 +399,7 @@ export default function ChangeOrderForm({ projects, people, initialData }: Chang
 
               <FormField
                 control={form.control}
-                name="approved_at"
+                name="approval_date" // Renamed
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
                     <FormLabel>Approval Date</FormLabel>
@@ -386,9 +438,14 @@ export default function ChangeOrderForm({ projects, people, initialData }: Chang
         <div>
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-medium">Line Items</h3>
-            <Button type="button" onClick={addLineItem} variant="outline" size="sm">
-              <Plus className="mr-2 h-4 w-4" /> Add Item
-            </Button>
+            <div className="space-x-2">
+              <Button type="button" onClick={() => setIsImportDrawerOpen(true)} variant="outline" size="sm">
+                Import Items
+              </Button>
+              <Button type="button" onClick={addLineItem} variant="outline" size="sm">
+                <Plus className="mr-2 h-4 w-4" /> Add Item
+              </Button>
+            </div>
           </div>
 
           {watchLineItems.length === 0 ? (
@@ -399,7 +456,7 @@ export default function ChangeOrderForm({ projects, people, initialData }: Chang
             </Card>
           ) : (
             <div className="space-y-4">
-              {watchLineItems.map((_, index) => (
+              {watchLineItems.map((_item: any, index: number) => ( // Explicitly type _item and index
                 <Card key={index}>
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start mb-4">
@@ -457,10 +514,10 @@ export default function ChangeOrderForm({ projects, people, initialData }: Chang
                       <div className="grid grid-cols-2 gap-4">
                         <FormField
                           control={form.control}
-                          name={`line_items.${index}.unit_cost`}
+                          name={`line_items.${index}.unit_price`} // Renamed
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Unit Cost</FormLabel>
+                              <FormLabel>Unit Price</FormLabel>
                               <FormControl>
                                 <Input type="number" step="0.01" min="0" {...field} />
                               </FormControl>
@@ -469,19 +526,6 @@ export default function ChangeOrderForm({ projects, people, initialData }: Chang
                           )}
                         />
 
-                        <FormField
-                          control={form.control}
-                          name={`line_items.${index}.markup`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Markup %</FormLabel>
-                              <FormControl>
-                                <Input type="number" step="0.01" min="0" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
                       </div>
 
                       <FormField
@@ -508,20 +552,47 @@ export default function ChangeOrderForm({ projects, people, initialData }: Chang
 
         <div className="flex justify-between items-center pt-4 border-t">
           <div>
-            <p className="text-sm font-medium">Total Cost Impact:</p>
-            <p className="text-2xl font-bold">${totalCost.toFixed(2)}</p>
+            <p className="text-sm font-medium">Total Amount:</p>
+            <p className="text-2xl font-bold">${totalAmount.toFixed(2)}</p>
           </div>
           <div className="space-x-4">
             <Button type="button" variant="outline" onClick={() => router.back()} disabled={isSubmitting}>
               Cancel
             </Button>
+            {initialData && initialData.status === "Draft" && (
+              <Button
+                type="button"
+                onClick={() => {
+                  form.setValue("status", "Pending Approval", { shouldDirty: true });
+                  form.handleSubmit(handleFormSubmit)();
+                }}
+                disabled={isSubmitting}
+                variant="secondary"
+              >
+                {isSubmitting && form.getValues("status") === "Pending Approval" && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Submit for Approval
+              </Button>
+            )}
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isSubmitting && form.getValues("status") !== "Pending Approval" && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {initialData ? "Update" : "Create"} Change Order
             </Button>
           </div>
         </div>
       </form>
+
+      {/* Import Line Items Drawer */}
+      {isImportDrawerOpen && (
+        <ImportLineItemsDrawer
+          isOpen={isImportDrawerOpen}
+          onClose={() => setIsImportDrawerOpen(false)}
+          projectId={form.watch("project_id")} // Pass the current project ID
+          onImport={(importedItems) => {
+            const currentLineItems = form.getValues("line_items")
+            form.setValue("line_items", [...currentLineItems, ...importedItems])
+          }}
+        />
+      )}
     </Form>
   )
 }

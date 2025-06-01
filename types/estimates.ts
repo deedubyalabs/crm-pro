@@ -28,6 +28,8 @@ export interface Estimate {
   is_converted_to_project: boolean // New field
   is_converted_to_sov: boolean // New field
   is_initial_invoice_generated: boolean // New field
+  schedule_of_value_id: string | null // New field
+  initial_invoice_id: string | null // New field
   created_at: string
   updated_at: string
   created_by: string | null
@@ -56,6 +58,8 @@ export interface NewEstimate {
   is_converted_to_project?: boolean // New field
   is_converted_to_sov?: boolean // New field
   is_initial_invoice_generated?: boolean // New field
+  schedule_of_value_id?: string | null // New field
+  initial_invoice_id?: string | null // New field
   created_by?: string | null
   deposit_required?: boolean
   deposit_amount?: number | null
@@ -81,6 +85,8 @@ export interface UpdateEstimate {
   is_converted_to_project?: boolean // New field
   is_converted_to_sov?: boolean // New field
   is_initial_invoice_generated?: boolean // New field
+  schedule_of_value_id?: string | null // New field
+  initial_invoice_id?: string | null // New field
   updated_by?: string | null
   deposit_required?: boolean
   deposit_amount?: number | null

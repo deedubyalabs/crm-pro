@@ -1,7 +1,7 @@
 import { supabase, handleSupabaseError } from "@/lib/supabase";
 import { v4 as uuidv4 } from "uuid";
 import { EstimateLineItem } from "@/types/estimates";
-import { ScheduleOfValue, ScheduleOfValueItem, NewScheduleOfValue, NewScheduleOfValueItem } from "@/types/schedule-of-values";
+import { ScheduleOfValue, ScheduleOfValueItem, NewScheduleOfValue, NewScheduleOfValueItem, ScheduleOfValueWithItems } from "@/types/schedule-of-values";
 
 export const scheduleOfValuesService = {
   async createScheduleOfValue(sov: NewScheduleOfValue, items: NewScheduleOfValueItem[] = []): Promise<ScheduleOfValue> {
@@ -50,6 +50,35 @@ export const scheduleOfValuesService = {
     } catch (error) {
       console.error("Error creating Schedule of Value:", error);
       throw new Error(handleSupabaseError(error));
+    }
+  },
+
+  async getScheduleOfValuesByProjectId(projectId: string): Promise<ScheduleOfValueWithItems[]> {
+    try {
+      const { data, error } = await supabase
+        .from("schedule_of_values")
+        .select(`
+          id,
+          sov_number,
+          name,
+          status,
+          project_id,
+          items:schedule_of_value_items (
+            id,
+            description,
+            quantity,
+            unit,
+            unit_price,
+            total
+          )
+        `)
+        .eq("project_id", projectId)
+        .order("created_at", { ascending: false })
+
+      if (error) throw error
+      return (data || []) as unknown as ScheduleOfValueWithItems[]
+    } catch (error) {
+      throw new Error(handleSupabaseError(error))
     }
   },
 

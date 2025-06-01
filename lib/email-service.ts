@@ -6,6 +6,7 @@ import type { PaymentWithDetails } from "@/types/payments"
 import InvoiceEmail from "@/emails/invoice-email"
 import PaymentReceiptEmail from "@/emails/payment-receipt-email"
 import PaymentReminderEmail from "@/emails/payment-reminder-email"
+import ChangeOrderApprovalEmail from "@/emails/change-order-approval-email" // Import new email template
 
 // Initialize Resend with API key
 const resend = new Resend(process.env.RESEND_API_KEY)
@@ -173,6 +174,54 @@ export const emailService = {
       throw new Error(
         `Failed to send payment reminder email: ${error instanceof Error ? error.message : String(error)}`,
       )
+    }
+  },
+
+  /**
+   * Send a change order approval request email
+   */
+  async sendChangeOrderApprovalRequestEmail(
+    changeOrder: {
+      id: string;
+      change_order_number: string | null;
+      title: string;
+      description: string | null;
+      project_id: string;
+      person_id: string;
+    },
+    recipientEmail: string,
+    customerName: string,
+    projectName: string,
+    options: {
+      message?: string;
+    } = {},
+  ): Promise<void> {
+    try {
+      const reviewUrl = `${process.env.NEXT_PUBLIC_API_URL}/client-portal/change-orders/${changeOrder.id}/review`;
+
+      const { data, error } = await resend.emails.send({
+        from: `HomePro One <${process.env.EMAIL_FROM || "notifications@homeproone.com"}>`,
+        to: [recipientEmail],
+        subject: `Action Required: Review Change Order #${changeOrder.change_order_number} for ${projectName}`,
+        react: ChangeOrderApprovalEmail({
+          customerName,
+          projectName,
+          changeOrderNumber: changeOrder.change_order_number || "N/A",
+          changeOrderTitle: changeOrder.title,
+          changeOrderDescription: changeOrder.description || "",
+          reviewUrl,
+          message: options.message,
+        }),
+      });
+
+      if (error) {
+        throw new Error(`Failed to send change order approval email: ${error.message}`);
+      }
+    } catch (error) {
+      console.error("Error sending change order approval email:", error);
+      throw new Error(
+        `Failed to send change order approval email: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   },
 }
