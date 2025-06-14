@@ -89,7 +89,6 @@ export default function UnifiedEstimateClientPage({ estimate }: UnifiedEstimateC
       // Handle pre-filling from URL parameters
       let prefilledPersonId = personIdFromUrl;
       let prefilledOpportunityId = opportunityIdFromUrl;
-      let initialGreeting = "Hello! I'm HomePro AI. Describe the project you'd like to estimate, including scope, materials, and dimensions. I'll help you build an estimate.";
       let prefilledEstimate: Partial<EstimateWithDetails> = {};
 
       if (opportunityIdFromUrl) {
@@ -97,10 +96,9 @@ export default function UnifiedEstimateClientPage({ estimate }: UnifiedEstimateC
         if (opportunity) {
           prefilledOpportunityId = opportunity.id;
           prefilledPersonId = opportunity.person_id; // Ensure personId is also set from opportunity
-          initialGreeting = `Hello! I'm HomePro AI. Let's create an estimate for ${opportunity.person.name}'s opportunity: '${opportunity.opportunity_name}'. Can you describe the scope?`;
           prefilledEstimate = {
             opportunity_id: opportunity.id,
-            person_id: opportunity.person_id,
+            person_id: opportunity.person.id,
             opportunity: { id: opportunity.id, opportunity_name: opportunity.opportunity_name }, // Provide necessary opportunity properties
             person: {
               id: opportunity.person.id,
@@ -116,7 +114,6 @@ export default function UnifiedEstimateClientPage({ estimate }: UnifiedEstimateC
       } else if (personIdFromUrl) {
         const person = await personService.getPersonById(personIdFromUrl);
         if (person) {
-          initialGreeting = `Hello! I'm HomePro AI. I see we're starting an estimate for ${person.business_name || `${person.first_name || ""} ${person.last_name || ""}`.trim()}. What project are they looking to do?`;
           prefilledEstimate = {
             person_id: person.id,
             person: {
@@ -203,7 +200,7 @@ export default function UnifiedEstimateClientPage({ estimate }: UnifiedEstimateC
     {/* Heading and Button at the top */}
     <div className="mb-6"> {/* Added margin-bottom for spacing */}
       <h2 className="text-3xl font-bold tracking-tight"> {/* Increased font size for prominence */}
-        {estimate ? `Edit Estimate ${estimate.estimate_number || '(Draft)'}` : "AI-Assisted Estimate Creation"}
+        {estimate ? `Edit Estimate ${estimate.estimate_number || '(Draft)'}` : "New Estimate"}
       </h2>
       {showCreateProjectButton && (
         <Button onClick={handleCreateProject} className="mt-4"> {/* Added margin-top for spacing */}

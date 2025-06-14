@@ -188,7 +188,15 @@ export function EstimateForm({
 
   // Calculate subtotal, tax, and total amount when line items, discount, or tax change
   const subtotalAmount = sections.reduce((sum, section) => {
-    return sum + section.line_items.reduce((sectionSum, item) => sectionSum + (item.total || 0), 0);
+    if (section.is_optional) {
+      return sum; // If the section is optional, none of its items contribute to the sum
+    }
+    return sum + section.line_items.reduce((sectionSum, item) => {
+      if (item.is_optional) {
+        return sectionSum; // If the item is optional, it doesn't contribute to the section sum
+      }
+      return sectionSum + (item.total || 0);
+    }, 0);
   }, 0);
 
   const discountType = form.watch("discount_type");
@@ -419,6 +427,24 @@ export function EstimateForm({
       ...section,
       line_items: section.line_items.filter((item) => item.id !== id),
     }));
+    onSectionsChange(updatedSections);
+  };
+
+  // Handle toggling section optionality and updating its line items
+  const handleToggleSectionOptionality = (sectionId: string, isOptional: boolean) => {
+    const updatedSections = sections.map((section) => {
+      if (section.id === sectionId) {
+        return {
+          ...section,
+          is_optional: isOptional,
+          line_items: section.line_items.map((item) => ({
+            ...item,
+            is_optional: isOptional, // Set all line items in the section to the new optional status
+          })),
+        };
+      }
+      return section;
+    });
     onSectionsChange(updatedSections);
   };
 
@@ -867,6 +893,7 @@ export function EstimateForm({
                               setCurrentSectionIdForAddItem(sectionId);
                               setIsCustomLineItemDialogOpen(true);
                             }}
+                            onToggleSectionOptionality={handleToggleSectionOptionality} // New prop
                           />
                           <div className="grid grid-cols-12 gap-2 text-sm font-medium text-muted-foreground mt-4 mb-2">
                             <div className="col-span-3">Item Name</div>

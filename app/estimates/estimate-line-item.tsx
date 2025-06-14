@@ -46,6 +46,11 @@ export function EstimateLineItemRow({
   const [assignedToUserId, setAssignedToUserId] = useState(lineItem.assigned_to_user_id || "none")
   const [users, setUsers] = useState<User[]>([]);
 
+  // Synchronize internal isOptional state with prop changes
+  useEffect(() => {
+    setIsOptional(lineItem.is_optional || false);
+  }, [lineItem.is_optional]);
+
   // Fetch users on component mount
   useEffect(() => {
     const fetchUsers = async () => {
@@ -88,13 +93,8 @@ export function EstimateLineItemRow({
 
   return (
     <div className="mb-2 p-2 rounded-md border">
-      <div className={cn("grid grid-cols-12 gap-2 items-center", isAISuggested && "bg-blue-50/50")}>
+      <div className={cn("grid grid-cols-12 gap-2 items-center")}>
         <div className="col-span-3 flex items-center space-x-2">
-          {isAISuggested && (
-            <div className="flex items-center text-xs text-blue-600 font-medium mr-2">
-              <Sparkles className="mr-1 h-3 w-3 fill-blue-600" /> AI Suggestion
-            </div>
-          )}
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>

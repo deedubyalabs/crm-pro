@@ -20,6 +20,7 @@ interface EstimateSectionHeaderProps {
   onDeleteSection: (id: string) => void;
   onAddExistingLineItem: (sectionId: string) => void;
   onAddCustomLineItem: (sectionId: string) => void;
+  onToggleSectionOptionality: (sectionId: string, isOptional: boolean) => void; // New prop
 }
 
 export function EstimateSectionHeader({
@@ -28,6 +29,7 @@ export function EstimateSectionHeader({
   onDeleteSection,
   onAddExistingLineItem,
   onAddCustomLineItem,
+  onToggleSectionOptionality, // Destructure new prop
 }: EstimateSectionHeaderProps) {
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState(section.name);
@@ -45,7 +47,7 @@ export function EstimateSectionHeader({
   };
 
   const handleToggleOptional = (checked: boolean) => {
-    onUpdateSection(section.id, { is_optional: checked });
+    onToggleSectionOptionality(section.id, checked); // Call the new prop
   };
 
   const handleToggleTaxable = (checked: boolean) => {
@@ -81,14 +83,6 @@ export function EstimateSectionHeader({
         )}
       </div>
       <div className="flex items-center space-x-2">
-        <div className="flex items-center space-x-2">
-          <Checkbox
-            id={`optional-${section.id}`}
-            checked={section.is_optional}
-            onCheckedChange={handleToggleOptional}
-          />
-          <Label htmlFor={`optional-${section.id}`}>Optional</Label>
-        </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button type="button" size="sm">
@@ -113,6 +107,15 @@ export function EstimateSectionHeader({
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={() => setIsEditingName(true)}>
               <Edit className="mr-2 h-4 w-4" /> Rename Section
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleToggleOptional(!section.is_optional)}>
+              <Checkbox
+                id={`optional-menu-${section.id}`}
+                checked={section.is_optional}
+                onCheckedChange={handleToggleOptional}
+                className="mr-2"
+              />
+              <Label htmlFor={`optional-menu-${section.id}`}>Make Section Optional</Label>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => onDeleteSection(section.id)} className="text-red-600">
               <Trash2 className="mr-2 h-4 w-4" /> Delete Section
