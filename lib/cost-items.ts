@@ -2,9 +2,11 @@ import { supabase, handleSupabaseError } from "./supabase"
 import type { CostItem, NewCostItem, UpdateCostItem, CostItemFilters, CostItemGroup, NewCostItemGroup, UpdateCostItemGroup } from "@/types/cost-items"
 
 export const costItemService = {
-  async getCostItems(filters?: CostItemFilters): Promise<CostItem[]> {
+  async getCostItems(
+    filters?: CostItemFilters,
+  ): Promise<{ costItems: CostItem[]; totalCount: number }> {
     try {
-      let query = supabase.from("cost_items").select("*, cost_item_groups(*)").order("name")
+      let query = supabase.from("cost_items").select("*, cost_item_groups(*)", { count: "exact" }).order("name")
 
       // Apply filters
       if (filters?.type) {
@@ -24,10 +26,17 @@ export const costItemService = {
         query = query.eq("cost_item_group_id", filters.groupId)
       }
 
-      const { data, error } = await query
+      // Apply pagination
+      if (filters?.page && filters?.limit) {
+        const from = (filters.page - 1) * filters.limit
+        const to = from + filters.limit - 1
+        query = query.range(from, to)
+      }
+
+      const { data, error, count } = await query
 
       if (error) throw error
-      return data || []
+      return { costItems: data || [], totalCount: count || 0 }
     } catch (error) {
       throw new Error(handleSupabaseError(error))
     }
@@ -75,6 +84,15 @@ export const costItemService = {
     try {
       const { error } = await supabase.from("cost_items").delete().eq("id", id)
 
+      if (error) throw error
+    } catch (error) {
+      throw new Error(handleSupabaseError(error))
+    }
+  },
+
+  async bulkDeleteCostItems(ids: string[]): Promise<void> {
+    try {
+      const { error } = await supabase.from("cost_items").delete().in("id", ids)
       if (error) throw error
     } catch (error) {
       throw new Error(handleSupabaseError(error))

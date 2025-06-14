@@ -9,7 +9,6 @@ export default function Home() {
       <div className="flex flex-col space-y-4">
         <h1 className="text-3xl font-bold tracking-tight">Welcome to PROActive ONE</h1>
         <p className="text-muted-foreground">
-          Agent-optimized business operations platform for home service professionals
         </p>
       </div>
 
@@ -59,23 +58,6 @@ export default function Home() {
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Agent Workspace</CardTitle>
-            <CardDescription>Manage, monitor, and interact with your LLM agents</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="mb-4">
-              Your intelligent agents are ready to help automate your business operations. Monitor their activity,
-              configure their capabilities, and review their tasks.
-            </p>
-            <Button asChild>
-              <Link href="/agent-workspace">
-                Go to Agent Workspace <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
             <CardTitle>Recent Activity</CardTitle>
             <CardDescription>Latest updates from your business operations</CardDescription>
           </CardHeader>
@@ -94,7 +76,7 @@ export default function Home() {
                 <p className="text-xs text-muted-foreground">Invoice #1042 - $2,450.00</p>
               </div>
               <div className="border-l-4 border-purple-500 pl-4 py-1">
-                <p className="text-sm font-medium">Agent completed task</p>
+                <p className="text-sm font-medium">Completed task</p>
                 <p className="text-xs text-muted-foreground">LeadQualifier processed 3 new leads</p>
               </div>
             </div>

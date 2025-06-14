@@ -28,28 +28,41 @@ export interface InvoiceLineItem {
   linked_time_entry_id?: string | null
   section_title?: string | null
   is_section_header?: boolean
-  created_at?: string
-  updated_at?: string
+  created_at?: string | null // Changed to allow null
+  updated_at?: string | null // Changed to allow null
 }
 
 export interface Invoice {
-  id?: string
+  id: string
   project_id: string
   person_id: string
   linked_estimate_id?: string | null
-  invoice_number: string | null
+  invoice_number: string | null // Changed to allow null
   status: InvoiceStatus
   invoice_type?: string // Assuming InvoiceType from types/invoices.ts
-  issue_date?: string
-  due_date?: string
+  issue_date?: string | null // Changed to allow null
+  due_date?: string | null // Changed to allow null
   total_amount: number
   amount_paid: number
   is_paid_in_full?: boolean
   notes?: string
   created_by_user_id?: string | null;
-  created_at?: string
-  updated_at?: string
+  created_at?: string | null // Changed to allow null
+  updated_at?: string | null // Changed to allow null
   line_items: InvoiceLineItem[] // Explicitly include line_items
+}
+
+export interface InvoiceWithProjectAndPerson extends Invoice {
+  project: {
+    id: string;
+    project_name: string;
+  };
+  person: {
+    id: string;
+    first_name: string | null;
+    last_name: string | null;
+    business_name: string | null;
+  };
 }
 
 // Types are already exported when declared above

@@ -23,7 +23,7 @@
 *   **Modular Codebase:** Organize PROActive ONE code by feature/module for maintainability.
 *   **State Management:** Utilize React Context for global UI state, React hooks for local client state, and SWR or React Query for server-side data caching and synchronization.
 *   **Asynchronous Operations:** Extensive use of `async/await` throughout the application and agent workflows.
-*   **Data Linking:** Maintain and leverage foreign key relationships in Supabase to ensure deep relational linking between entities, including Contacts, Opportunities, the new "Jobs" feature (and its checklist items), estimate-related entities (sections, optional items, tax marking, assignments, markup details, item groups within the Cost Items database), bidding-related entities (Estimates, Bid Packages, Contractors, Documents, Estimate Items), post-estimate approval entities (Schedule of Values, Invoice, Project, Schedule), project-related entities (Estimates, Invoices, Expenses, Time Entries, Documents, Jobs, Contacts, Schedule, etc.), Work Orders/Service Tickets (Clients, Projects, Membership Plans), Change Orders (Projects, Customers, Estimate/Schedule of Values items), Daily Logs (Projects, People, Time Entries, Materials, Equipment, Files, and Incidents), Expenses (Projects), and Purchase Orders (Projects, Suppliers, Cost Items, Schedule of Values), accessible via backend API routes/Server Actions and AI agents.
+*   **Data Linking:** Maintain and leverage foreign key relationships in Supabase to ensure deep relational linking between entities, including Contacts, Opportunities, the new "Jobs" feature (and its checklist items), estimate-related entities (sections, optional items, tax marking, assignments, markup details, item groups within the Cost Items database), bidding-related entities (Estimates, Bid Packages, Contractors, Documents, Estimate Items), post-estimate approval entities (Blueprint of Values, Invoice, Project, Schedule), project-related entities (Estimates, Invoices, Expenses, Time Entries, Documents, Jobs, Contacts, Schedule, etc.), Work Orders/Service Tickets (Clients, Projects, Membership Plans), Change Orders (Projects, Customers, Estimate/Blueprint of Values items), Daily Logs (Projects, People, Time Entries, Materials, Equipment, Files, and Incidents), Expenses (Projects), and Purchase Orders (Projects, Suppliers, Cost Items, Blueprint of Values), accessible via backend API routes/Server Actions and AI agents.
 *   **Environment Variables:** Consistent and secure use of environment variables for configuration and API keys.
 *   **Human-in-the-Loop (HITL) Safeguards:** Design explicit HITL steps within user journeys for critical AI-assisted actions, ensuring contractor review and approval.
 *   **Observability and Evaluation:** Integrate Langtrace for tracing and monitoring agent behavior and utilize evaluation frameworks (like Inspect AI) for systematic assessment of AI performance and safety.
@@ -33,7 +33,7 @@
 *   **LangGraph.js Agent Orchestration:** LangGraph.js agents will orchestrate interactions with both internal PROActive ONE services and external third-party APIs via custom TypeScript tools.
 *   **Backend-to-Backend API Calls:** PROActive ONE backend API routes will directly host and invoke LangGraph.js agents for AI tasks and handle responses.
 *   **Custom Tools for External APIs:** Develop custom TypeScript tools within the Next.js backend to interact with essential third-party APIs (Square, Cal.com, Google Calendar, BigBox API, Accounting API, Sendbird).
-*   **Model Context Protocol (MCP):** Leverage MCP for standardized integration with external services where applicable (e.g., custom MCP servers for specific services). Direct `supabase-js` client interaction will be used for Supabase, not the Supabase MCP tool.
+*   **Model Context Protocol (MCP):** Leverage MCP for standardized integration with external services where applicable (e.g., custom MCP servers for specific services).
 *   **Real-time/Webhook-Driven:** For services like Square, utilize webhooks for real-time updates (e.g., payment status).
 *   **API Polling (Fallback/Scheduled):** For less critical updates from external services, use scheduled API polling.
 *   **Client-Side SDKs (where appropriate):** For UI-heavy integrations or features, use client-side SDKs.
@@ -83,7 +83,7 @@
 
 *   **Frontend:** Next.js (App Router), React, TypeScript, Tailwind CSS
 *   **Backend:** Next.js API Routes, Server Actions
-*   **Database:** Supabase (PostgreSQL). Includes schema updates such as adding `estimate_id` to the `projects` table for linking, the `ai_logs` table for agent activity logging, `categories` table for "add as you go" functionality, schema support for estimate sections, optional items, tax marking, assignments, markup details, item groups within the Cost Items database, schema support for bid packages and submissions, schema support for Schedule of Values, Invoice, Project, Schedule, schema support for Projects and all related entities (Estimates, Invoices, Expenses, Time Entries, Documents, Jobs, Contacts, Schedule, etc.), schema support for Jobs and their checklist items, schema support for Work Orders, Service Tickets, Membership Plans, schema support for Change Orders, Daily Logs, and schema support for Expenses.
+*   **Database:** Supabase (PostgreSQL). Includes schema updates such as adding `estimate_id` to the `projects` table for linking, the `ai_logs` table for agent activity logging, `categories` table for "add as you go" functionality, schema support for estimate sections, optional items, tax marking, assignments, markup details, item groups within the Cost Items database, schema support for bid packages and submissions, schema support for Blueprint of Values, Invoice, Project, Schedule, schema support for Projects and all related entities (Estimates, Invoices, Expenses, Time Entries, Documents, Jobs, Contacts, Schedule, etc.), schema support for Jobs and their checklist items, schema support for Work Orders, Service Tickets, Membership Plans, schema support for Change Orders, Daily Logs, and schema support for Expenses.
     *   **Supabase MCP Tool:** The Supabase MCP tool is available for interacting with the database. The project ID is `uvqhdryqbynouwvicelp`.
 *   **Authentication:** Custom auth with Supabase, utilizing `@supabase/auth-helpers-nextjs` for route handlers.
 *   **File Storage:** Supabase Storage
@@ -299,10 +299,10 @@ The primary goal is to evolve the existing **PROActive ONE (Next.js/Supabase)** 
     - **Description:** Approves an estimate.
     - **Request Body:** `void`
     - **Response:** `Estimate`
-- **`/api/estimates/:id/add-to-sov` (POST)**
-    - **Description:** Adds estimate items to Schedule of Values.
+- **`/api/estimates/:id/add-to-pvb` (POST)**
+    - **Description:** Adds estimate items to Blueprint of Values.
     - **Request Body:** `{ estimateItems: string[] }`
-    - **Response:** `ScheduleOfValue[]`
+    - **Response:** `ProjectValuesBlueprint[]`
 - **`/api/estimates/:id/generate-invoice` (POST)**
     - **Description:** Generates an invoice from estimate items.
     - **Request Body:** `{ estimateItems: string[] }`
@@ -494,9 +494,9 @@ The primary goal is to evolve the existing **PROActive ONE (Next.js/Supabase)** 
     - **Description:** Imports items into a change order from an estimate.
     - **Request Body:** `{ estimateId: string, itemIds: string[] }`
     - **Response:** `ChangeOrder`
-- **`/api/change-orders/:id/import-from-sov` (POST)**
-    - **Description:** Imports items into a change order from Schedule of Values.
-    - **Request Body:** `{ sovId: string, itemIds: string[] }`
+- **`/api/change-orders/:id/import-from-pvb` (POST)**
+    - **Description:** Imports items into a change order from Blueprint of Values.
+    - **Request Body:** `{ pvbId: string, itemIds: string[] }`
     - **Response:** `ChangeOrder`
 
 #### Daily Logs Module

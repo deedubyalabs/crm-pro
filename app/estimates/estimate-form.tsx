@@ -24,6 +24,8 @@ import { BulkMarkupDialog } from "./bulk-markup-dialog" // Import new dialog
 import { CostItemSelectorDrawer } from "./cost-item-selector-drawer" // Import CostItemSelectorDrawer
 import { EstimateSummary } from "./estimate-summary" // Import EstimateSummary
 import { EstimateReviewDialog } from "./estimate-review-dialog" // Import EstimateReviewDialog
+import { EstimateBiddingSection } from "./components/EstimateBiddingSection" // Import EstimateBiddingSection
+import { EstimateDocumentsSection } from "./components/EstimateDocumentsSection" // Import EstimateDocumentsSection
 import type { EstimateLineItem, EstimateWithDetails, EstimatePaymentSchedule } from "@/types/estimates"
 import type { CostItem } from "@/types/cost-items"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -378,11 +380,12 @@ export function EstimateForm({
         <div className="space-y-6">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList>
-              <TabsTrigger value="details">Details</TabsTrigger> {/* Details Tab */}
+              <TabsTrigger value="details">Details</TabsTrigger>
               <TabsTrigger value="line-items">Line Items</TabsTrigger>
               <TabsTrigger value="payment-schedule">Payment Schedule</TabsTrigger>
-              <TabsTrigger value="summary">Summary</TabsTrigger> {/* New Summary Tab */}
-              <TabsTrigger value="documents">Documents</TabsTrigger> {/* New Documents Tab */}
+              <TabsTrigger value="summary">Summary</TabsTrigger>
+              <TabsTrigger value="documents">Documents</TabsTrigger> {/* Documents Tab */}
+              <TabsTrigger value="bidding">Bidding</TabsTrigger> {/* New Bidding Tab */}
             </TabsList>
 
             {/* Details Tab Content */}
@@ -875,78 +878,30 @@ export function EstimateForm({
               />
             </TabsContent>
 
-            {/* New Documents Tab Content */}
+            {/* Documents Tab Content */}
             <TabsContent value="documents">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Estimate Documents</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <FormField
-                    control={form.control}
-                    name="terms_and_conditions"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Terms and Conditions</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder="Enter terms and conditions for this estimate"
-                            className="min-h-[150px]"
-                            {...field}
-                            value={field.value || ""}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          These terms and conditions will be included in the estimate document.
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="scope_of_work"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Scope of Work</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder="Describe the scope of work for this estimate"
-                            className="min-h-[150px]"
-                            {...field}
-                            value={field.value || ""}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          A detailed description of the work to be performed.
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="cover_sheet_details"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Cover Sheet Details</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder="Enter details for the estimate cover sheet"
-                            className="min-h-[100px]"
-                            {...field}
-                            value={field.value || ""}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          Additional information to appear on the cover sheet of the estimate.
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </CardContent>
-              </Card>
+              {estimate?.id ? (
+                <EstimateDocumentsSection estimateId={estimate.id} />
+              ) : (
+                <Card>
+                  <CardContent className="py-6 text-center text-muted-foreground">
+                    Save the estimate first to manage documents.
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+
+            {/* New Bidding Tab Content */}
+            <TabsContent value="bidding">
+              {estimate?.id ? (
+                <EstimateBiddingSection estimateId={estimate.id} />
+              ) : (
+                <Card>
+                  <CardContent className="py-6 text-center text-muted-foreground">
+                    Save the estimate first to manage bids.
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
           </Tabs>
 

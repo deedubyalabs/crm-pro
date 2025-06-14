@@ -1,7 +1,7 @@
--- Create the schedule_of_value_items table
-CREATE TABLE schedule_of_value_items (
+-- Create the project_values_blueprint_items table
+CREATE TABLE project_values_blueprint_items (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    sov_id UUID REFERENCES schedule_of_values(id) ON DELETE CASCADE,
+    pvb_id UUID REFERENCES project_values_blueprints(id) ON DELETE CASCADE,
     description TEXT NOT NULL,
     quantity NUMERIC NOT NULL,
     unit TEXT,

@@ -1,0 +1,4091 @@
+TITLE: Implementing MCP Tool Execution - TypeScript
+DESCRIPTION: Registers two tools, get-alerts and get-forecast, with the MCP server instance. Defines their input schemas using Zod and provides asynchronous handler functions that use the NWS API helper functions to fetch data and return formatted text content based on the results.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_88
+
+LANGUAGE: typescript
+CODE:
+```
+// Register weather tools
+server.tool(
+  "get-alerts",
+  "Get weather alerts for a state",
+  {
+    state: z.string().length(2).describe("Two-letter state code (e.g. CA, NY)"),
+  },
+  async ({ state }) => {
+    const stateCode = state.toUpperCase();
+    const alertsUrl = `${NWS_API_BASE}/alerts?area=${stateCode}`;
+    const alertsData = await makeNWSRequest<AlertsResponse>(alertsUrl);
+
+    if (!alertsData) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: "Failed to retrieve alerts data",
+          },
+        ],
+      };
+    }
+
+    const features = alertsData.features || [];
+    if (features.length === 0) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `No active alerts for ${stateCode}`,
+          },
+        ],
+      };
+    }
+
+    const formattedAlerts = features.map(formatAlert);
+    const alertsText = `Active alerts for ${stateCode}:\n\n${formattedAlerts.join("\n")}`;
+
+    return {
+      content: [
+        {
+          type: "text",
+          text: alertsText,
+        },
+      ],
+    };
+  },
+);
+
+server.tool(
+  "get-forecast",
+  "Get weather forecast for a location",
+  {
+    latitude: z.number().min(-90).max(90).describe("Latitude of the location"),
+    longitude: z.number().min(-180).max(180).describe("Longitude of the location"),
+  },
+  async ({ latitude, longitude }) => {
+    // Get grid point data
+    const pointsUrl = `${NWS_API_BASE}/points/${latitude.toFixed(4)},${longitude.toFixed(4)}`;
+    const pointsData = await makeNWSRequest<PointsResponse>(pointsUrl);
+
+    if (!pointsData) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Failed to retrieve grid point data for coordinates: ${latitude}, ${longitude}. This location may not be supported by the NWS API (only US locations are supported).`,
+          },
+        ],
+      };
+    }
+
+    const forecastUrl = pointsData.properties?.forecast;
+    if (!forecastUrl) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: "Failed to get forecast URL from grid point data",
+          },
+        ],
+      };
+    }
+
+    // Get forecast data
+    const forecastData = await makeNWSRequest<ForecastResponse>(forecastUrl);
+    if (!forecastData) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: "Failed to retrieve forecast data",
+          },
+        ],
+      };
+    }
+
+    const periods = forecastData.properties?.periods || [];
+    if (periods.length === 0) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: "No forecast periods available",
+          },
+        ],
+      };
+    }
+
+    // Format forecast periods
+    const formattedForecast = periods.map((period: ForecastPeriod) =>
+      [
+        `${period.name || "Unknown"}:`,
+        `Temperature: ${period.temperature || "Unknown"}°${period.temperatureUnit || "F"}`,
+        `Wind: ${period.windSpeed || "Unknown"} ${period.windDirection || ""}`,
+        `${period.shortForecast || "No forecast available"}`,
+        "---",
+      ].join("\n"),
+    );
+
+    const forecastText = `Forecast for ${latitude}, ${longitude}:\n\n${formattedForecast.join("\n")}`;
+
+    return {
+      content: [
+        {
+          type: "text",
+          text: forecastText,
+        },
+      ],
+    };
+  },
+);
+```
+
+----------------------------------------
+
+TITLE: Configuring Sampling Handler for MCP Client - Java
+DESCRIPTION: Shows how to define and configure a sampling handler function for the MCP client. This handler is invoked by the client when the server requests an LLM interaction, allowing the client to interface with the actual LLM and return the result. The client must be built with sampling capability enabled.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_125
+
+LANGUAGE: java
+CODE:
+```
+// Configure sampling handler
+Function<CreateMessageRequest, CreateMessageResult> samplingHandler = request -> {
+    // Sampling implementation that interfaces with LLM
+    return new CreateMessageResult(response);
+};
+
+// Create client with sampling support
+var client = McpClient.sync(transport)
+    .capabilities(ClientCapabilities.builder()
+        .sampling()
+        .build())
+    .sampling(samplingHandler)
+    .build();
+```
+
+----------------------------------------
+
+TITLE: Registering Async Prompt using Java MCP SDK
+DESCRIPTION: Demonstrates asynchronous registration of the "greeting" prompt using `McpServerFeatures.AsyncPromptRegistration`. This involves defining prompt details and arguments and providing an asynchronous handler (a lambda returning `Mono<GetPromptResult>`) to execute the prompt logic non-blockingly.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_151
+
+LANGUAGE: java
+CODE:
+```
+// Async prompt registration
+var asyncPromptRegistration = new McpServerFeatures.AsyncPromptRegistration(
+    new Prompt("greeting", "description", List.of(
+        new PromptArgument("name", "description", true)
+    )),
+    request -> {
+        // Prompt implementation
+        return Mono.just(new GetPromptResult(description, messages));
+    }
+);
+```
+
+----------------------------------------
+
+TITLE: Implementing Spring AI Weather Service Tools (Java)
+DESCRIPTION: Skeleton Java code for a `WeatherService` class intended for use as Spring AI tools in an MCP server. Uses `@Service` for component scanning and `@Tool` annotations on methods (`getWeatherForecastByLocation`, `getAlerts`) to expose them as MCP tools. The constructor initializes a `RestClient` for API calls.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_98
+
+LANGUAGE: java
+CODE:
+```
+@Service
+public class WeatherService {
+
+	private final RestClient restClient;
+
+	public WeatherService() {
+		this.restClient = RestClient.builder()
+			.baseUrl("https://api.weather.gov")
+			.defaultHeader("Accept", "application/geo+json")
+			.defaultHeader("User-Agent", "WeatherApiClient/1.0 (your@email.com)")
+			.build();
+	}
+
+  @Tool(description = "Get weather forecast for a specific latitude/longitude")
+  public String getWeatherForecastByLocation(
+      double latitude,   // Latitude coordinate
+      double longitude   // Longitude coordinate
+  ) {
+      // Returns detailed forecast including:
+      // - Temperature and unit
+      // - Wind speed and direction
+      // - Detailed forecast description
+  }
+
+  @Tool(description = "Get weather alerts for a US state")
+  public String getAlerts(
+      @ToolParam(description = "Two-letter US state code (e.g. CA, NY") String state)
+  ) {
+      // Returns active alerts including:
+      // - Event type
+      // - Affected area
+      // - Severity
+      // - Description
+      // - Safety instructions
+  }
+
+  // ......
+}
+```
+
+----------------------------------------
+
+TITLE: Implementing an MCP Server - Python
+DESCRIPTION: Demonstrates a basic MCP server implementation using the Python SDK. It shows how to create a `Server` instance, define a request handler for `list_resources` using the `@app.list_resources()` decorator, and run the server asynchronously using the standard I/O transport (`stdio_server`) within an `asyncio` event loop.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_4
+
+LANGUAGE: python
+CODE:
+```
+import asyncio
+import mcp.types as types
+from mcp.server import Server
+from mcp.server.stdio import stdio_server
+
+app = Server("example-server")
+
+@app.list_resources()
+async def list_resources() -> list[types.Resource]:
+    return [
+        types.Resource(
+            uri="example://resource",
+            name="Example Resource"
+        )
+    ]
+
+async def main():
+    async with stdio_server() as streams:
+        await app.run(
+            streams[0],
+            streams[1],
+            app.create_initialization_options()
+        )
+
+if __name__ == "__main__":
+    asyncio.run(main)
+```
+
+----------------------------------------
+
+TITLE: Implementing MCP Tool Handlers (TypeScript)
+DESCRIPTION: Provides a basic example of an MCP server implementation in TypeScript that exposes and handles a simple "calculate_sum" tool. It demonstrates setting up the server, defining tool capabilities, and implementing the `setRequestHandler` for `ListToolsRequestSchema` and `CallToolRequestSchema`. Requires an MCP server library.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_23
+
+LANGUAGE: typescript
+CODE:
+```
+const server = new Server({
+  name: "example-server",
+  version: "1.0.0"
+}, {
+  capabilities: {
+    tools: {}
+  }
+});
+
+// Define available tools
+server.setRequestHandler(ListToolsRequestSchema, async () => {
+  return {
+    tools: [{
+      name: "calculate_sum",
+      description: "Add two numbers together",
+      inputSchema: {
+        type: "object",
+        properties: {
+          a: { type: "number" },
+          b: { type: "number" }
+        },
+        required: ["a", "b"]
+      }
+    }]
+  };
+});
+
+// Handle tool execution
+server.setRequestHandler(CallToolRequestSchema, async (request) => {
+  if (request.params.name === "calculate_sum") {
+    const { a, b } = request.params.arguments;
+    return {
+      content: [
+        {
+          type: "text",
+          text: String(a + b)
+        }
+      ]
+    };
+  }
+  throw new Error("Tool not found");
+});
+```
+
+----------------------------------------
+
+TITLE: Implementing an MCP Server - TypeScript
+DESCRIPTION: Provides a basic example of creating and configuring an MCP server using the TypeScript SDK. It demonstrates instantiating a `Server`, defining its name and version, setting capabilities, registering a handler for the `ListResourcesRequestSchema`, and connecting the server to a standard I/O transport (`StdioServerTransport`) to begin processing messages.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_3
+
+LANGUAGE: typescript
+CODE:
+```
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+
+const server = new Server({
+  name: "example-server",
+  version: "1.0.0"
+}, {
+  capabilities: {
+    resources: {}
+  }
+});
+
+// Handle requests
+server.setRequestHandler(ListResourcesRequestSchema, async () => {
+  return {
+    resources: [
+      {
+        uri: "example://resource",
+        name: "Example Resource"
+      }
+    ]
+  };
+});
+
+// Connect transport
+const transport = new StdioServerTransport();
+await server.connect(transport);
+```
+
+----------------------------------------
+
+TITLE: Creating and Using MCP Async Client - Java
+DESCRIPTION: Demonstrates the creation of an MCP asynchronous client with custom configuration (timeout, capabilities, change consumers) and chained usage examples including initialization, listing and calling tools, listing and reading resources, listing and getting prompts, adding and removing roots, and gracefully closing the client using reactive streams (Mono). Requires an McpTransport instance.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_119
+
+LANGUAGE: java
+CODE:
+```
+// Create an async client with custom configuration
+McpAsyncClient client = McpClient.async(transport)
+    .requestTimeout(Duration.ofSeconds(10))
+    .capabilities(ClientCapabilities.builder()
+        .roots(true)      // Enable roots capability
+        .sampling()       // Enable sampling capability
+        .build())
+    .sampling(request -> Mono.just(new CreateMessageResult(response)))
+    .toolsChangeConsumer(tools -> Mono.fromRunnable(() -> {
+        logger.info("Tools updated: {}", tools);
+    }))
+    .resourcesChangeConsumer(resources -> Mono.fromRunnable(() -> {
+        logger.info("Resources updated: {}", resources);
+    }))
+    .promptsChangeConsumer(prompts -> Mono.fromRunnable(() -> {
+        logger.info("Prompts updated: {}", prompts);
+    }))
+    .build();
+
+// Initialize connection and use features
+client.initialize()
+    .flatMap(initResult -> client.listTools())
+    .flatMap(tools -> {
+        return client.callTool(new CallToolRequest(
+            "calculator",
+            Map.of("operation", "add", "a", 2, "b", 3)
+        ));
+    })
+    .flatMap(result -> {
+        return client.listResources()
+            .flatMap(resources ->
+                client.readResource(new ReadResourceRequest("resource://uri"))
+            );
+    })
+    .flatMap(resource -> {
+        return client.listPrompts()
+            .flatMap(prompts ->
+                client.getPrompt(new GetPromptRequest(
+                    "greeting",
+                    Map.of("name", "Spring")
+                ))
+            );
+    })
+    .flatMap(prompt -> {
+        return client.addRoot(new Root("file:///path", "description"))
+            .then(client.removeRoot("file:///path"));
+    })
+    .doFinally(signalType -> {
+        client.closeGracefully().subscribe();
+    })
+    .subscribe();
+```
+
+----------------------------------------
+
+TITLE: Configuring Claude Desktop (Node MCP Server - MacOS/Linux)
+DESCRIPTION: Configuration snippet for Claude for Desktop's `claude_desktop_config.json` file to define an MCP server. Specifies the server name, command (`node`), and arguments (path to the Node.js entry point) for MacOS/Linux systems. Required for Claude Desktop to recognize and launch the specified MCP server.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_92
+
+LANGUAGE: json
+CODE:
+```
+{
+    "mcpServers": {
+        "weather": {
+            "command": "node",
+            "args": [
+                "/ABSOLUTE/PATH/TO/PARENT/FOLDER/weather/build/index.js"
+            ]
+        }
+    }
+}
+```
+
+----------------------------------------
+
+TITLE: Initializing Spring AI ChatClient with MCP Tools (Java)
+DESCRIPTION: Demonstrates how to build a Spring AI `ChatClient` configured to use the Anthropic model and integrate tools provided by the MCP client via `mcpToolAdapter.toolCallbacks()`. It also sets a system prompt and adds chat memory.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_69
+
+LANGUAGE: java
+CODE:
+```
+var chatClient = chatClientBuilder
+    .defaultSystem("You are useful assistant, expert in AI and Java.")
+    .defaultTools((Object[]) mcpToolAdapter.toolCallbacks())
+    .defaultAdvisors(new MessageChatMemoryAdvisor(new InMemoryChatMemory()))
+    .build();
+```
+
+----------------------------------------
+
+TITLE: Implementing Python MCP Tools for Weather Data
+DESCRIPTION: This code defines two MCP tools, `get_alerts` and `get_forecast`, using the `@mcp.tool()` decorator. These asynchronous functions use the helper functions to fetch weather alerts by state code and forecasts by latitude/longitude from the NWS API, formatting the results into strings.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_77
+
+LANGUAGE: python
+CODE:
+```
+@mcp.tool()
+async def get_alerts(state: str) -> str:
+    """Get weather alerts for a US state.
+
+    Args:
+        state: Two-letter US state code (e.g. CA, NY)
+    """
+    url = f"{NWS_API_BASE}/alerts/active/area/{state}"
+    data = await make_nws_request(url)
+
+    if not data or "features" not in data:
+        return "Unable to fetch alerts or no alerts found."
+
+    if not data["features"]:
+        return "No active alerts for this state."
+
+    alerts = [format_alert(feature) for feature in data["features"]]
+    return "\n---\n".join(alerts)
+
+@mcp.tool()
+async def get_forecast(latitude: float, longitude: float) -> str:
+    """Get weather forecast for a location.
+
+    Args:
+        latitude: Latitude of the location
+        longitude: Longitude of the location
+    """
+    # First get the forecast grid endpoint
+    points_url = f"{NWS_API_BASE}/points/{latitude},{longitude}"
+    points_data = await make_nws_request(points_url)
+
+    if not points_data:
+        return "Unable to fetch forecast data for this location."
+
+    # Get the forecast URL from the points response
+    forecast_url = points_data["properties"]["forecast"]
+    forecast_data = await make_nws_request(forecast_url)
+
+    if not forecast_data:
+        return "Unable to fetch detailed forecast."
+
+    # Format the periods into a readable forecast
+    periods = forecast_data["properties"]["periods"]
+    forecasts = []
+    for period in periods[:5]:  # Only show next 5 periods
+        forecast = f"""
+{period['name']}:
+Temperature: {period['temperature']}°{period['temperatureUnit']}
+Wind: {period['windSpeed']} {period['windDirection']}
+Forecast: {period['detailedForecast']}
+"""
+        forecasts.append(forecast)
+
+    return "\n---\n".join(forecasts)
+```
+
+----------------------------------------
+
+TITLE: Implementing MCP Resource Handlers and Server Startup (Python)
+DESCRIPTION: Provides a Python example using decorators (`@app.list_resources()`, `@app.read_resource()`) to define resource handlers in an MCP server. It shows returning a list of resources and reading content based on the requested URI, including the necessary code to start the server using standard I/O streams.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_17
+
+LANGUAGE: python
+CODE:
+```
+app = Server("example-server")
+
+@app.list_resources()
+async def list_resources() -> list[types.Resource]:
+    return [
+        types.Resource(
+            uri="file:///logs/app.log",
+            name="Application Logs",
+            mimeType="text/plain"
+        )
+    ]
+
+@app.read_resource()
+async def read_resource(uri: AnyUrl) -> str:
+    if str(uri) == "file:///logs/app.log":
+        log_contents = await read_log_file()
+        return log_contents
+
+    raise ValueError("Resource not found")
+
+# Start server
+async with stdio_server() as streams:
+    await app.run(
+        streams[0],
+        streams[1],
+        app.create_initialization_options()
+    )
+```
+
+----------------------------------------
+
+TITLE: Creating and Using MCP Sync Client - Java
+DESCRIPTION: Demonstrates the creation of an MCP synchronous client with custom configuration (timeout, capabilities) and usage examples including initialization, listing and calling tools, listing and reading resources, listing and getting prompts, adding and removing roots, and gracefully closing the client. Requires an McpTransport instance.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_118
+
+LANGUAGE: java
+CODE:
+```
+// Create a sync client with custom configuration
+McpSyncClient client = McpClient.sync(transport)
+    .requestTimeout(Duration.ofSeconds(10))
+    .capabilities(ClientCapabilities.builder()
+        .roots(true)      // Enable roots capability
+        .sampling()       // Enable sampling capability
+        .build())
+    .sampling(request -> new CreateMessageResult(response))
+    .build();
+
+// Initialize connection
+client.initialize();
+
+// List available tools
+ListToolsResult tools = client.listTools();
+
+// Call a tool
+CallToolResult result = client.callTool(
+    new CallToolRequest("calculator",
+        Map.of("operation", "add", "a", 2, "b", 3))
+);
+
+// List and read resources
+ListResourcesResult resources = client.listResources();
+ReadResourceResult resource = client.readResource(
+    new ReadResourceRequest("resource://uri")
+);
+
+// List and use prompts
+ListPromptsResult prompts = client.listPrompts();
+GetPromptResult prompt = client.getPrompt(
+    new GetPromptRequest("greeting", Map.of("name", "Spring"))
+);
+
+// Add/remove roots
+client.addRoot(new Root("file:///path", "description"));
+client.removeRoot("file:///path");
+
+// Close client
+client.closeGracefully();
+```
+
+----------------------------------------
+
+TITLE: Defining MCP Sampling Request Parameters (TypeScript)
+DESCRIPTION: Defines the TypeScript interface for the parameters used in an `sampling/createMessage` request sent from an MCP server to a client. It details the structure for messages (text/image), model preferences, system prompt, context inclusion, sampling parameters like temperature and max tokens, stop sequences, and optional metadata.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_19
+
+LANGUAGE: typescript
+CODE:
+```
+{
+  messages: [
+    {
+      role: "user" | "assistant",
+      content: {
+        type: "text" | "image",
+
+        // For text:
+        text?: string,
+
+        // For images:
+        data?: string,             // base64 encoded
+        mimeType?: string
+      }
+    }
+  ],
+  modelPreferences?: {
+    hints?: [{
+      name?: string                // Suggested model name/family
+    }],
+    costPriority?: number,         // 0-1, importance of minimizing cost
+    speedPriority?: number,        // 0-1, importance of low latency
+    intelligencePriority?: number  // 0-1, importance of capabilities
+  },
+  systemPrompt?: string,
+  includeContext?: "none" | "thisServer" | "allServers",
+  temperature?: number,
+  maxTokens: number,
+  stopSequences?: string[],
+  metadata?: Record<string, unknown>
+}
+```
+
+----------------------------------------
+
+TITLE: Defining Protocol Methods - TypeScript
+DESCRIPTION: Shows the core methods of the `Protocol` class for handling incoming and outgoing requests and notifications within the MCP protocol layer. It defines methods for setting request and notification handlers (`setRequestHandler`, `setNotificationHandler`) and sending messages (`request`, `notification`), facilitating communication between parties.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_0
+
+LANGUAGE: typescript
+CODE:
+```
+class Protocol<Request, Notification, Result> {
+    // Handle incoming requests
+    setRequestHandler<T>(schema: T, handler: (request: T, extra: RequestHandlerExtra) => Promise<Result>): void
+
+    // Handle incoming notifications
+    setNotificationHandler<T>(schema: T, handler: (notification: T) => Promise<void>): void
+
+    // Send requests and await responses
+    request<T>(request: Request, schema: T, options?: RequestOptions): Promise<T>
+
+    // Send one-way notifications
+    notification(notification: Notification): Promise<void>
+}
+```
+
+----------------------------------------
+
+TITLE: Configuring MCP Servers in Claude (JSON)
+DESCRIPTION: This JSON object illustrates the structure for configuring different MCP server instances within an application like Claude. It defines server entries by unique names (e.g., memory, filesystem, github), specifying the command to execute the server, any required command-line arguments, and environment variables necessary for the server's operation (like API tokens). This configuration allows the application to launch and manage the specified MCP servers.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_59
+
+LANGUAGE: json
+CODE:
+```
+{
+  "mcpServers": {
+    "memory": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-memory"]
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/path/to/allowed/files"]
+    },
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "<YOUR_TOKEN>"
+      }
+    }
+  }
+}
+```
+
+----------------------------------------
+
+TITLE: Running MCP Server - TypeScript
+DESCRIPTION: Implements the main entry point for the server application. It creates a StdioServerTransport, connects the McpServer instance to it, logs a message indicating the server is running, and includes error handling for the main execution path.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_89
+
+LANGUAGE: typescript
+CODE:
+```
+async function main() {
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
+  console.error("Weather MCP Server running on stdio");
+}
+
+main().catch((error) => {
+  console.error("Fatal error in main():", error);
+  process.exit(1);
+});
+```
+
+----------------------------------------
+
+TITLE: Defining MCP Tool Structure (TypeScript)
+DESCRIPTION: Specifies the fields required to define an MCP tool. It includes a unique name, an optional description, and a JSON Schema (`inputSchema`) defining the expected parameters for calling the tool. This structure guides clients and models on how to use the tool.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_22
+
+LANGUAGE: typescript
+CODE:
+```
+{
+  name: string;          // Unique identifier for the tool
+  description?: string;  // Human-readable description
+  inputSchema: {         // JSON Schema for the tool's parameters
+    type: "object",
+    properties: { ... }  // Tool-specific parameters
+  }
+}
+```
+
+----------------------------------------
+
+TITLE: Viewing MCP Logs in Claude Desktop (Bash)
+DESCRIPTION: Provides a Bash command to follow the last 20 lines of Claude Desktop's MCP log files (`mcp*.log`) in real-time. This is a crucial step for diagnosing connection issues, configuration errors, and runtime problems by directly inspecting the captured server output. Requires access to the user's home directory and the `tail` command.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_45
+
+LANGUAGE: bash
+CODE:
+```
+# Follow logs in real-time
+tail -n 20 -F ~/Library/Logs/Claude/mcp*.log
+```
+
+----------------------------------------
+
+TITLE: Responding with Embedded Resources (JSON)
+DESCRIPTION: This JSON example shows the 'messages' array returned by an MCP server for a dynamic prompt like "analyze-project". It includes a user message containing plain text followed by two user messages with 'resource' content, embedding log data and code file content directly within the response for the LLM to process.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_11
+
+LANGUAGE: json
+CODE:
+```
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": {
+        "type": "text",
+        "text": "Analyze these system logs and the code file for any issues:"
+      }
+    },
+    {
+      "role": "user",
+      "content": {
+        "type": "resource",
+        "resource": {
+          "uri": "logs://recent?timeframe=1h",
+          "text": "[2024-03-14 15:32:11] ERROR: Connection timeout in network.py:127\n[2024-03-14 15:32:15] WARN: Retrying connection (attempt 2/3)\n[2024-03-14 15:32:20] ERROR: Max retries exceeded",
+          "mimeType": "text/plain"
+        }
+      }
+    },
+    {
+      "role": "user",
+      "content": {
+        "type": "resource",
+        "resource": {
+          "uri": "file:///path/to/code.py",
+          "text": "def connect_to_service(timeout=30):\n    retries = 3\n    for attempt in range(retries):\n        try:\n            return establish_connection(timeout)\n        except TimeoutError:\n            if attempt == retries - 1:\n                raise\n            time.sleep(5)\n\ndef establish_connection(timeout):\n    # Connection implementation\n    pass",
+          "mimeType": "text/x-python"
+        }
+      }
+    }
+  ]
+}
+```
+
+----------------------------------------
+
+TITLE: Configuring Supabase MCP Server in Claude Desktop JSON
+DESCRIPTION: This JSON configuration snippet demonstrates how to add the Supabase MCP server within the Claude Desktop client's developer settings. It requires the absolute path to the server executable and allows setting environment variables crucial for connecting to the Supabase project.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/README.md#_snippet_12
+
+LANGUAGE: json
+CODE:
+```
+{
+  "mcpServers": {
+    "supabase": {
+      "command": "/full/path/to/supabase-mcp-server",  // Replace with the actual path from step 1
+      "env": {
+        "QUERY_API_KEY": "your-api-key",  // Required - get your API key at thequery.dev
+        "SUPABASE_PROJECT_REF": "your-project-ref",
+        "SUPABASE_DB_PASSWORD": "your-db-password",
+        "SUPABASE_REGION": "us-east-1",  // optional, defaults to us-east-1
+        "SUPABASE_ACCESS_TOKEN": "your-access-token",  // optional, for management API
+        "SUPABASE_SERVICE_ROLE_KEY": "your-service-role-key"  // optional, for Auth Admin SDK
+      }
+    }
+  }
+}
+```
+
+----------------------------------------
+
+TITLE: Registering Synchronous Tool Java
+DESCRIPTION: Provides an example of creating a SyncToolRegistration object for a synchronous tool. It involves defining the tool's metadata (name, description, arguments) and providing a lambda function for the tool's implementation that returns a CallToolResult synchronously.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_146
+
+LANGUAGE: java
+CODE:
+```
+// Sync tool registration
+var syncToolRegistration = new McpServerFeatures.SyncToolRegistration(
+    new Tool("calculator", "Basic calculator", Map.of(
+        "operation", "string",
+        "a", "number",
+        "b", "number"
+    )),
+    arguments -> {
+        // Tool implementation
+        return new CallToolResult(result, false);
+    }
+);
+```
+
+----------------------------------------
+
+TITLE: Defining MCP Completion Response Structure (TypeScript)
+DESCRIPTION: Specifies the required and optional fields for a completion result returned by an MCP client. It includes model information, stop reason, role, and the content structure which supports text, images, and potentially other types. Dependencies are the MCP protocol itself.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_20
+
+LANGUAGE: typescript
+CODE:
+```
+{
+  model: string,  // Name of the model used
+  stopReason?: "endTurn" | "stopSequence" | "maxTokens" | string,
+  role: "user" | "assistant",
+  content: {
+    type: "text" | "image",
+    text?: string,
+    data?: string,
+    mimeType?: string
+  }
+}
+```
+
+----------------------------------------
+
+TITLE: Configuring Supabase MCP Server in Cursor Bash
+DESCRIPTION: This snippet shows the configuration for adding the Supabase MCP server in the Cursor client's settings. It uses a key-value format similar to YAML, specifying the server name, type (command), and the command to execute the server, including options for pipx, uv, or a full path installation.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/README.md#_snippet_9
+
+LANGUAGE: bash
+CODE:
+```
+# can be set to any name
+name: supabase
+type: command
+# if you installed with pipx
+command: supabase-mcp-server
+# if you installed with uv
+command: uv run supabase-mcp-server
+# if the above doesn't work, use the full path (recommended)
+command: /full/path/to/supabase-mcp-server  # Find with 'which supabase-mcp-server' (macOS/Linux) or 'where supabase-mcp-server' (Windows)
+```
+
+----------------------------------------
+
+TITLE: Executing Tools with MCP Sync Client - Java
+DESCRIPTION: Demonstrates how to discover available tools and execute a specific tool using the synchronous MCP client API. Tools are identified by name and accept a map of parameters. The result of the tool execution is returned synchronously.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_126
+
+LANGUAGE: java
+CODE:
+```
+// List available tools and their names
+var tools = client.listTools();
+tools.forEach(tool -> System.out.println(tool.getName()));
+
+// Execute a tool with parameters
+var result = client.callTool("calculator", Map.of(
+    "operation", "add",
+    "a", 1,
+    "b", 2
+));
+```
+
+----------------------------------------
+
+TITLE: Implementing MCP Prompts Server (Python)
+DESCRIPTION: Shows a Python implementation of an MCP server supporting prompts using the `mcp.server` library. It defines the same sample prompts, uses decorators to route list and get prompt requests, and generates response objects containing chat messages based on the requested prompt and its arguments.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_14
+
+LANGUAGE: python
+CODE:
+```
+from mcp.server import Server
+import mcp.types as types
+
+# Define available prompts
+PROMPTS = {
+    "git-commit": types.Prompt(
+        name="git-commit",
+        description="Generate a Git commit message",
+        arguments=[
+            types.PromptArgument(
+                name="changes",
+                description="Git diff or description of changes",
+                required=True
+            )
+        ],
+    ),
+    "explain-code": types.Prompt(
+        name="explain-code",
+        description="Explain how code works",
+        arguments=[
+            types.PromptArgument(
+                name="code",
+                description="Code to explain",
+                required=True
+            ),
+            types.PromptArgument(
+                name="language",
+                description="Programming language",
+                required=False
+            )
+        ],
+    )
+}
+
+# Initialize server
+app = Server("example-prompts-server")
+
+@app.list_prompts()
+async def list_prompts() -> list[types.Prompt]:
+    return list(PROMPTS.values())
+
+@app.get_prompt()
+async def get_prompt(
+    name: str, arguments: dict[str, str] | None = None
+) -> types.GetPromptResult:
+    if name not in PROMPTS:
+        raise ValueError(f"Prompt not found: {name}")
+
+    if name == "git-commit":
+        changes = arguments.get("changes") if arguments else ""
+        return types.GetPromptResult(
+            messages=[
+                types.PromptMessage(
+                    role="user",
+                    content=types.TextContent(
+                        type="text",
+                        text=f"Generate a concise but descriptive commit message "
+                        f"for these changes:\n\n{changes}"
+                    )
+                )
+            ]
+        )
+
+    if name == "explain-code":
+        code = arguments.get("code") if arguments else ""
+        language = arguments.get("language", "Unknown") if arguments else "Unknown"
+        return types.GetPromptResult(
+            messages=[
+                types.PromptMessage(
+                    role="user",
+                    content=types.TextContent(
+                        type="text",
+                        text=f"Explain how this {language} code works:\n\n{code}"
+                    )
+                )
+            ]
+        )
+
+    raise ValueError("Prompt implementation not found")
+```
+
+----------------------------------------
+
+TITLE: Configuring and Initializing Async MCP Server Java
+DESCRIPTION: Shows the asynchronous equivalent of creating, configuring capabilities for, initializing (using reactive Mono), registering components, sending logging notifications, and closing an MCP server instance using the Java SDK. It uses Mono for asynchronous operations.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_139
+
+LANGUAGE: java
+CODE:
+```
+// Create an async server with custom configuration
+McpAsyncServer asyncServer = McpServer.async(transport)
+    .serverInfo("my-server", "1.0.0")
+    .capabilities(ServerCapabilities.builder()
+        .resources(true)     // Enable resource support
+        .tools(true)         // Enable tool support
+        .prompts(true)       // Enable prompt support
+        .logging()           // Enable logging support
+        .build())
+    .build();
+
+// Initialize the server
+asyncServer.initialize()
+    .doOnSuccess(v -> logger.info("Server initialized"))
+    .subscribe();
+
+// Register tools, resources, and prompts
+asyncServer.addTool(asyncToolRegistration)
+    .doOnSuccess(v -> logger.info("Tool registered"))
+    .subscribe();
+
+asyncServer.addResource(asyncResourceRegistration)
+    .doOnSuccess(v -> logger.info("Resource registered"))
+    .subscribe();
+
+asyncServer.addPrompt(asyncPromptRegistration)
+    .doOnSuccess(v -> logger.info("Prompt registered"))
+    .subscribe();
+
+// Send logging notifications
+asyncServer.loggingNotification(LoggingMessageNotification.builder()
+    .level(LoggingLevel.INFO)
+    .logger("custom-logger")
+    .data("Server initialized")
+    .build());
+
+// Close the server when done
+asyncServer.close()
+    .doOnSuccess(v -> logger.info("Server closed"))
+    .subscribe();
+```
+
+----------------------------------------
+
+TITLE: Example MCP Data Processing Tool (TypeScript)
+DESCRIPTION: Shows a tool definition structure for analyzing a CSV file. It defines the tool name ("analyze_csv"), description, and the expected parameters (`filepath` string and `operations` array with enum values) via `inputSchema` using JSON Schema.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_27
+
+LANGUAGE: typescript
+CODE:
+```
+{
+  name: "analyze_csv",
+  description: "Analyze a CSV file",
+  inputSchema: {
+    type: "object",
+    properties: {
+      filepath: { type: "string" },
+      operations: {
+        type: "array",
+        items: {
+          enum: ["sum", "average", "count"]
+        }
+      }
+    }
+  }
+}
+```
+
+----------------------------------------
+
+TITLE: Defining Dynamic Prompt Arguments (JSON)
+DESCRIPTION: This JSON structure defines a prompt named "analyze-project" with two required arguments: 'timeframe' and 'fileUri'. This demonstrates how prompt definitions can specify arguments that clients must provide when requesting the prompt.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_10
+
+LANGUAGE: json
+CODE:
+```
+{
+  "name": "analyze-project",
+  "description": "Analyze project logs and code",
+  "arguments": [
+    {
+      "name": "timeframe",
+      "description": "Time period to analyze logs",
+      "required": true
+    },
+    {
+      "name": "fileUri",
+      "description": "URI of code file to review",
+      "required": true
+    }
+  ]
+}
+```
+
+----------------------------------------
+
+TITLE: Implementing MCP Resource Handlers (TypeScript)
+DESCRIPTION: Demonstrates how to set up an MCP server instance with resource capabilities and implement request handlers for `ListResourcesRequestSchema` and `ReadResourceRequestSchema`. The example shows returning a static list of resources and reading the content of a specific log file URI, throwing an error if the resource is not found.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_16
+
+LANGUAGE: typescript
+CODE:
+```
+const server = new Server({
+  name: "example-server",
+  version: "1.0.0"
+}, {
+  capabilities: {
+    resources: {}
+  }
+});
+
+// List available resources
+server.setRequestHandler(ListResourcesRequestSchema, async () => {
+  return {
+    resources: [
+      {
+        uri: "file:///logs/app.log",
+        name: "Application Logs",
+        mimeType: "text/plain"
+      }
+    ]
+  };
+});
+
+// Read resource contents
+server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+  const uri = request.params.uri;
+
+  if (uri === "file:///logs/app.log") {
+    const logContents = await readLogFile();
+    return {
+      contents: [
+        {
+          uri,
+          mimeType: "text/plain",
+          text: logContents
+        }
+      ]
+    };
+  }
+
+  throw new Error("Resource not found");
+});
+```
+
+----------------------------------------
+
+TITLE: Using Java MCP Client to Interact with Server
+DESCRIPTION: Java code demonstrating how to create a synchronous MCP client (`McpClient`) using `StdioClientTransport`. It shows initializing the client, listing available tools, calling specific tools (`getWeatherForecastByLocation`, `getAlerts`) with parameters using `CallToolRequest` and `Map.of`, and finally closing the client gracefully. Requires the MCP client library.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_105
+
+LANGUAGE: java
+CODE:
+```
+var stdioParams = ServerParameters.builder("java")
+  .args("-jar", "/ABSOLUTE/PATH/TO/PARENT/FOLDER/mcp-weather-stdio-server-0.0.1-SNAPSHOT.jar")
+  .build();
+
+var stdioTransport = new StdioClientTransport(stdioParams);
+
+var mcpClient = McpClient.sync(stdioTransport).build();
+
+mcpClient.initialize();
+
+ListToolsResult toolsList = mcpClient.listTools();
+
+CallToolResult weather = mcpClient.callTool(
+  new CallToolRequest("getWeatherForecastByLocation",
+      Map.of("latitude", "47.6062", "longitude", "-122.3321")));
+
+CallToolResult alert = mcpClient.callTool(
+  new CallToolRequest("getAlerts", Map.of("state", "NY")));
+
+mcpClient.closeGracefully();
+```
+
+----------------------------------------
+
+TITLE: Example MCP API Integration Tool (TypeScript)
+DESCRIPTION: Shows a tool definition structure for creating a GitHub issue via an API. It defines the tool name ("github_create_issue"), description, and the expected parameters (`title`, `body` strings, and optional `labels` array of strings) via `inputSchema` using JSON Schema.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_26
+
+LANGUAGE: typescript
+CODE:
+```
+{
+  name: "github_create_issue",
+  description: "Create a GitHub issue",
+  inputSchema: {
+    type: "object",
+    properties: {
+      title: { type: "string" },
+      body: { type: "string" },
+      labels: { type: "array", items: { type: "string" } }
+    }
+  }
+}
+```
+
+----------------------------------------
+
+TITLE: Implementing MCP Prompts Server (TypeScript)
+DESCRIPTION: Provides a TypeScript example for creating an MCP server that handles prompt requests using the `@modelcontextprotocol/sdk/server` library. It defines sample prompts, sets up request handlers for listing prompts and retrieving specific prompt details, and generates chat messages based on the prompt type and provided arguments.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_13
+
+LANGUAGE: typescript
+CODE:
+```
+import { Server } from "@modelcontextprotocol/sdk/server";
+import {
+  ListPromptsRequestSchema,
+  GetPromptRequestSchema
+} from "@modelcontextprotocol/sdk/types";
+
+const PROMPTS = {
+  "git-commit": {
+    name: "git-commit",
+    description: "Generate a Git commit message",
+    arguments: [
+      {
+        name: "changes",
+        description: "Git diff or description of changes",
+        required: true
+      }
+    ]
+  },
+  "explain-code": {
+    name: "explain-code",
+    description: "Explain how code works",
+    arguments: [
+      {
+        name: "code",
+        description: "Code to explain",
+        required: true
+      },
+      {
+        name: "language",
+        description: "Programming language",
+        required: false
+      }
+    ]
+  }
+};
+
+const server = new Server({
+  name: "example-prompts-server",
+  version: "1.0.0"
+}, {
+  capabilities: {
+    prompts: {}
+  }
+});
+
+// List available prompts
+server.setRequestHandler(ListPromptsRequestSchema, async () => {
+  return {
+    prompts: Object.values(PROMPTS)
+  };
+});
+
+// Get specific prompt
+server.setRequestHandler(GetPromptRequestSchema, async (request) => {
+  const prompt = PROMPTS[request.params.name];
+  if (!prompt) {
+    throw new Error(`Prompt not found: ${request.params.name}`);
+  }
+
+  if (request.params.name === "git-commit") {
+    return {
+      messages: [
+        {
+          role: "user",
+          content: {
+            type: "text",
+            text: `Generate a concise but descriptive commit message for these changes:\n\n${request.params.arguments?.changes}`
+          }
+        }
+      ]
+    };
+  }
+
+  if (request.params.name === "explain-code") {
+    const language = request.params.arguments?.language || "Unknown";
+    return {
+      messages: [
+        {
+          role: "user",
+          content: {
+            type: "text",
+            text: `Explain how this ${language} code works:\n\n${request.params.arguments?.code}`
+          }
+        }
+      ]
+    };
+  }
+
+  throw new Error("Prompt implementation not found");
+});
+```
+
+----------------------------------------
+
+TITLE: Configuring MCP Server with Environment Variables (JSON)
+DESCRIPTION: Shows how to specify custom environment variables for an MCP server launched via `claude_desktop_config.json` using the `env` key. This allows overriding default variables or providing necessary configuration values and secrets (like API keys) specifically for that server process. Requires providing key-value pairs within the `env` object.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_48
+
+LANGUAGE: json
+CODE:
+```
+{
+  "myserver": {
+    "command": "mcp-server-myapp",
+    "env": {
+      "MYAPP_API_KEY": "some_key"
+    }
+  }
+}
+```
+
+----------------------------------------
+
+TITLE: Initialize MCP Client with SSE Transport TypeScript
+DESCRIPTION: Shows how to create an MCP client instance and connect it to an SSE transport in TypeScript. The client is configured with the URL of the SSE endpoint provided by the server.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_38
+
+LANGUAGE: typescript
+CODE:
+```
+const client = new Client({
+  name: "example-client",
+  version: "1.0.0"
+}, {
+  capabilities: {}
+});
+
+const transport = new SSEClientTransport(
+  new URL("http://localhost:3000/sse")
+);
+await client.connect(transport);
+```
+
+----------------------------------------
+
+TITLE: Getting MCP Prompt Details Response (TypeScript)
+DESCRIPTION: This TypeScript snippet provides an example of the JSON-RPC response returned by an MCP server for a 'prompts/get' request. It includes the prompt's description and an array of 'messages' formatted for use with an LLM, including roles and content which can be text or resources.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_9
+
+LANGUAGE: json
+CODE:
+```
+{
+  description: "Analyze Python code for potential improvements",
+  messages: [
+    {
+      role: "user",
+      content: {
+        type: "text",
+        text: "Please analyze the following Python code for potential improvements:\n\n```python\ndef calculate_sum(numbers):\n    total = 0\n    for num in numbers:\n        total = total + num\n    return total\n\nresult = calculate_sum([1, 2, 3, 4, 5])\nprint(result)\n```"
+      }
+    }
+  ]
+}
+```
+
+----------------------------------------
+
+TITLE: Registering Asynchronous Tool Java
+DESCRIPTION: Shows how to create an AsyncToolRegistration object for an asynchronous tool. It defines the tool's metadata and provides a lambda implementation that returns a Mono<CallToolResult>, indicating an asynchronous operation.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_147
+
+LANGUAGE: java
+CODE:
+```
+// Async tool registration
+var asyncToolRegistration = new McpServerFeatures.AsyncToolRegistration(
+    new Tool("calculator", "Basic calculator", Map.of(
+        "operation", "string",
+        "a", "number",
+        "b", "number"
+    )),
+    arguments -> {
+        // Tool implementation
+        return Mono.just(new CallToolResult(result, false));
+    }
+);
+```
+
+----------------------------------------
+
+TITLE: Getting MCP Prompt Details Request (TypeScript)
+DESCRIPTION: This TypeScript snippet shows the JSON-RPC request used by a client to fetch the full details and messages for a specific MCP prompt. It requires the prompt's 'name' and an 'arguments' object containing values for the required prompt arguments.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_8
+
+LANGUAGE: json
+CODE:
+```
+{
+  method: "prompts/get",
+  params: {
+    name: "analyze-code",
+    arguments: {
+      language: "python"
+    }
+  }
+}
+```
+
+----------------------------------------
+
+TITLE: Accessing Resources with MCP Sync Client - Java
+DESCRIPTION: Demonstrates how to list available server-side resources and retrieve the content of a specific resource using the synchronous MCP client API. Resources are accessed using a name and potentially parameters that define the URI template.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_128
+
+LANGUAGE: java
+CODE:
+```
+// List available resources and their names
+var resources = client.listResources();
+resources.forEach(resource -> System.out.println(resource.getName()));
+
+// Retrieve resource content using a URI template
+var content = client.getResource("file", Map.of(
+    "path", "/path/to/file.txt"
+));
+```
+
+----------------------------------------
+
+TITLE: Configuring and Initializing Sync MCP Server Java
+DESCRIPTION: Demonstrates how to create, configure capabilities for (resources, tools, prompts, logging), initialize, register components (tools, resources, prompts), send logging notifications, and close a synchronous MCP server instance using the Java SDK.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_138
+
+LANGUAGE: java
+CODE:
+```
+// Create a server with custom configuration
+McpSyncServer syncServer = McpServer.sync(transport)
+    .serverInfo("my-server", "1.0.0")
+    .capabilities(ServerCapabilities.builder()
+        .resources(true)     // Enable resource support
+        .tools(true)         // Enable tool support
+        .prompts(true)       // Enable prompt support
+        .logging()           // Enable logging support
+        .build())
+    .build();
+
+// Initialize the server
+syncServer.initialize();
+
+// Register tools, resources, and prompts
+syncServer.addTool(syncToolRegistration);
+syncServer.addResource(syncResourceRegistration);
+syncServer.addPrompt(syncPromptRegistration);
+
+// Send logging notifications
+syncServer.loggingNotification(LoggingMessageNotification.builder()
+    .level(LoggingLevel.INFO)
+    .logger("custom-logger")
+    .data("Server initialized")
+    .build());
+
+// Close the server when done
+syncServer.close();
+```
+
+----------------------------------------
+
+TITLE: Defining MCP Resource Read Response Structure (TypeScript)
+DESCRIPTION: Defines the expected structure for the response payload when an MCP client requests resources using `resources/read`. It includes an array of `contents`, each specifying a URI, optional MIME type, and either `text` or `blob` (base64 encoded) data for text or binary resources respectively.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_15
+
+LANGUAGE: typescript
+CODE:
+```
+{
+  contents: [
+    {
+      uri: string;        // The URI of the resource
+      mimeType?: string;  // Optional MIME type
+
+      // One of:
+      text?: string;      // For text resources
+      blob?: string;      // For binary resources (base64 encoded)
+    }
+  ]
+}
+```
+
+----------------------------------------
+
+TITLE: Implementing MCP Tool Handlers (Python)
+DESCRIPTION: Provides a basic example of an MCP server implementation in Python that exposes and handles a simple "calculate_sum" tool. It uses decorators (`@app.list_tools()`, `@app.call_tool()`) to register the handler functions and demonstrates defining the tool structure and handling tool arguments. Requires an MCP server library (specifically one like the Python `modelcontextprotocol` library).
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_24
+
+LANGUAGE: python
+CODE:
+```
+app = Server("example-server")
+
+@app.list_tools()
+async def list_tools() -> list[types.Tool]:
+    return [
+        types.Tool(
+            name="calculate_sum",
+            description="Add two numbers together",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "a": {"type": "number"},
+                    "b": {"type": "number"}
+                },
+                "required": ["a", "b"]
+            }
+        )
+    ]
+
+@app.call_tool(
+    name: str,
+    arguments: dict
+) -> list[types.TextContent | types.ImageContent | types.EmbeddedResource]:
+    if name == "calculate_sum":
+        a = arguments["a"]
+        b = arguments["b"]
+        result = a + b
+        return [types.TextContent(type="text", text=str(result))]
+    raise ValueError(f"Tool not found: {name}")
+```
+
+----------------------------------------
+
+TITLE: Executing Tools with MCP Async Client - Java
+DESCRIPTION: Demonstrates how to asynchronously discover available tools and execute a specific tool using the asynchronous MCP client API. Operations return reactive types (Mono) that can be subscribed to handle results. Tools are identified by name and accept a map of parameters.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_127
+
+LANGUAGE: java
+CODE:
+```
+// List available tools asynchronously
+client.listTools()
+    .doOnNext(tools -> tools.forEach(tool ->
+        System.out.println(tool.getName())))
+    .subscribe();
+
+// Execute a tool asynchronously
+client.callTool("calculator", Map.of(
+        "operation", "add",
+        "a", 1,
+        "b", 2
+    ))
+    .subscribe();
+```
+
+----------------------------------------
+
+TITLE: Handle Tool Errors in Result Object TypeScript
+DESCRIPTION: Demonstrates proper error handling for MCP tools in TypeScript. It shows a try-catch block where successful operations return a result object with content, while errors result in an object with `isError` set to true and error details in the content array.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_28
+
+LANGUAGE: typescript
+CODE:
+```
+try {
+  // Tool operation
+  const result = performOperation();
+  return {
+    content: [
+      {
+        type: "text",
+        text: `Operation successful: ${result}`
+      }
+    ]
+  };
+} catch (error) {
+  return {
+    isError: true,
+    content: [
+      {
+        type: "text",
+        text: `Error: ${error.message}`
+      }
+    ]
+  };
+}
+```
+
+----------------------------------------
+
+TITLE: Configuring MCP Client Server Configuration File (Properties)
+DESCRIPTION: This snippet sets a Spring Boot property to point the MCP client to a specific JSON configuration file (`claude_desktop_config.json`). This file contains the details needed for the client to discover and connect to available MCP servers.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_107
+
+LANGUAGE: Properties
+CODE:
+```
+spring.ai.mcp.client.stdio.servers-configuration=file:PATH/TO/claude_desktop_config.json
+```
+
+----------------------------------------
+
+TITLE: Example MCP Sampling Request (JSON)
+DESCRIPTION: Demonstrates the payload structure for requesting sampling from an MCP client. It shows how to provide user messages, a system prompt, context inclusion settings, and token limits. The key method is "sampling/createMessage".
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_21
+
+LANGUAGE: json
+CODE:
+```
+{
+  "method": "sampling/createMessage",
+  "params": {
+    "messages": [
+      {
+        "role": "user",
+        "content": {
+          "type": "text",
+          "text": "What files are in the current directory?"
+        }
+      }
+    ],
+    "systemPrompt": "You are a helpful file system assistant.",
+    "includeContext": "thisServer",
+    "maxTokens": 100
+  }
+}
+```
+
+----------------------------------------
+
+TITLE: Implementing Helper Functions - TypeScript
+DESCRIPTION: Defines asynchronous helper functions makeNWSRequest for fetching data from the NWS API with appropriate headers and error handling, and formatAlert for formatting weather alert data into a readable string. Also defines TypeScript interfaces for the expected NWS API response structures.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_87
+
+LANGUAGE: typescript
+CODE:
+```
+// Helper function for making NWS API requests
+async function makeNWSRequest<T>(url: string): Promise<T | null> {
+  const headers = {
+    "User-Agent": USER_AGENT,
+    Accept: "application/geo+json",
+  };
+
+  try {
+    const response = await fetch(url, { headers });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return (await response.json()) as T;
+  } catch (error) {
+    console.error("Error making NWS request:", error);
+    return null;
+  }
+}
+
+interface AlertFeature {
+  properties: {
+    event?: string;
+    areaDesc?: string;
+    severity?: string;
+    status?: string;
+    headline?: string;
+  };
+}
+
+// Format alert data
+function formatAlert(feature: AlertFeature): string {
+  const props = feature.properties;
+  return [
+    `Event: ${props.event || "Unknown"}`,
+    `Area: ${props.areaDesc || "Unknown"}`,
+    `Severity: ${props.severity || "Unknown"}`,
+    `Status: ${props.status || "Unknown"}`,
+    `Headline: ${props.headline || "No headline"}`,
+    "---",
+  ].join("\n");
+}
+
+interface ForecastPeriod {
+  name?: string;
+  temperature?: number;
+  temperatureUnit?: string;
+  windSpeed?: string;
+  windDirection?: string;
+  shortForecast?: string;
+}
+
+interface AlertsResponse {
+  features: AlertFeature[];
+}
+
+interface PointsResponse {
+  properties: {
+    forecast?: string;
+  };
+}
+
+interface ForecastResponse {
+  properties: {
+    periods: ForecastPeriod[];
+  };
+}
+```
+
+----------------------------------------
+
+TITLE: Accessing Resources with MCP Async Client - Java
+DESCRIPTION: Demonstrates how to asynchronously list available server-side resources and retrieve the content of a specific resource using the asynchronous MCP client API. Operations return reactive types (Mono) that can be subscribed to handle results. Resources are accessed using a name and potentially parameters that define the URI template.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_129
+
+LANGUAGE: java
+CODE:
+```
+// List available resources asynchronously
+client.listResources()
+    .doOnNext(resources -> resources.forEach(resource ->
+        System.out.println(resource.getName())))
+    .subscribe();
+
+// Retrieve resource content asynchronously
+client.getResource("file", Map.of(
+            "path", "/path/to/file.txt"
+        ))
+        .subscribe();
+```
+
+----------------------------------------
+
+TITLE: Creating STDIO Server Transport Java
+DESCRIPTION: Illustrates how to create an in-process server transport using StdioServerTransport. This transport facilitates bidirectional JSON-RPC communication over standard input/output streams, suitable for process-based integration.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_140
+
+LANGUAGE: java
+CODE:
+```
+StdioServerTransport transport = new StdioServerTransport(new ObjectMapper());
+```
+
+----------------------------------------
+
+TITLE: Example MCP System Operation Tool (TypeScript)
+DESCRIPTION: Shows a tool definition structure for executing shell commands. It specifies the tool name ("execute_command"), description, and the expected parameters (`command` string and optional `args` array of strings) via `inputSchema` using JSON Schema.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_25
+
+LANGUAGE: typescript
+CODE:
+```
+{
+  name: "execute_command",
+  description: "Run a shell command",
+  inputSchema: {
+    type: "object",
+    properties: {
+      command: { type: "string" },
+      args: { type: "array", items: { type: "string" } }
+    }
+  }
+}
+```
+
+----------------------------------------
+
+TITLE: Interacting with MCP Prompt System (Sync) - Java
+DESCRIPTION: This Java snippet demonstrates how to use the synchronous API of the MCP client to list available prompt templates and execute a specific template ('echo') with custom parameters. It requires an initialized MCP client instance.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_130
+
+LANGUAGE: java
+CODE:
+```
+// List available prompt templates
+var prompts = client.listPrompts();
+prompts.forEach(prompt -> System.out.println(prompt.getName()));
+
+// Execute a prompt template with parameters
+var response = client.executePrompt("echo", Map.of(
+    "text", "Hello, World!"
+));
+```
+
+----------------------------------------
+
+TITLE: Run MCP Server with Stdio Transport Python
+DESCRIPTION: Demonstrates setting up and running an MCP server using the stdio transport in Python. It uses an async context manager (`stdio_server`) to obtain the input/output streams and runs the server application with these streams.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_35
+
+LANGUAGE: python
+CODE:
+```
+app = Server("example-server")
+
+async with stdio_server() as streams:
+    await app.run(
+        streams[0],
+        streams[1],
+        app.create_initialization_options()
+    )
+```
+
+----------------------------------------
+
+TITLE: Interacting with MCP Prompt System (Async) - Java
+DESCRIPTION: This Java snippet shows the asynchronous API for interacting with the MCP prompt system. It demonstrates listing prompt templates and executing a template using reactive streams, specifically Project Reactor, where operations return Monos or Fluxes and require subscription to trigger execution.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_131
+
+LANGUAGE: java
+CODE:
+```
+// List available prompt templates asynchronously
+client.listPrompts()
+    .doOnNext(prompts -> prompts.forEach(prompt ->
+        System.out.println(prompt.getName())))
+    .subscribe();
+
+// Execute a prompt template asynchronously
+client.executePrompt("echo", Map.of(
+        "text", "Hello, World!"
+    ))
+    .subscribe();
+```
+
+----------------------------------------
+
+TITLE: Creating WebFlux SSE MCP Client Transport - Java
+DESCRIPTION: Creates an MCP transport implementation based on Spring WebFlux for Server-Sent Events (SSE) communication. This transport requires the 'mcp-webflux-sse-transport' dependency and utilizes a WebClient.Builder for configuration.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_122
+
+LANGUAGE: java
+CODE:
+```
+WebClient.Builder webClientBuilder = WebClient.builder()
+    .baseUrl("http://your-mcp-server");
+McpTransport transport = new WebFluxSseClientTransport(webClientBuilder);
+```
+
+----------------------------------------
+
+TITLE: Configuring WebMvc SSE Server Transport Java
+DESCRIPTION: Presents a Spring @Configuration example using @EnableWebMvc to configure the WebMvcSseServerTransport. It demonstrates creating the transport bean and its RouterFunction for integration with traditional Spring WebMVC applications. Requires the mcp-spring-webmvc dependency.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_142
+
+LANGUAGE: java
+CODE:
+```
+@Configuration
+@EnableWebMvc
+class McpConfig {
+    @Bean
+    WebMvcSseServerTransport webMvcSseServerTransport(ObjectMapper mapper) {
+        return new WebMvcSseServerTransport(mapper, "/mcp/message");
+    }
+
+    @Bean
+    RouterFunction<ServerResponse> mcpRouterFunction(WebMvcSseServerTransport transport) {
+        return transport.getRouterFunction();
+    }
+}
+```
+
+----------------------------------------
+
+TITLE: Defining Session Methods - Python
+DESCRIPTION: Illustrates the core methods of the `Session` class used for managing the communication session in the Python MCP SDK. It includes asynchronous methods for sending requests (`send_request`) and notifications (`send_notification`), and internal methods (`_received_request`, `_received_notification`) for handling messages received from the other side.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_1
+
+LANGUAGE: python
+CODE:
+```
+class Session(BaseSession[RequestT, NotificationT, ResultT]):
+    async def send_request(
+        self,
+        request: RequestT,
+        result_type: type[Result]
+    ) -> Result:
+        """
+        Send request and wait for response. Raises McpError if response contains error.
+        """
+        # Request handling implementation
+
+    async def send_notification(
+        self,
+        notification: NotificationT
+    ) -> None:
+        """Send one-way notification that doesn't expect response."""
+        # Notification handling implementation
+
+    async def _received_request(
+        self,
+        responder: RequestResponder[ReceiveRequestT, ResultT]
+    ) -> None:
+        """Handle incoming request from other side."""
+        # Request handling implementation
+
+    async def _received_notification(
+        self,
+        notification: ReceiveNotificationT
+    ) -> None:
+        """Handle incoming notification from other side."""
+        # Notification handling implementation
+```
+
+----------------------------------------
+
+TITLE: Defining Standard Error Codes - TypeScript
+DESCRIPTION: Defines the standard JSON-RPC error codes used by the Model Context Protocol as a TypeScript enum. These codes represent common errors like parsing issues, invalid requests, method not found, invalid parameters, and internal errors, providing a standardized way to report failures in MCP messages.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_2
+
+LANGUAGE: typescript
+CODE:
+```
+enum ErrorCode {
+  // Standard JSON-RPC error codes
+  ParseError = -32700,
+  InvalidRequest = -32600,
+  MethodNotFound = -32601,
+  InvalidParams = -32602,
+  InternalError = -32603
+}
+```
+
+----------------------------------------
+
+TITLE: Defining Multi-step Workflow Prompt Logic (TypeScript)
+DESCRIPTION: This TypeScript snippet defines a 'debugWorkflow' object that includes a 'getMessages' asynchronous function. This function illustrates how server-side logic can dynamically generate a multi-turn conversation ('messages' array) based on client input (like an 'error' string), creating a multi-step interaction for debugging.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_12
+
+LANGUAGE: typescript
+CODE:
+```
+const debugWorkflow = {
+  name: "debug-error",
+  async getMessages(error: string) {
+    return [
+      {
+        role: "user",
+        content: {
+          type: "text",
+          text: `Here's an error I'm seeing: ${error}`
+        }
+      },
+      {
+        role: "assistant",
+        content: {
+          type: "text",
+          text: "I'll help analyze this error. What have you tried so far?"
+        }
+      },
+      {
+        role: "user",
+        content: {
+          type: "text",
+          text: "I've tried restarting the service, but the error persists."
+        }
+      }
+    ];
+  }
+};
+```
+
+----------------------------------------
+
+TITLE: Handle Tool Errors in Result Object Python
+DESCRIPTION: Illustrates how MCP tools in Python should handle and report errors. It uses a try-except block to perform an operation; success returns a `CallToolResult` with content, while an exception returns a `CallToolResult` with `isError` set to True and the error message in the content.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_29
+
+LANGUAGE: python
+CODE:
+```
+try:
+    # Tool operation
+    result = perform_operation()
+    return types.CallToolResult(
+        content=[
+            types.TextContent(
+                type="text",
+                text=f"Operation successful: {result}"
+            )
+        ]
+    )
+except Exception as error:
+    return types.CallToolResult(
+        isError=True,
+        content=[
+            types.TextContent(
+                type="text",
+                text=f"Error: {str(error)}"
+            )
+        ]
+    )
+```
+
+----------------------------------------
+
+TITLE: Implement MCP Server with SSE Transport Python
+DESCRIPTION: Demonstrates setting up an MCP server using the SSE transport with Starlette in Python. It defines async handlers for the SSE connection endpoint (`/sse`) and the POST message endpoint (`/messages`) and routes them accordingly.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_39
+
+LANGUAGE: python
+CODE:
+```
+from mcp.server.sse import SseServerTransport
+from starlette.applications import Starlette
+from starlette.routing import Route
+
+app = Server("example-server")
+sse = SseServerTransport("/messages")
+
+async def handle_sse(scope, receive, send):
+    async with sse.connect_sse(scope, receive, send) as streams:
+        await app.run(streams[0], streams[1], app.create_initialization_options())
+
+async def handle_messages(scope, receive, send):
+    await sse.handle_post_message(scope, receive, send)
+
+starlette_app = Starlette(
+    routes=[
+        Route("/sse", endpoint=handle_sse),
+        Route("/messages", endpoint=handle_messages, methods=["POST"]),
+    ]
+)
+```
+
+----------------------------------------
+
+TITLE: Configuring Servlet SSE Server Transport with Spring Java
+DESCRIPTION: Shows how to configure the HttpServletSseServerTransport within a Spring WebMVC application context. It involves creating the transport bean and registering it as a Servlet using ServletRegistrationBean for compatibility with any Servlet container.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_143
+
+LANGUAGE: java
+CODE:
+```
+@Configuration
+@EnableWebMvc
+public class McpServerConfig implements WebMvcConfigurer {
+
+    @Bean
+    public HttpServletSseServerTransport servletSseServerTransport() {
+        return new HttpServletSseServerTransport(new ObjectMapper(), "/mcp/message");
+    }
+
+    @Bean
+    public ServletRegistrationBean customServletBean(HttpServletSseServerTransport servlet) {
+        return new ServletRegistrationBean(servlet);
+    }
+}
+```
+
+----------------------------------------
+
+TITLE: Implementing Transport Error Handling (TypeScript)
+DESCRIPTION: Demonstrates how to implement basic error handling within `start` and `send` methods of a TypeScript transport class. It shows catching errors, calling an `onerror` callback, and re-throwing the exception to ensure failures are reported and propagated. Requires a class implementing a `Transport` interface with an optional `onerror` method.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_43
+
+LANGUAGE: typescript
+CODE:
+```
+class ExampleTransport implements Transport {
+  onerror?: (error: Error) => void;
+
+  async start() {
+    try {
+      // Connection logic
+    } catch (error) {
+      this.onerror?.(new Error(`Failed to connect: ${error}`));
+      throw error;
+    }
+  }
+
+  async send(message: JSONRPCMessage) {
+    try {
+      // Sending logic
+    } catch (error) {
+      this.onerror?.(new Error(`Failed to send message: ${error}`));
+      throw error;
+    }
+  }
+}
+```
+
+----------------------------------------
+
+TITLE: Supabase MCP Server .env Configuration Example
+DESCRIPTION: Provides an example of the contents for a .env configuration file. This file is used by the server to load settings for connecting to Supabase, including database credentials, API keys, and service roles. Each line sets a specific environment variable used by the server. Prerequisites: Create or locate a .env file in a supported configuration location.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/README.md#_snippet_8
+
+LANGUAGE: dotenv
+CODE:
+```
+QUERY_API_KEY=your-api-key
+SUPABASE_PROJECT_REF=your-project-ref
+SUPABASE_DB_PASSWORD=your-db-password
+SUPABASE_REGION=us-east-1
+SUPABASE_ACCESS_TOKEN=your-access-token
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+```
+
+----------------------------------------
+
+TITLE: Configuring WebFlux SSE Server Transport Java
+DESCRIPTION: Provides a Spring @Configuration class example for setting up the WebFluxSseServerTransport. It shows how to create the transport bean and expose its routing function for integration with Spring WebFlux applications. Requires the mcp-spring-webflux dependency.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_141
+
+LANGUAGE: java
+CODE:
+```
+@Configuration
+class McpConfig {
+    @Bean
+    WebFluxSseServerTransport webFluxSseServerTransport(ObjectMapper mapper) {
+        return new WebFluxSseServerTransport(mapper, "/mcp/message");
+    }
+
+    @Bean
+    RouterFunction<?> mcpRouterFunction(WebFluxSseServerTransport transport) {
+        return transport.getRouterFunction();
+    }
+}
+```
+
+----------------------------------------
+
+TITLE: Running Python MCP Server with stdio Transport
+DESCRIPTION: This block is the standard Python entry point. When the script is executed directly, it initializes and runs the `FastMCP` server configured to use the 'stdio' transport, which allows communication over standard input/output.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_78
+
+LANGUAGE: python
+CODE:
+```
+if __name__ == "__main__":
+    # Initialize and run the server
+    mcp.run(transport='stdio')
+```
+
+----------------------------------------
+
+TITLE: Defining MCP Prompt Structure (TypeScript)
+DESCRIPTION: This TypeScript code defines the structure of an MCP Prompt object, including its unique name, optional human-readable description, and an optional array of argument definitions. Each argument has a name, optional description, and an optional required flag. This structure is used by servers to specify the capabilities of a prompt.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_5
+
+LANGUAGE: typescript
+CODE:
+```
+{
+  name: string;              // Unique identifier for the prompt
+  description?: string;      // Human-readable description
+  arguments?: [              // Optional list of arguments
+    {
+      name: string;          // Argument identifier
+      description?: string;  // Argument description
+      required?: boolean;    // Whether argument is required
+    }
+  ]
+}
+```
+
+----------------------------------------
+
+TITLE: Adding MCP Bill of Materials (BOM) - Gradle
+DESCRIPTION: This Gradle Groovy snippet shows how to add the MCP Bill of Materials (BOM) using Gradle's platform dependency handling. Including the BOM like `implementation platform("io.modelcontextprotocol.sdk:mcp-bom:0.7.0")` in the `dependencies` block allows version-less declarations for dependencies managed by the BOM, ensuring version consistency.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_137
+
+LANGUAGE: groovy
+CODE:
+```
+dependencies {
+  implementation platform("io.modelcontextprotocol.sdk:mcp-bom:0.7.0")
+  //...
+}
+```
+
+----------------------------------------
+
+TITLE: Implement MCP Server with SSE Transport TypeScript
+DESCRIPTION: Provides an example of implementing an MCP server using Server-Sent Events (SSE) with Express in TypeScript. It sets up routes to handle SSE connections (`/sse`) for server-to-client messages and POST requests (`/messages`) for client-to-server messages.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_37
+
+LANGUAGE: typescript
+CODE:
+```
+import express from "express";
+
+const app = express();
+
+const server = new Server({
+  name: "example-server",
+  version: "1.0.0"
+}, {
+  capabilities: {}
+});
+
+let transport: SSEServerTransport | null = null;
+
+app.get("/sse", (req, res) => {
+  transport = new SSEServerTransport("/messages", res);
+  server.connect(transport);
+});
+
+app.post("/messages", (req, res) => {
+  if (transport) {
+    transport.handlePostMessage(req, res);
+  }
+});
+
+app.listen(3000);
+```
+
+----------------------------------------
+
+TITLE: Initialize MCP Client with Stdio Transport TypeScript
+DESCRIPTION: Illustrates how to create an MCP client instance and connect it to a Standard Input/Output (stdio) transport in TypeScript. The client specifies the command and arguments to launch the server process it will communicate with.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_34
+
+LANGUAGE: typescript
+CODE:
+```
+const client = new Client({
+  name: "example-client",
+  version: "1.0.0"
+}, {
+  capabilities: {}
+});
+
+const transport = new StdioClientTransport({
+  command: "./server",
+  args: ["--option", "value"]
+});
+await client.connect(transport);
+```
+
+----------------------------------------
+
+TITLE: Registering Async Resource using Java MCP SDK
+DESCRIPTION: Illustrates asynchronous registration of a custom resource "custom://resource" using `McpServerFeatures.AsyncResourceRegistration`. This involves defining resource metadata and providing an asynchronous handler (a lambda returning `Mono<ReadResourceResult>`) to process read requests without blocking.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_149
+
+LANGUAGE: java
+CODE:
+```
+// Async resource registration
+var asyncResourceRegistration = new McpServerFeatures.AsyncResourceRegistration(
+    new Resource("custom://resource", "name", "description", "mime-type", null),
+    request -> {
+        // Resource read implementation
+        return Mono.just(new ReadResourceResult(contents));
+    }
+);
+```
+
+----------------------------------------
+
+TITLE: Creating STDIO MCP Client Transport - Java
+DESCRIPTION: Creates an MCP transport implementation for in-process communication, typically used for launching and interacting with a server process via its standard input/output streams. Requires ServerParameters specifying the command and arguments to launch the server.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_120
+
+LANGUAGE: java
+CODE:
+```
+ServerParameters params = ServerParameters.builder("npx")
+    .args("-y", "@modelcontextprotocol/server-everything", "dir")
+    .build();
+McpTransport transport = new StdioClientTransport(params);
+```
+
+----------------------------------------
+
+TITLE: Define JSON-RPC 2.0 Response Format
+DESCRIPTION: Outlines the standard JSON-RPC 2.0 format for response messages in MCP. It includes the protocol version, the request identifier, and either a result object for success or an error object containing code, message, and optional data.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_31
+
+LANGUAGE: json
+CODE:
+```
+{
+  "jsonrpc": "2.0",
+  "id": "number | string",
+  "result": "object",
+  "error": {
+    "code": "number",
+    "message": "string",
+    "data": "unknown"
+  }
+}
+```
+
+----------------------------------------
+
+TITLE: Initialize MCP Client with Stdio Transport Python
+DESCRIPTION: Shows how to initialize an MCP client session using the stdio transport in Python. It defines parameters for launching the server process and uses an async context manager (`stdio_client`) to connect and establish a client session.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_36
+
+LANGUAGE: python
+CODE:
+```
+params = StdioServerParameters(
+    command="./server",
+    args=["--option", "value"]
+)
+
+async with stdio_client(params) as streams:
+    async with ClientSession(streams[0], streams[1]) as session:
+        await session.initialize()
+```
+
+----------------------------------------
+
+TITLE: Listing MCP Prompts Response (TypeScript)
+DESCRIPTION: This TypeScript snippet illustrates the expected JSON-RPC response from an MCP server for a 'prompts/list' request. It contains a 'prompts' array, where each element describes an available prompt, including its name, description, and argument definitions.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_7
+
+LANGUAGE: json
+CODE:
+```
+{
+  prompts: [
+    {
+      name: "analyze-code",
+      description: "Analyze code for potential improvements",
+      arguments: [
+        {
+          name: "language",
+          description: "Programming language",
+          required: true
+        }
+      ]
+    }
+  ]
+}
+```
+
+----------------------------------------
+
+TITLE: Initialize MCP Server with Stdio Transport TypeScript
+DESCRIPTION: Shows how to create an MCP server instance and connect it to a Standard Input/Output (stdio) transport in TypeScript. This setup is suitable for local integrations and command-line tools communicating via stdin/stdout.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_33
+
+LANGUAGE: typescript
+CODE:
+```
+const server = new Server({
+  name: "example-server",
+  version: "1.0.0"
+}, {
+  capabilities: {}
+});
+
+const transport = new StdioServerTransport();
+await server.connect(transport);
+```
+
+----------------------------------------
+
+TITLE: Sending Log Message Notification (TypeScript)
+DESCRIPTION: Shows how to send a log message notification from an MCP server to the client application using the TypeScript server library. This is an alternative or supplement to logging to stderr, useful for transports other than stdio, allowing logs to be displayed in the client interface. Requires access to the server object.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_50
+
+LANGUAGE: typescript
+CODE:
+```
+server.sendLoggingMessage({
+  level: "info",
+  data: "Server started successfully",
+});
+```
+
+----------------------------------------
+
+TITLE: Implement Custom MCP Transport Interface Python
+DESCRIPTION: Illustrates the structure for implementing a custom MCP transport in Python using `anyio` streams and a context manager. It shows how to handle incoming messages (`read_stream`), outgoing messages (`write_stream`), error handling, and resource cleanup within an async task group.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_42
+
+LANGUAGE: python
+CODE:
+```
+@contextmanager
+async def create_transport(
+    read_stream: MemoryObjectReceiveStream[JSONRPCMessage | Exception],
+    write_stream: MemoryObjectSendStream[JSONRPCMessage]
+):
+    """
+    Transport interface for MCP.
+
+    Args:
+        read_stream: Stream to read incoming messages from
+        write_stream: Stream to write outgoing messages to
+    """
+    async with anyio.create_task_group() as tg:
+        try:
+            # Start processing messages
+            tg.start_soon(lambda: process_messages(read_stream))
+
+            # Send messages
+            async with write_stream:
+                yield write_stream
+
+        except Exception as exc:
+            # Handle errors
+            raise exc
+        finally:
+            # Clean up
+            tg.cancel_scope.cancel()
+            await write_stream.aclose()
+            await read_stream.aclose()
+```
+
+----------------------------------------
+
+TITLE: Declaring MCP Roots in Client Configuration (JSON)
+DESCRIPTION: Shows a JSON example of how an MCP client might declare a list of "roots" as part of its initialization options or configuration. This informs the server about the relevant resource URIs (like project directories or API endpoints) it should focus on and their optional display names.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_18
+
+LANGUAGE: json
+CODE:
+```
+{
+  "roots": [
+    {
+      "uri": "file:///home/user/projects/frontend",
+      "name": "Frontend Repository"
+    },
+    {
+      "uri": "https://api.example.com/v1",
+      "name": "API Endpoint"
+    }
+  ]
+}
+```
+
+----------------------------------------
+
+TITLE: Initializing MCP Server - TypeScript
+DESCRIPTION: Imports necessary classes from the MCP SDK and the zod library, defines base URLs and user agent, and creates an instance of the McpServer with a name and version for the weather application.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_86
+
+LANGUAGE: typescript
+CODE:
+```
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { z } from "zod";
+
+const NWS_API_BASE = "https://api.weather.gov";
+const USER_AGENT = "weather-app/1.0";
+
+// Create server instance
+const server = new McpServer({
+  name: "weather",
+  version: "1.0.0",
+});
+```
+
+----------------------------------------
+
+TITLE: Sending Log Message Notification (Python)
+DESCRIPTION: Demonstrates how to send a log message notification from an MCP server to the client application (e.g., Claude Desktop) using the Python server library. This provides an alternative or supplement to logging to stderr, allowing logs to be displayed directly in the client interface. Requires access to the server's request context and session object.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_49
+
+LANGUAGE: python
+CODE:
+```
+server.request_context.session.send_log_message(
+  level="info",
+  data="Server started successfully",
+)
+```
+
+----------------------------------------
+
+TITLE: Importing Python Packages and Initializing FastMCP Server
+DESCRIPTION: This Python code imports the required libraries (`typing`, `httpx`, `FastMCP`) and initializes an instance of the `FastMCP` server class, naming it 'weather'. It also defines constants for the base URL of the NWS API and a user agent string.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_75
+
+LANGUAGE: python
+CODE:
+```
+from typing import Any
+import httpx
+from mcp.server.fastmcp import FastMCP
+
+# Initialize FastMCP server
+mcp = FastMCP("weather")
+
+# Constants
+NWS_API_BASE = "https://api.weather.gov"
+USER_AGENT = "weather-app/1.0"
+```
+
+----------------------------------------
+
+TITLE: Building Server Capabilities Configuration Java
+DESCRIPTION: Demonstrates building a ServerCapabilities object using its builder pattern. It shows how to explicitly enable or disable support for resources (with change notifications), tools, prompts, and configure logging levels for the MCP server.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_144
+
+LANGUAGE: java
+CODE:
+```
+var capabilities = ServerCapabilities.builder()
+    .resources(false, true)  // Resource support with list changes notifications
+    .tools(true)            // Tool support with list changes notifications
+    .prompts(true)          // Prompt support with list changes notifications
+    .logging()              // Enable logging support (enabled by default with loging level INFO)
+    .build();
+```
+
+----------------------------------------
+
+TITLE: Managing Roots Dynamically with MCP Client - Java
+DESCRIPTION: Illustrates how to dynamically add and remove filesystem roots for an MCP client that has the roots capability enabled. It also shows how to explicitly notify the server that the list of roots has changed.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_124
+
+LANGUAGE: java
+CODE:
+```
+// Add a root dynamically
+client.addRoot(new Root("file:///path", "description"));
+
+// Remove a root
+client.removeRoot("file:///path");
+
+// Notify server of roots changes
+client.rootsListChangedNotification();
+```
+
+----------------------------------------
+
+TITLE: Configuring MCP Client Capabilities - Java
+DESCRIPTION: Demonstrates how to configure the capabilities of the MCP client during its construction using the ClientCapabilities builder. This example shows enabling support for filesystem roots (including change notifications) and LLM sampling.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_123
+
+LANGUAGE: java
+CODE:
+```
+var capabilities = ClientCapabilities.builder()
+    .roots(true)      // Enable filesystem roots support with list changes notifications
+    .sampling()       // Enable LLM sampling support
+    .build();
+```
+
+----------------------------------------
+
+TITLE: Adding Spring AI MCP Server Dependencies (Gradle)
+DESCRIPTION: Gradle build script configuration snippet to add necessary dependencies for building a Spring AI Model Context Protocol (MCP) server and basic web functionality. Includes the `spring-ai-mcp-server-spring-boot-starter` and `spring-web` artifacts using the platform dependency mechanism. These dependencies are required to build an MCP server using Spring Boot.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_95
+
+LANGUAGE: groovy
+CODE:
+```
+dependencies {
+  implementation platform("org.springframework.ai:spring-ai-mcp-server-spring-boot-starter")
+  implementation platform("org.springframework:spring-web")
+}
+```
+
+----------------------------------------
+
+TITLE: Define JSON-RPC 2.0 Request Format
+DESCRIPTION: Specifies the standard JSON-RPC 2.0 format used by MCP for request messages. It includes fields for the protocol version, a unique request identifier, the method name to be invoked, and optional parameters.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_30
+
+LANGUAGE: json
+CODE:
+```
+{
+  "jsonrpc": "2.0",
+  "id": "number | string",
+  "method": "string",
+  "params": "object"
+}
+```
+
+----------------------------------------
+
+TITLE: Define Custom MCP Transport Interface TypeScript
+DESCRIPTION: Presents the TypeScript interface for implementing a custom MCP transport. It specifies the required methods (`start`, `send`, `close`) for managing the transport lifecycle and callbacks (`onclose`, `onerror`, `onmessage`) for handling transport events.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_41
+
+LANGUAGE: typescript
+CODE:
+```
+interface Transport {
+  // Start processing messages
+  start(): Promise<void>;
+
+  // Send a JSON-RPC message
+  send(message: JSONRPCMessage): Promise<void>;
+
+  // Close the connection
+  close(): Promise<void>;
+
+  // Callbacks
+  onclose?: () => void;
+  onerror?: (error: Error) => void;
+  onmessage?: (message: JSONRPCMessage) => void;
+}
+```
+
+----------------------------------------
+
+TITLE: Adding Spring AI MCP Server Dependencies (Maven)
+DESCRIPTION: Maven `pom.xml` configuration snippet to add necessary dependencies for building a Spring AI Model Context Protocol (MCP) server and basic web functionality. Includes the `spring-ai-mcp-server-spring-boot-starter` and `spring-web` artifacts. These dependencies are required to build an MCP server using Spring Boot.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_94
+
+LANGUAGE: xml
+CODE:
+```
+<dependencies>
+      <dependency>
+          <groupId>org.springframework.ai</groupId>
+          <artifactId>spring-ai-mcp-server-spring-boot-starter</artifactId>
+      </dependency>
+
+      <dependency>
+          <groupId>org.springframework</groupId>
+          <artifactId>spring-web</artifactId>
+      </dependency>
+</dependencies>
+```
+
+----------------------------------------
+
+TITLE: Define JSON-RPC 2.0 Notification Format
+DESCRIPTION: Describes the standard JSON-RPC 2.0 format for notification messages in MCP. Notifications are requests without an 'id', indicating that no response is expected. It includes the protocol version, the method name, and optional parameters.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_32
+
+LANGUAGE: json
+CODE:
+```
+{
+  "jsonrpc": "2.0",
+  "method": "string",
+  "params": "object"
+}
+```
+
+----------------------------------------
+
+TITLE: Initialize MCP Client with SSE Transport Python
+DESCRIPTION: Shows how to initialize an MCP client session using the SSE transport in Python. It uses an async context manager (`sse_client`) to connect to the specified SSE server URL and establishes a client session.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_40
+
+LANGUAGE: python
+CODE:
+```
+async with sse_client("http://localhost:8000/sse") as streams:
+    async with ClientSession(streams[0], streams[1]) as session:
+        await session.initialize()
+```
+
+----------------------------------------
+
+TITLE: Example MCP Server Description for LLM Prompt
+DESCRIPTION: An example text prompt intended for an LLM like Claude, describing the desired features of a hypothetical MCP server. It specifies connecting to a PostgreSQL database, exposing table schemas as resources, providing tools for read-only SQL queries, and offering prompts for data analysis.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_152
+
+LANGUAGE: text
+CODE:
+```
+Build an MCP server that:
+- Connects to my company's PostgreSQL database
+- Exposes table schemas as resources
+- Provides tools for running read-only SQL queries
+- Includes prompts for common data analysis tasks
+```
+
+----------------------------------------
+
+TITLE: Inspecting Local Python Server Bash
+DESCRIPTION: This command demonstrates how to use the MCP Inspector to run and inspect a locally developed MCP server written in Python using `uv run`. It requires specifying the server's directory and package name.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_56
+
+LANGUAGE: bash
+CODE:
+```
+npx @modelcontextprotocol/inspector \
+  uv \
+  --directory path/to/server \
+  run \
+  package-name \
+  args...
+```
+
+----------------------------------------
+
+TITLE: Sending Logging Notification to Clients Java
+DESCRIPTION: Illustrates how to send a structured log message from the server to connected clients using the loggingNotification method. It shows building a LoggingMessageNotification with a specific level, logger name, and data payload.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_145
+
+LANGUAGE: java
+CODE:
+```
+// Send a log message to clients
+server.loggingNotification(LoggingMessageNotification.builder()
+    .level(LoggingLevel.INFO)
+    .logger("custom-logger")
+    .data("Custom log message")
+    .build());
+```
+
+----------------------------------------
+
+TITLE: Setting up Python Project Environment with uv
+DESCRIPTION: These commands initialize a new project directory, create and activate a virtual environment using `uv`, install the necessary dependencies (`mcp[cli]` and `httpx`), and create the main Python server file.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_74
+
+LANGUAGE: bash
+CODE:
+```
+# Create a new directory for our project
+uv init weather
+cd weather
+
+# Create virtual environment and activate it
+uv venv
+source .venv/bin/activate
+
+# Install dependencies
+uv add "mcp[cli]" httpx
+
+# Create our server file
+touch weather.py
+```
+
+LANGUAGE: powershell
+CODE:
+```
+# Create a new directory for our project
+uv init weather
+cd weather
+
+# Create virtual environment and activate it
+uv venv
+.venv\Scripts\activate
+
+# Install dependencies
+uv add mcp[cli] httpx
+
+# Create our server file
+new-item weather.py
+```
+
+----------------------------------------
+
+TITLE: Creating Spring Boot MCP Server Application (Java)
+DESCRIPTION: Standard Spring Boot application entry point class (`McpServerApplication`) that uses `@SpringBootApplication`. It includes a `main` method to run the application and a `@Bean` method (`weatherTools`) to configure the `MethodToolCallbackProvider` to register the `WeatherService` methods as MCP tools.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_99
+
+LANGUAGE: java
+CODE:
+```
+@SpringBootApplication
+public class McpServerApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(McpServerApplication.class, args);
+	}
+
+	@Bean
+	public ToolCallbackProvider weatherTools(WeatherService weatherService) {
+		return  MethodToolCallbackProvider.builder().toolObjects(weatherService).build();
+	}
+}
+```
+
+----------------------------------------
+
+TITLE: Registering Sync Prompt using Java MCP SDK
+DESCRIPTION: Shows synchronous registration of a prompt named "greeting" using `McpServerFeatures.SyncPromptRegistration`. It requires defining the prompt's name, description, list of arguments (like 'name'), and a synchronous handler lambda that executes the prompt logic and returns a `GetPromptResult`.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_150
+
+LANGUAGE: java
+CODE:
+```
+// Sync prompt registration
+var syncPromptRegistration = new McpServerFeatures.SyncPromptRegistration(
+    new Prompt("greeting", "description", List.of(
+        new PromptArgument("name", "description", true)
+    )),
+    request -> {
+        // Prompt implementation
+        return new GetPromptResult(description, messages);
+    }
+);
+```
+
+----------------------------------------
+
+TITLE: Registering Sync Resource using Java MCP SDK
+DESCRIPTION: Demonstrates synchronous registration of a custom resource "custom://resource" using the `McpServerFeatures.SyncResourceRegistration` class. It requires defining the resource metadata and providing a synchronous lambda function to handle read requests and return a `ReadResourceResult`.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_148
+
+LANGUAGE: java
+CODE:
+```
+// Sync resource registration
+var syncResourceRegistration = new McpServerFeatures.SyncResourceRegistration(
+    new Resource("custom://resource", "name", "description", "mime-type", null),
+    request -> {
+        // Resource read implementation
+        return new ReadResourceResult(contents);
+    }
+);
+```
+
+----------------------------------------
+
+TITLE: Configuring Claude Desktop for Python MCP Server
+DESCRIPTION: This JSON snippet shows how to add an entry to the `mcpServers` section of the `claude_desktop_config.json` file. It defines the 'weather' server and provides the command (`uv`) and arguments to launch the Python server, including the absolute path to its directory.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_80
+
+LANGUAGE: json
+CODE:
+```
+{
+    "mcpServers": {
+        "weather": {
+            "command": "uv",
+            "args": [
+                "--directory",
+                "/ABSOLUTE/PATH/TO/PARENT/FOLDER/weather",
+                "run",
+                "weather.py"
+            ]
+        }
+    }
+}
+```
+
+LANGUAGE: json
+CODE:
+```
+{
+    "mcpServers": {
+        "weather": {
+            "command": "uv",
+            "args": [
+                "--directory",
+                "C:\\ABSOLUTE\\PATH\\TO\\PARENT\\FOLDER\\weather",
+                "run",
+                "weather.py"
+            ]
+        }
+    }
+}
+```
+
+----------------------------------------
+
+TITLE: Configuring Claude Desktop (Java MCP Server JAR - MacOS/Linux)
+DESCRIPTION: Configuration snippet for Claude for Desktop's `claude_desktop_config.json` file to define a Java MCP server built as a JAR. Specifies the server name, command (`java`), and arguments (including the JAR path and system property for STDIO transport) for MacOS/Linux systems. Required for Claude Desktop to recognize and launch the Java weather MCP server JAR.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_103
+
+LANGUAGE: json
+CODE:
+```
+{
+  "mcpServers": {
+    "spring-ai-mcp-weather": {
+      "command": "java",
+      "args": [
+        "-Dspring.ai.mcp.server.stdio=true",
+        "-jar",
+        "/ABSOLUTE/PATH/TO/PARENT/FOLDER/mcp-weather-stdio-server-0.0.1-SNAPSHOT.jar"
+      ]
+    }
+  }
+}
+```
+
+----------------------------------------
+
+TITLE: Installing uv on MacOS/Linux
+DESCRIPTION: This bash command downloads and executes the installation script for `uv`, a fast Python package installer and manager, which is required for setting up the project environment.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_72
+
+LANGUAGE: bash
+CODE:
+```
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+----------------------------------------
+
+TITLE: Configure Filesystem MCP Server (macOS/Linux) JSON
+DESCRIPTION: Configures Claude for Desktop to run the Filesystem MCP Server on startup. Uses `npx` to execute the `@modelcontextprotocol/server-filesystem` package with specified absolute directory paths that the server should access. Requires Node.js.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_109
+
+LANGUAGE: json
+CODE:
+```
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/Users/username/Desktop",
+        "/Users/username/Downloads"
+      ]
+    }
+  }
+}
+```
+
+----------------------------------------
+
+TITLE: Adding MCP Client Spring Boot Starter Dependency (XML)
+DESCRIPTION: This snippet shows the Maven dependency required to include the Spring AI MCP Client Boot Starter in a project. Adding this dependency enables auto-configuration for connecting to MCP servers from a Spring Boot application.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_106
+
+LANGUAGE: XML
+CODE:
+```
+<dependency>
+    <groupId>org.springframework.ai</groupId>
+    <artifactId>spring-ai-mcp-client-spring-boot-starter</artifactId>
+</dependency>
+```
+
+----------------------------------------
+
+TITLE: Creating HttpClient SSE MCP Client Transport - Java
+DESCRIPTION: Creates a framework-agnostic MCP transport implementation using the core Java HttpClient for Server-Sent Events (SSE) communication. This transport is included in the main 'mcp' module and connects to a specified server URL.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_121
+
+LANGUAGE: java
+CODE:
+```
+McpTransport transport = new HttpClientSseClientTransport("http://your-mcp-server");
+```
+
+----------------------------------------
+
+TITLE: Adding Core MCP Dependency - Gradle
+DESCRIPTION: This Gradle Groovy snippet shows how to add the core MCP library dependency to a project's `build.gradle` file. It includes the `implementation platform("io.modelcontextprotocol.sdk:mcp")` line within the `dependencies` block to add the fundamental MCP library.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_134
+
+LANGUAGE: groovy
+CODE:
+```
+dependencies {
+  implementation platform("io.modelcontextprotocol.sdk:mcp")
+  //...
+}
+```
+
+----------------------------------------
+
+TITLE: Adding Core MCP Dependency - Maven
+DESCRIPTION: This Maven XML snippet shows how to add the core MCP library dependency to a project's `pom.xml` file. This dependency provides the fundamental functionality and APIs for implementing the Model Context Protocol.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_132
+
+LANGUAGE: xml
+CODE:
+```
+<dependency>
+    <groupId>io.modelcontextprotocol.sdk</groupId>
+    <artifactId>mcp</artifactId>
+</dependency>
+```
+
+----------------------------------------
+
+TITLE: Running TypeScript Memory Reference Server (bash)
+DESCRIPTION: This bash command uses npx to execute the @modelcontextprotocol/server-memory package directly from the npm registry without requiring a global installation. The -y flag automatically confirms any prompts during execution. This command starts the memory-based MCP reference server, typically used for quick testing or development purposes.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_57
+
+LANGUAGE: bash
+CODE:
+```
+npx -y @modelcontextprotocol/server-memory
+```
+
+----------------------------------------
+
+TITLE: Configuring Spring Boot MCP Server Properties (application.yml)
+DESCRIPTION: Configuration snippet for `application.yml` file used in a Spring Boot MCP server application. Disables the Spring boot banner and configures the console logging pattern using YAML format. These properties help control the server's startup output.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_97
+
+LANGUAGE: yaml
+CODE:
+```
+logging:
+  pattern:
+    console:
+spring:
+  main:
+    banner-mode: off
+```
+
+----------------------------------------
+
+TITLE: Tailing Claude for Desktop MCP Logs (Bash)
+DESCRIPTION: This bash command is used for troubleshooting by monitoring Claude for Desktop's MCP-related log files in real-time. It displays the last 20 lines and continues to show new log entries as they are written, helping diagnose connection or server issues.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_108
+
+LANGUAGE: Bash
+CODE:
+```
+# Check Claude's logs for errors
+tail -n 20 -f ~/Library/Logs/Claude/mcp*.log
+```
+
+----------------------------------------
+
+TITLE: Running Python Git Reference Server (bash)
+DESCRIPTION: These bash commands demonstrate two methods for running the Python-based Git MCP server. The first command uses uvx for isolated execution of the package. The second sequence involves installing the server package using pip, followed by running it as a Python module using the -m flag.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_58
+
+LANGUAGE: bash
+CODE:
+```
+uvx mcp-server-git
+```
+
+LANGUAGE: bash
+CODE:
+```
+pip install mcp-server-git
+python -m mcp_server_git
+```
+
+----------------------------------------
+
+TITLE: Accessing Supabase MCP Server Logs Bash/PowerShell
+DESCRIPTION: These commands show how to view the detailed log file generated by the Supabase MCP server on macOS/Linux (using `cat`) and Windows (using `Get-Content` in PowerShell). The logs contain crucial information for troubleshooting connection status, configuration issues, and operation results.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/README.md#_snippet_16
+
+LANGUAGE: bash
+CODE:
+```
+# On macOS/Linux
+cat ~/.local/share/supabase-mcp/mcp_server.log
+```
+
+LANGUAGE: powershell
+CODE:
+```
+# On Windows (PowerShell)
+Get-Content "$env:USERPROFILE\.local\share\supabase-mcp\mcp_server.log"
+```
+
+----------------------------------------
+
+TITLE: Installing Supabase MCP Server using pipx
+DESCRIPTION: Installs the supabase-mcp-server package globally in an isolated environment using the pipx tool. This is the recommended installation method for package installation. Prerequisites: pipx must be installed.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/README.md#_snippet_1
+
+LANGUAGE: Bash
+CODE:
+```
+pipx install supabase-mcp-server
+```
+
+----------------------------------------
+
+TITLE: Enabling Chrome DevTools in Claude Desktop (Bash)
+DESCRIPTION: Shows a Bash command to create or overwrite the `developer_settings.json` file in the Claude application support directory, setting the `allowDevTools` flag to true. This action enables access to the built-in Chrome Developer Tools (accessible via `Command-Option-Shift-i`) for debugging client-side issues within Claude Desktop. Requires write permissions to the specified directory.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_46
+
+LANGUAGE: bash
+CODE:
+```
+echo '{"allowDevTools": true}' > ~/Library/Application\ Support/Claude/developer_settings.json
+```
+
+----------------------------------------
+
+TITLE: Finding Supabase MCP Server Executable Path Bash
+DESCRIPTION: These bash commands are used to locate the full, absolute path to the installed 'supabase-mcp-server' executable on macOS/Linux and Windows operating systems. Finding the full path is often required by clients like Claude Desktop and Cline for correct execution.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/README.md#_snippet_11
+
+LANGUAGE: bash
+CODE:
+```
+# On macOS/Linux
+which supabase-mcp-server
+```
+
+LANGUAGE: bash
+CODE:
+```
+# On Windows
+where supabase-mcp-server
+```
+
+----------------------------------------
+
+TITLE: Configuring MCP Server with Absolute Path (JSON)
+DESCRIPTION: Provides an example JSON configuration snippet for `claude_desktop_config.json`, demonstrating the use of absolute paths (`/Users/username/data`) for the server command arguments. This is recommended to ensure the server starts reliably regardless of the current working directory from which Claude Desktop is launched. Requires replacing the placeholder path with the actual absolute path.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_47
+
+LANGUAGE: json
+CODE:
+```
+{
+  "command": "npx",
+  "args": ["-y", "@modelcontextprotocol/server-filesystem", "/Users/username/data"]
+}
+```
+
+----------------------------------------
+
+TITLE: Configure MCP Server with Env Vars (Windows) JSON
+DESCRIPTION: Shows how to add an `env` key to the server configuration in `claude_desktop_config.json` to set environment variables. Example sets `APPDATA` and `BRAVE_API_KEY` for a Brave Search server, resolving path or credential issues.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_116
+
+LANGUAGE: json
+CODE:
+```
+{
+  "brave-search": {
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-brave-search"],
+    "env": {
+      "APPDATA": "C:\\Users\\user\\AppData\\Roaming\\",
+      "BRAVE_API_KEY": "..."
+    }
+  }
+}
+```
+
+----------------------------------------
+
+TITLE: Configuring Supabase MCP Server in Cline JSON
+DESCRIPTION: This JSON configuration snippet shows how to configure the Supabase MCP server within the Cline extension for VS Code. It is added to the `cline_mcp_settings.json` file and includes the server command (using the absolute path) and necessary environment variables.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/README.md#_snippet_14
+
+LANGUAGE: json
+CODE:
+```
+{
+  "mcpServers": {
+    "supabase": {
+      "command": "/full/path/to/supabase-mcp-server",  // Replace with the actual path from step 1
+      "env": {
+        "QUERY_API_KEY": "your-api-key",  // Required - get your API key at thequery.dev
+        "SUPABASE_PROJECT_REF": "your-project-ref",
+        "SUPABASE_DB_PASSWORD": "your-db-password",
+        "SUPABASE_REGION": "us-east-1",  // optional, defaults to us-east-1
+        "SUPABASE_ACCESS_TOKEN": "your-access-token",  // optional, for management API
+        "SUPABASE_SERVICE_ROLE_KEY": "your-service-role-key"  // optional, for Auth Admin SDK
+      }
+    }
+  }
+}
+```
+
+----------------------------------------
+
+TITLE: Adding MCP Bill of Materials (BOM) - Maven
+DESCRIPTION: This Maven XML snippet demonstrates how to include the MCP Bill of Materials (BOM) in a project's `pom.xml`. Adding the BOM within the `dependencyManagement` section helps manage dependency versions consistently across modules without specifying versions for individual MCP dependencies.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_136
+
+LANGUAGE: xml
+CODE:
+```
+<dependencyManagement>
+    <dependencies>
+        <dependency>
+            <groupId>io.modelcontextprotocol.sdk</groupId>
+            <artifactId>mcp-bom</artifactId>
+            <version>0.7.0</version>
+            <type>pom</type>
+            <scope>import</scope>
+        </dependency>
+    </dependencies>
+</dependencyManagement>
+```
+
+----------------------------------------
+
+TITLE: Implementing Python Helper Functions for NWS API
+DESCRIPTION: These Python functions provide reusable logic for interacting with the National Weather Service (NWS) API. `make_nws_request` handles asynchronous HTTP GET requests with error handling and JSON parsing using `httpx`, while `format_alert` structures raw weather alert data into a human-readable string.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_76
+
+LANGUAGE: python
+CODE:
+```
+async def make_nws_request(url: str) -> dict[str, Any] | None:
+    """Make a request to the NWS API with proper error handling."""
+    headers = {
+        "User-Agent": USER_AGENT,
+        "Accept": "application/geo+json"
+    }
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(url, headers=headers, timeout=30.0)
+            response.raise_for_status()
+            return response.json()
+        except Exception:
+            return None
+
+def format_alert(feature: dict) -> str:
+    """Format an alert feature into a readable string."""
+    props = feature["properties"]
+    return f"""
+Event: {props.get('event', 'Unknown')}
+Area: {props.get('areaDesc', 'Unknown')}
+Severity: {props.get('severity', 'Unknown')}
+Description: {props.get('description', 'No description available')}
+Instructions: {props.get('instruction', 'No specific instructions provided')}
+"""
+```
+
+----------------------------------------
+
+TITLE: Configuring Supabase MCP Server in Windsurf JSON
+DESCRIPTION: This JSON configuration snippet is used to integrate the Supabase MCP server into the Windsurf client. It defines an 'mcpServers' object containing the 'supabase' server configuration, specifying the command path and essential environment variables like QUERY_API_KEY, project reference, database password, and optional region and access tokens.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/README.md#_snippet_10
+
+LANGUAGE: json
+CODE:
+```
+{
+    "mcpServers": {
+      "supabase": {
+        "command": "/Users/username/.local/bin/supabase-mcp-server",  // update path
+        "env": {
+          "QUERY_API_KEY": "your-api-key",  // Required - get your API key at thequery.dev
+          "SUPABASE_PROJECT_REF": "your-project-ref",
+          "SUPABASE_DB_PASSWORD": "your-db-password",
+          "SUPABASE_REGION": "us-east-1",  // optional, defaults to us-east-1
+          "SUPABASE_ACCESS_TOKEN": "your-access-token",  // optional, for management API
+          "SUPABASE_SERVICE_ROLE_KEY": "your-service-role-key"  // optional, for Auth Admin SDK
+        }
+      }
+    }
+}
+```
+
+----------------------------------------
+
+TITLE: Implementing Transport Error Handling with anyio (Python)
+DESCRIPTION: Shows a Python asynchronous transport implementation using `anyio` within a context manager. It includes error handling for initialization, message handling within a background task, and cleanup using a task group and cancel scope. Requires the `anyio` library for stream creation and concurrency management.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_44
+
+LANGUAGE: python
+CODE:
+```
+@contextmanager
+async def example_transport(scope: Scope, receive: Receive, send: Send):
+    try:
+        # Create streams for bidirectional communication
+        read_stream_writer, read_stream = anyio.create_memory_object_stream(0)
+        write_stream, write_stream_reader = anyio.create_memory_object_stream(0)
+
+        async def message_handler():
+            try:
+                async with read_stream_writer:
+                    # Message handling logic
+                    pass
+            except Exception as exc:
+                logger.error(f"Failed to handle message: {exc}")
+                raise exc
+
+        async with anyio.create_task_group() as tg:
+            tg.start_soon(message_handler)
+            try:
+                # Yield streams for communication
+                yield read_stream, write_stream
+            except Exception as exc:
+                logger.error(f"Transport error: {exc}")
+                raise exc
+            finally:
+                tg.cancel_scope.cancel()
+                await write_stream.aclose()
+                await read_stream.aclose()
+    except Exception as exc:
+        logger.error(f"Failed to initialize transport: {exc}")
+        raise exc
+```
+
+----------------------------------------
+
+TITLE: Setting up MCP Project (Windows) - Powershell
+DESCRIPTION: Commands to create a project directory, initialize npm, install SDK and development dependencies, and create the initial source file structure for a Node.js weather server on Windows.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_83
+
+LANGUAGE: powershell
+CODE:
+```
+# Create a new directory for our project
+md weather
+cd weather
+
+# Initialize a new npm project
+npm init -y
+
+# Install dependencies
+npm install @modelcontextprotocol/sdk zod
+npm install -D @types/node typescript
+
+# Create our files
+md src
+new-item src\index.ts
+```
+
+----------------------------------------
+
+TITLE: Configuring tsconfig.json - JSON
+DESCRIPTION: Sets up the TypeScript compiler options for the project, including target JavaScript version, module system, output directory, strictness checks, module interop, and specifies which files to include and exclude.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_85
+
+LANGUAGE: json
+CODE:
+```
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "Node16",
+    "moduleResolution": "Node16",
+    "outDir": "./build",
+    "rootDir": "./src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules"]
+}
+```
+
+----------------------------------------
+
+TITLE: Debugging Supabase MCP Server Installation Bash
+DESCRIPTION: This simple bash command helps debug the installation of the Supabase MCP server by attempting to run it directly from the terminal. If the command fails, it indicates a problem with the server installation rather than the client configuration.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/README.md#_snippet_15
+
+LANGUAGE: bash
+CODE:
+```
+supabase-mcp-server
+```
+
+----------------------------------------
+
+TITLE: Adding HTTP SSE Transport Dependencies - Gradle
+DESCRIPTION: This Gradle Groovy snippet provides dependency configurations for optional HTTP SSE transports. Similar to Maven, users add either `mcp-spring-webflux` for reactive or `mcp-spring-webmvc` for servlet-based transport using the `implementation platform(...)` syntax.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_135
+
+LANGUAGE: groovy
+CODE:
+```
+// Spring WebFlux-based SSE client and server transport
+dependencies {
+  implementation platform("io.modelcontextprotocol.sdk:mcp-spring-webflux")
+}
+
+// Spring WebMVC-based SSE server transport
+dependencies {
+  implementation platform("io.modelcontextprotocol.sdk:mcp-spring-webmvc")
+}
+```
+
+----------------------------------------
+
+TITLE: Adding HTTP SSE Transport Dependencies - Maven
+DESCRIPTION: This Maven XML snippet provides dependency configurations for optional HTTP SSE transports. Users can choose between `mcp-spring-webflux` for reactive applications or `mcp-spring-webmvc` for servlet-based applications, adding the chosen one to their `pom.xml`.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_133
+
+LANGUAGE: xml
+CODE:
+```
+<!-- Spring WebFlux-based SSE client and server transport -->
+<dependency>
+    <groupId>io.modelcontextprotocol.sdk</groupId>
+    <artifactId>mcp-spring-webflux</artifactId>
+</dependency>
+
+<!-- Spring WebMVC-based SSE server transport -->
+<dependency>
+    <groupId>io.modelcontextprotocol.sdk</groupId>
+    <artifactId>mcp-spring-webmvc</artifactId>
+</dependency>
+```
+
+----------------------------------------
+
+TITLE: Manually Run Filesystem MCP Server (Windows) Bash
+DESCRIPTION: Executes the Filesystem MCP Server from the Windows command line using `npx` for troubleshooting. Helps diagnose server issues outside Claude Desktop. Requires Node.js and the server package; arguments are directory paths with Windows separators.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_113
+
+LANGUAGE: bash
+CODE:
+```
+npx -y @modelcontextprotocol/server-filesystem C:\\Users\\username\\Desktop C:\\Users\\username\\Downloads
+```
+
+----------------------------------------
+
+TITLE: Creating global configuration directory
+DESCRIPTION: Creates the directory where the global .env configuration file for the supabase-mcp-server will be stored. The location is platform-specific (~/.config/supabase-mcp for Mac/Linux, %APPDATA%\supabase-mcp for Windows). Prerequisites: Operating system shell.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/README.md#_snippet_6
+
+LANGUAGE: Bash
+CODE:
+```
+mkdir -p ~/.config/supabase-mcp
+```
+
+LANGUAGE: PowerShell
+CODE:
+```
+mkdir -Force "$env:APPDATA\supabase-mcp"
+```
+
+----------------------------------------
+
+TITLE: Configuring Claude Desktop (Java MCP Server JAR - Windows)
+DESCRIPTION: Configuration snippet for Claude for Desktop's `claude_desktop_config.json` file to define a Java MCP server built as a JAR. Specifies the server name, command (`java`), and arguments (including the JAR path and system property for STDIO transport) for Windows systems. Required for Claude Desktop to recognize and launch the Java weather MCP server JAR using Windows paths.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_104
+
+LANGUAGE: json
+CODE:
+```
+{
+  "mcpServers": {
+    "spring-ai-mcp-weather": {
+      "command": "java",
+      "args": [
+        "-Dspring.ai.mcp.server.transport=STDIO",
+        "-jar",
+        "C:\\ABSOLUTE\\PATH\\TO\\PARENT\\FOLDER\\weather\\mcp-weather-stdio-server-0.0.1-SNAPSHOT.jar"
+      ]
+    }
+  }
+}
+```
+
+----------------------------------------
+
+TITLE: Configuring MCP Servers (mcp-servers-config.json)
+DESCRIPTION: Shows the JSON configuration file format for defining MCP servers used by the Spring AI client. It specifies the command (`npx`), arguments, and environment variables (like the Brave API key) needed to start the 'brave-search' server.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_68
+
+LANGUAGE: json
+CODE:
+```
+{
+  "mcpServers": {
+    "brave-search": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-brave-search"
+      ],
+      "env": {
+        "BRAVE_API_KEY": "<PUT YOUR BRAVE API KEY>"
+      }
+    }
+  }\n}
+```
+
+----------------------------------------
+
+TITLE: Running MCP Client with Server Path (Bash)
+DESCRIPTION: Demonstrates the correct command-line usage of the `uv run` command to start an MCP client script, specifying the path to the server script. Examples show relative, absolute, and Windows-style paths.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_60
+
+LANGUAGE: bash
+CODE:
+```
+# Relative path
+uv run client.py ./server/weather.py
+
+# Absolute path
+uv run client.py /Users/username/projects/mcp-server/weather.py
+
+# Windows path (either format works)
+uv run client.py C:/projects/mcp-server/weather.py
+uv run client.py C:\\projects\\mcp-server\\weather.py
+```
+
+----------------------------------------
+
+TITLE: Running Spring Boot Application with Maven (Bash)
+DESCRIPTION: Shows how to run the Spring Boot application using the Maven wrapper's `spring-boot:run` goal. This is a common way to execute Spring Boot applications during development.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_65
+
+LANGUAGE: bash
+CODE:
+```
+./mvnw spring-boot:run
+```
+
+----------------------------------------
+
+TITLE: Creating a Python virtual environment with uv
+DESCRIPTION: Creates a Python virtual environment named .venv in the current directory using the uv tool. This is the first step when installing the server from source for local development. Prerequisites: uv must be installed.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/README.md#_snippet_3
+
+LANGUAGE: Bash
+CODE:
+```
+uv venv
+```
+
+----------------------------------------
+
+TITLE: Adding Spring AI WebFlux MCP Dependency (pom.xml)
+DESCRIPTION: Specifies the Maven dependency for the Spring AI WebFlux-based MCP client starter. This starter provides an SSE transport implementation recommended for reactive applications.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_71
+
+LANGUAGE: xml
+CODE:
+```
+<dependency>
+    <groupId>org.springframework.ai</groupId>
+    <artifactId>spring-ai-mcp-client-webflux-spring-boot-starter</artifactId>
+</dependency>
+```
+
+----------------------------------------
+
+TITLE: Inspecting NPM Package Server Bash
+DESCRIPTION: This command demonstrates how to use the MCP Inspector to run and inspect an MCP server installed as an NPM package using `npx -y`. The example shows inspecting the `server-postgres` package.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_53
+
+LANGUAGE: bash
+CODE:
+```
+npx -y @modelcontextprotocol/inspector npx <package-name> <args>
+# For example
+npx -y @modelcontextprotocol/inspector npx server-postgres postgres://127.0.0.1/testdb
+```
+
+----------------------------------------
+
+TITLE: Inspecting PyPi Package Server Bash
+DESCRIPTION: This command shows how to use the MCP Inspector to run and inspect an MCP server installed as a PyPi package using `uvx`. The example demonstrates inspecting the `mcp-server-git` package.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_54
+
+LANGUAGE: bash
+CODE:
+```
+npx @modelcontextprotocol/inspector uvx <package-name> <args>
+# For example
+npx @modelcontextprotocol/inspector uvx mcp-server-git --repository ~/code/mcp/servers.git
+```
+
+----------------------------------------
+
+TITLE: Finding Supabase MCP Server Executable Path Bash
+DESCRIPTION: These bash commands are used to locate the full, absolute path to the installed 'supabase-mcp-server' executable on macOS/Linux and Windows operating systems. Finding the full path is often required by clients like Claude Desktop and Cline for correct execution.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/README.md#_snippet_13
+
+LANGUAGE: bash
+CODE:
+```
+# On macOS/Linux
+which supabase-mcp-server
+```
+
+LANGUAGE: bash
+CODE:
+```
+# On Windows
+where supabase-mcp-server
+```
+
+----------------------------------------
+
+TITLE: Running MCP Inspector via npx Bash
+DESCRIPTION: This command shows the basic way to execute the MCP Inspector tool directly using `npx`, without requiring a global installation. It takes a command as an argument.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_51
+
+LANGUAGE: bash
+CODE:
+```
+npx @modelcontextprotocol/inspector <command>
+```
+
+----------------------------------------
+
+TITLE: Running MCP Inspector via npx with Arguments Bash
+DESCRIPTION: This command extends the basic `npx` execution by showing how to pass additional arguments to the specified command run by the MCP Inspector.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_52
+
+LANGUAGE: bash
+CODE:
+```
+npx @modelcontextprotocol/inspector <command> <arg1> <arg2>
+```
+
+----------------------------------------
+
+TITLE: Setting API Keys as Environment Variables (Bash)
+DESCRIPTION: Provides commands to set required API keys for Anthropic and Brave Search as environment variables in the current shell session. These keys are necessary for the Java Spring AI application.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_63
+
+LANGUAGE: bash
+CODE:
+```
+export ANTHROPIC_API_KEY='your-anthropic-api-key-here'
+export BRAVE_API_KEY='your-brave-api-key-here'
+```
+
+----------------------------------------
+
+TITLE: Manually Run Filesystem MCP Server (macOS/Linux) Bash
+DESCRIPTION: Executes the Filesystem MCP Server directly from the command line using `npx` for troubleshooting. Helps diagnose server issues outside Claude Desktop. Requires Node.js and the server package; arguments are directory paths.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_112
+
+LANGUAGE: bash
+CODE:
+```
+npx -y @modelcontextprotocol/server-filesystem /Users/username/Desktop /Users/username/Downloads
+```
+
+----------------------------------------
+
+TITLE: Tail Claude MCP Logs (macOS/Linux) Bash
+DESCRIPTION: Uses `tail` to show the last 20 lines and follow new entries in Claude Desktop's MCP log files on macOS/Linux. Useful for real-time monitoring of server connection and errors.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_114
+
+LANGUAGE: bash
+CODE:
+```
+# Check Claude's logs for errors
+tail -n 20 -f ~/Library/Logs/Claude/mcp*.log
+```
+
+----------------------------------------
+
+TITLE: Opening Claude Desktop Configuration File (Bash - MacOS/Linux)
+DESCRIPTION: Bash command using `code` (assuming VS Code is in the PATH) to open the Claude for Desktop configuration file (`claude_desktop_config.json`) on MacOS or Linux systems. This file is used to configure MCP servers for Claude for Desktop. Requires VS Code or a similar editor associated with the `code` command.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_101
+
+LANGUAGE: bash
+CODE:
+```
+code ~/Library/Application\ Support/Claude/claude_desktop_config.json
+```
+
+----------------------------------------
+
+TITLE: Configuring Spring AI MCP Client (application.yml)
+DESCRIPTION: Provides YAML configuration properties for the Spring AI MCP client and Anthropic integration. It enables the client, names it, sets parameters like request timeout and specifies the path to the MCP server configuration file.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_67
+
+LANGUAGE: yaml
+CODE:
+```
+spring:
+  ai:
+    mcp:
+      client:
+        enabled: true
+        name: brave-search-client
+        version: 1.0.0
+        type: SYNC
+        request-timeout: 20s
+        stdio:
+          root-change-notification: true
+          servers-configuration: classpath:/mcp-servers-config.json
+    anthropic:
+      api-key: ${ANTHROPIC_API_KEY}
+```
+
+----------------------------------------
+
+TITLE: Building and Running Spring Boot Jar (Bash)
+DESCRIPTION: Provides commands to first clean and install the Maven project to create a jar file, and then execute the generated jar file using the `java -jar` command to run the Spring Boot application.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_70
+
+LANGUAGE: bash
+CODE:
+```
+./mvnw clean install
+java -jar ./target/ai-mcp-brave-chatbot-0.0.1-SNAPSHOT.jar
+```
+
+----------------------------------------
+
+TITLE: Listing MCP Prompts Request (TypeScript)
+DESCRIPTION: This TypeScript snippet shows the JSON-RPC request structure used by a client to discover the list of available prompts from an MCP server. It simply specifies the 'method' as "prompts/list" with no parameters.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_6
+
+LANGUAGE: json
+CODE:
+```
+{
+  method: "prompts/list"
+}
+```
+
+----------------------------------------
+
+TITLE: Installing package from source in editable mode using uv
+DESCRIPTION: Installs the current directory's package (.) in "editable" mode (-e) within the active virtual environment using uv. This is done when installing the supabase-mcp-server from its source code for local development. Prerequisites: Virtual environment activated, uv installed.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/README.md#_snippet_5
+
+LANGUAGE: Bash
+CODE:
+```
+uv pip install -e .
+```
+
+----------------------------------------
+
+TITLE: Editing global configuration file
+DESCRIPTION: Opens the global .env configuration file for the supabase-mcp-server in a text editor, allowing users to add or modify environment variables. The command uses platform-specific editors (nano for Mac/Linux, notepad for Windows). Prerequisites: Global configuration directory created.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/README.md#_snippet_7
+
+LANGUAGE: Bash
+CODE:
+```
+nano ~/.config/supabase-mcp/.env
+```
+
+LANGUAGE: PowerShell
+CODE:
+```
+notepad "$env:APPDATA\supabase-mcp\.env"
+```
+
+----------------------------------------
+
+TITLE: Inspecting Local TypeScript Server Bash
+DESCRIPTION: This command illustrates how to use the MCP Inspector to run and inspect a locally developed MCP server written in TypeScript, by directly executing its main JavaScript file with Node.js.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_55
+
+LANGUAGE: bash
+CODE:
+```
+npx @modelcontextprotocol/inspector node path/to/server/index.js args...
+```
+
+----------------------------------------
+
+TITLE: Adding Spring AI Dependencies (pom.xml)
+DESCRIPTION: Specifies the required Maven dependencies in the `pom.xml` file for enabling the Spring AI MCP client and the Anthropic AI model integration in a Spring Boot project.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_66
+
+LANGUAGE: xml
+CODE:
+```
+<dependency>
+    <groupId>org.springframework.ai</groupId>
+    <artifactId>spring-ai-mcp-client-spring-boot-starter</artifactId>
+</dependency>
+<dependency>
+    <groupId>org.springframework.ai</groupId>
+    <artifactId>spring-ai-anthropic-spring-boot-starter</artifactId>
+</dependency>
+```
+
+----------------------------------------
+
+TITLE: Install npm Globally Bash
+DESCRIPTION: Executes `npm install -g npm` to install or update npm globally. Ensures `npx` and other npm commands are accessible in the system's PATH, which is necessary for running servers via `npx`.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_117
+
+LANGUAGE: bash
+CODE:
+```
+npm install -g npm
+```
+
+----------------------------------------
+
+TITLE: Installing npx Globally (Bash)
+DESCRIPTION: Provides the command to install the npx package manager globally using npm. npx is required for running the Brave Search MCP server from the command line in the Java example.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_61
+
+LANGUAGE: bash
+CODE:
+```
+npm install -g npx
+```
+
+----------------------------------------
+
+TITLE: Running MCP Inspector from Source Bash
+DESCRIPTION: This command runs the MCP Inspector tool directly from the project repository if the Supabase MCP server was installed from source. The inspector aids in debugging server issues by providing a detailed overview of server activity.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/README.md#_snippet_17
+
+LANGUAGE: bash
+CODE:
+```
+supabase-mcp-inspector
+```
+
+----------------------------------------
+
+TITLE: Configuring Spring Boot MCP Server Properties (application.properties)
+DESCRIPTION: Configuration snippet for `application.properties` file used in a Spring Boot MCP server application. Disables the Spring boot banner and configures the console logging pattern. These properties help control the server's startup output.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_96
+
+LANGUAGE: properties
+CODE:
+```
+spring.main.bannerMode=off
+logging.pattern.console=
+```
+
+----------------------------------------
+
+TITLE: Configuring package.json - JSON
+DESCRIPTION: Updates the package.json file to specify the module type, define the executable bin path, add a build script using TypeScript compiler and file permissions, and list build output files.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_84
+
+LANGUAGE: json
+CODE:
+```
+{
+  "type": "module",
+  "bin": {
+    "weather": "./build/index.js"
+  },
+  "scripts": {
+    "build": "tsc && node -e \"require('fs').chmodSync('build/index.js', '755')\"",
+  },
+  "files": [
+    "build"
+  ],
+}
+```
+
+----------------------------------------
+
+TITLE: Installing Supabase MCP Server using uv
+DESCRIPTION: Installs the supabase-mcp-server package using the uv package manager. This provides an alternative installation method to pipx. Prerequisites: uv must be installed.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/README.md#_snippet_2
+
+LANGUAGE: Bash
+CODE:
+```
+uv pip install supabase-mcp-server
+```
+
+----------------------------------------
+
+TITLE: Activating the Python virtual environment
+DESCRIPTION: Activates the previously created .venv virtual environment. This is necessary to ensure that subsequent commands (like uv pip install) operate within the isolated environment. The command varies slightly between Unix-like systems (Mac/Linux) and Windows. Prerequisites: A .venv directory created by uv venv.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/README.md#_snippet_4
+
+LANGUAGE: Bash
+CODE:
+```
+source .venv/bin/activate
+```
+
+LANGUAGE: PowerShell
+CODE:
+```
+.venv\Scripts\activate
+```
+
+----------------------------------------
+
+TITLE: Building Spring Boot Application (Bash)
+DESCRIPTION: Demonstrates how to use the Maven wrapper (`./mvnw`) to clean and build the Spring Boot application from the project directory. This command compiles the code and packages the application.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_64
+
+LANGUAGE: bash
+CODE:
+```
+./mvnw clean install
+```
+
+----------------------------------------
+
+TITLE: Configure Filesystem MCP Server (Windows) JSON
+DESCRIPTION: Configures Claude for Desktop to run the Filesystem MCP Server on startup for Windows. Uses `npx` to execute the `@modelcontextprotocol/server-filesystem` package with specified absolute directory paths using Windows path separators. Requires Node.js.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_110
+
+LANGUAGE: json
+CODE:
+```
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "C:\\Users\\username\\Desktop",
+        "C:\\Users\\username\\Downloads"
+      ]
+    }
+  }
+}
+```
+
+----------------------------------------
+
+TITLE: Configuring Claude Desktop (Node MCP Server - Windows)
+DESCRIPTION: Configuration snippet for Claude for Desktop's `claude_desktop_config.json` file to define an MCP server. Specifies the server name, command (`node`), and arguments (path to the Node.js entry point using Windows paths) for Windows systems. Required for Claude Desktop to recognize and launch the specified MCP server.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_93
+
+LANGUAGE: json
+CODE:
+```
+{
+    "mcpServers": {
+        "weather": {
+            "command": "node",
+            "args": [
+                "C:\\PATH\\TO\\PARENT\\FOLDER\\weather\\build\\index.js"
+            ]
+        }
+    }
+}
+```
+
+----------------------------------------
+
+TITLE: Building Spring Boot MCP Server JAR (Maven)
+DESCRIPTION: Bash command to build the Spring Boot MCP server project using the Maven wrapper. Executes the `clean install` lifecycle goals, compiling code, running tests, and packaging the application into a JAR file within the `target` folder. Requires Maven and Java installed.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_100
+
+LANGUAGE: bash
+CODE:
+```
+./mvnw clean install
+```
+
+----------------------------------------
+
+TITLE: Installing PostgreSQL on macOS using Homebrew
+DESCRIPTION: Installs PostgreSQL version 16 on macOS using the Homebrew package manager. This is required for running a local Supabase instance, although not for the MCP server itself since v0.2.0. Prerequisites: Homebrew must be installed.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/README.md#_snippet_0
+
+LANGUAGE: Bash
+CODE:
+```
+brew install postgresql@16
+```
+
+----------------------------------------
+
+TITLE: Verifying Node.js and npm Installation
+DESCRIPTION: These bash commands execute `node --version` and `npm --version` to display the installed versions of Node.js and the Node Package Manager, confirming their successful installation.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_81
+
+LANGUAGE: bash
+CODE:
+```
+node --version
+npm --version
+```
+
+----------------------------------------
+
+TITLE: Verify Node.js Installation Bash
+DESCRIPTION: Checks if Node.js is installed and displays its version in the command line. This is a prerequisite for running `npx`-based MCP servers. An error indicates Node.js needs to be installed.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_111
+
+LANGUAGE: bash
+CODE:
+```
+node --version
+```
+
+----------------------------------------
+
+TITLE: Setting up MCP Project (MacOS/Linux) - Bash
+DESCRIPTION: Commands to create a project directory, initialize npm, install SDK and development dependencies, and create the initial source file structure for a Node.js weather server on MacOS/Linux.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_82
+
+LANGUAGE: bash
+CODE:
+```
+# Create a new directory for our project
+mkdir weather
+cd weather
+
+# Initialize a new npm project
+npm init -y
+
+# Install dependencies
+npm install @modelcontextprotocol/sdk zod
+npm install -D @types/node typescript
+
+# Create our files
+mkdir src
+touch src/index.ts
+```
+
+----------------------------------------
+
+TITLE: Opening Claude Desktop Configuration File (PowerShell - Windows)
+DESCRIPTION: PowerShell command using `code` (assuming VS Code is in the PATH) to open the Claude for Desktop configuration file (`claude_desktop_config.json`) on Windows systems. Uses the `$env:AppData` environment variable to locate the file path. This file is used to configure MCP servers for Claude for Desktop. Requires VS Code or a similar editor associated with the `code` command.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_102
+
+LANGUAGE: powershell
+CODE:
+```
+code $env:AppData\Claude\claude_desktop_config.json
+```
+
+----------------------------------------
+
+TITLE: Installing uv on Windows
+DESCRIPTION: This PowerShell command uses `Invoke-RestMethod` (irm) to download the `uv` installation script from a URL and then executes it (`iex`), setting up `uv` on a Windows system.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_73
+
+LANGUAGE: powershell
+CODE:
+```
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+----------------------------------------
+
+TITLE: Opening Claude Desktop Configuration File in VS Code
+DESCRIPTION: These commands open the Claude for Desktop configuration file (`claude_desktop_config.json`) in Visual Studio Code. The path to the file varies based on the operating system (MacOS/Linux vs. Windows).
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_79
+
+LANGUAGE: bash
+CODE:
+```
+code ~/Library/Application\ Support/Claude/claude_desktop_config.json
+```
+
+LANGUAGE: powershell
+CODE:
+```
+code $env:AppData\Claude\claude_desktop_config.json
+```
+
+----------------------------------------
+
+TITLE: Display Claude MCP Logs (Windows) Bash
+DESCRIPTION: Uses `type` to display the contents of Claude Desktop's MCP log files on Windows. Useful for reviewing logs to find errors or connection issues after they occur.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_115
+
+LANGUAGE: bash
+CODE:
+```
+type "%APPDATA%\\Claude\\logs\\mcp*.log"
+```
+
+----------------------------------------
+
+TITLE: Cloning Spring AI Examples Repository (Bash)
+DESCRIPTION: Shows the standard Git commands to clone the Spring AI examples repository and navigate into the specific directory for the Brave Search chatbot example.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_62
+
+LANGUAGE: bash
+CODE:
+```
+git clone https://github.com/spring-projects/spring-ai-examples.git
+cd model-context-protocol/brave-chatbot
+```
+
+----------------------------------------
+
+TITLE: Opening Claude Desktop Config (MacOS/Linux) - Bash
+DESCRIPTION: Opens the Claude for Desktop configuration file (claude_desktop_config.json) using the code command (assuming VS Code is installed) on MacOS or Linux systems.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_90
+
+LANGUAGE: bash
+CODE:
+```
+code ~/Library/Application\ Support/Claude/claude_desktop_config.json
+```
+
+----------------------------------------
+
+TITLE: Opening Claude Desktop Config (Windows) - Powershell
+DESCRIPTION: Opens the Claude for Desktop configuration file (claude_desktop_config.json) using the code command (assuming VS Code is installed) on Windows systems, referencing the file path via the $env:AppData environment variable.
+SOURCE: https://github.com/alexander-zuev/supabase-mcp-server/blob/main/llms-full.txt#_snippet_91
+
+LANGUAGE: powershell
+CODE:
+```
+code $env:AppData\Claude\claude_desktop_config.json
+```

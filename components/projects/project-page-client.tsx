@@ -6,19 +6,11 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { CalendarDays, FileText, ClipboardList, DollarSign, Pencil, Mic, ListTodo, Package, Lightbulb, MessageSquareText } from "lucide-react"
-import { useAIContext } from "@/contexts/ai-context"
 import ClientOnly from "@/components/ClientOnly"
-import { AIInsightsDrawer } from "@/components/ai/ai-insights-drawer"
 import ProjectJobsList from "@/components/projects/project-jobs-list"
 
 export default function ProjectPageClient({ project, projectId }: { project: any, projectId: string }) {
-  const { setAssistantOpen, setContext } = useAIContext()
   const [isInsightsDrawerOpen, setIsInsightsDrawerOpen] = useState(false)
-
-  const handleOpenAIAssistant = () => {
-    setContext("project", projectId)
-    setAssistantOpen(true)
-  }
 
   const handleOpenInsightsDrawer = () => {
     setIsInsightsDrawerOpen(true)
@@ -35,14 +27,6 @@ export default function ProjectPageClient({ project, projectId }: { project: any
               size="icon"
               onClick={handleOpenInsightsDrawer}
               title="AI Insights & Suggestions"
-            >
-              <Lightbulb className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={handleOpenAIAssistant}
-              title="Open AI Assistant Chat"
             >
               <MessageSquareText className="h-4 w-4" />
             </Button>
@@ -127,12 +111,6 @@ export default function ProjectPageClient({ project, projectId }: { project: any
               </Link>
             </Button>
             <Button variant="outline" asChild className="justify-start">
-              <Link href={`/projects/${projectId}/voice-notes`}>
-                <Mic className="mr-2 h-4 w-4" />
-                Voice Notes
-              </Link>
-            </Button>
-            <Button variant="outline" asChild className="justify-start">
               <Link href={`/projects/${projectId}/invoices/generate-invoice`}>
                 <DollarSign className="mr-2 h-4 w-4" />
                 Generate Invoice
@@ -175,12 +153,6 @@ export default function ProjectPageClient({ project, projectId }: { project: any
           </div>
         </TabsContent>
       </Tabs>
-
-      <AIInsightsDrawer
-        isOpen={isInsightsDrawerOpen}
-        onClose={() => setIsInsightsDrawerOpen(false)}
-        projectId={projectId}
-      />
     </div>
   )
 }

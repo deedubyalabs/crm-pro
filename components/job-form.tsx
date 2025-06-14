@@ -112,7 +112,12 @@ export default function JobForm({ projectId, initialData, jobId, onClose }: JobF
     const fetchPeople = async () => {
       try {
         const response = await apiClient.get("/api/people");
-        setPeople(response.data as any[]); // Cast to any[]
+        if (Array.isArray(response.data)) {
+          setPeople(response.data);
+        } else {
+          console.error("API response for people is not an array:", response.data);
+          setPeople([]); // Ensure it's an empty array if data is not valid
+        }
       } catch (error) {
         console.error("Failed to fetch people:", error);
         toast({
@@ -334,7 +339,7 @@ export default function JobForm({ projectId, initialData, jobId, onClose }: JobF
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {people.map((person) => (
+                    {people && people.map((person) => (
                       <SelectItem key={person.id} value={person.id}>
                         {person.first_name} {person.last_name}
                       </SelectItem>
@@ -492,7 +497,7 @@ export default function JobForm({ projectId, initialData, jobId, onClose }: JobF
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {people.map((person) => (
+                    {people && people.map((person) => (
                       <SelectItem key={person.id} value={person.id}>
                         {person.first_name} {person.last_name}
                       </SelectItem>

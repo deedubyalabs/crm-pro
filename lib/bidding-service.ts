@@ -15,10 +15,13 @@ import type {
   BidItemComparisonResult,
   TradeGroupedItems,
   TradeCategory,
+  BidResponseItem,
+  BidResponseStatus,
 } from "@/types/bidding"
 import type { Person } from "@/types/people"
 
 export const biddingService = {
+  // Resolved BidResponseItem type error
   async getBidRequests(filters?: BidRequestFilters): Promise<BidRequest[]> {
     try {
       let query = supabase
@@ -34,8 +37,7 @@ export const biddingService = {
             estimate_number
           ),
           changeOrder:change_order_id (
-            id,
-            co_number
+            id
           )
         `)
         .order("created_at", { ascending: false })
@@ -80,7 +82,7 @@ export const biddingService = {
       const { data, error } = await query
 
       if (error) throw error
-      return data || []
+      return (data || []) as BidRequest[]
     } catch (error) {
       throw new Error(handleSupabaseError(error))
     }
@@ -101,8 +103,7 @@ export const biddingService = {
             estimate_number
           ),
           changeOrder:change_order_id (
-            id,
-            co_number
+            id
           )
         `)
         .eq("id", id)
@@ -110,6 +111,8 @@ export const biddingService = {
 
       if (error) throw error
       if (!bidRequest) return null
+
+      const typedBidRequest = bidRequest as BidRequestWithDetails
 
       // Get bid items
       const { data: items, error: itemsError } = await supabase
@@ -154,9 +157,11 @@ export const biddingService = {
 
       if (responsesError) throw responsesError
 
+      const typedResponses = (responses || []) as (BidResponse & { subcontractor: Person })[];
+
       // Get response items for each response
       const responsesWithItems = await Promise.all(
-        (responses || []).map(async (response) => {
+        typedResponses.map(async (response) => {
           const { data: responseItems, error: responseItemsError } = await supabase
             .from("bid_response_items")
             .select("*")
@@ -166,7 +171,8 @@ export const biddingService = {
 
           return {
             ...response,
-            items: responseItems || [],
+            status: response.status as BidResponseStatus, // Explicitly cast status
+            items: (responseItems || []) as BidResponseItem[], // Explicitly cast responseItems
           }
         }),
       )
@@ -180,12 +186,12 @@ export const biddingService = {
       if (attachmentsError) throw attachmentsError
 
       return {
-        ...bidRequest,
+        ...typedBidRequest,
         items: items || [],
         subcontractors: subcontractors || [],
         responses: responsesWithItems || [],
         attachments: attachments || [],
-      }
+      } as BidRequestWithDetails // Explicitly cast the final return
     } catch (error) {
       throw new Error(handleSupabaseError(error))
     }
@@ -219,6 +225,8 @@ export const biddingService = {
 
       if (error) throw error
 
+      const typedData = data as BidRequest // Explicitly cast
+
       // Create bid items if provided
       if (items.length > 0) {
         const bidItems = items.map((item, index) => ({
@@ -245,12 +253,13 @@ export const biddingService = {
           const estimateLineItemIds = items
             .filter((item) => item.estimate_line_item_id)
             .map((item) => item.estimate_line_item_id)
+            .filter((id): id is string => id !== null) // Filter out nulls
 
           if (estimateLineItemIds.length > 0) {
             const { error: updateError } = await supabase
               .from("estimate_line_items")
               .update({ has_bids: true })
-              .in("id", estimateLineItemIds as string[])
+              .in("id", estimateLineItemIds)
 
             if (updateError) throw updateError
           }
@@ -261,19 +270,20 @@ export const biddingService = {
           const changeOrderLineItemIds = items
             .filter((item) => item.change_order_line_item_id)
             .map((item) => item.change_order_line_item_id)
+            .filter((id): id is string => id !== null) // Filter out nulls
 
           if (changeOrderLineItemIds.length > 0) {
             const { error: updateError } = await supabase
               .from("change_order_line_items")
               .update({ has_bids: true })
-              .in("id", changeOrderLineItemIds as string[])
+              .in("id", changeOrderLineItemIds)
 
             if (updateError) throw updateError
           }
         }
       }
 
-      return data
+      return typedData
     } catch (error) {
       throw new Error(handleSupabaseError(error))
     }
@@ -292,7 +302,7 @@ export const biddingService = {
         .single()
 
       if (error) throw error
-      return data
+      return data as BidRequest // Explicitly cast
     } catch (error) {
       throw new Error(handleSupabaseError(error))
     }
@@ -327,6 +337,7 @@ export const biddingService = {
         const estimateLineItemIds = bidItems
           ?.filter((item) => item.estimate_line_item_id)
           .map((item) => item.estimate_line_item_id)
+          .filter((id): id is string => id !== null) // Filter out nulls
 
         if (estimateLineItemIds && estimateLineItemIds.length > 0) {
           // For each line item, check if it's used in any other bid requests
@@ -356,6 +367,7 @@ export const biddingService = {
         const changeOrderLineItemIds = bidItems
           ?.filter((item) => item.change_order_line_item_id)
           .map((item) => item.change_order_line_item_id)
+          .filter((id): id is string => id !== null) // Filter out nulls
 
         if (changeOrderLineItemIds && changeOrderLineItemIds.length > 0) {
           // For each line item, check if it's used in any other bid requests
@@ -409,6 +421,8 @@ export const biddingService = {
 
       if (error) throw error
 
+      const typedData = data as BidItem // Explicitly cast
+
       // Update has_bids flag on estimate line item if needed
       if (item.estimate_line_item_id) {
         const { error: updateError } = await supabase
@@ -429,7 +443,7 @@ export const biddingService = {
         if (updateError) throw updateError
       }
 
-      return data
+      return typedData
     } catch (error) {
       throw new Error(handleSupabaseError(error))
     }
@@ -448,7 +462,7 @@ export const biddingService = {
         .single()
 
       if (error) throw error
-      return data
+      return data as BidItem // Explicitly cast
     } catch (error) {
       throw new Error(handleSupabaseError(error))
     }
@@ -475,7 +489,7 @@ export const biddingService = {
         const { count, error: countError } = await supabase
           .from("bid_items")
           .select("id", { count: "exact" })
-          .eq("estimate_line_item_id", bidItem.estimate_line_item_id)
+          .eq("estimate_line_item_id", bidItem.estimate_line_item_id!) // Non-null assertion
 
         if (countError) throw countError
 
@@ -484,7 +498,7 @@ export const biddingService = {
           const { error: updateError } = await supabase
             .from("estimate_line_items")
             .update({ has_bids: false })
-            .eq("id", bidItem.estimate_line_item_id)
+            .eq("id", bidItem.estimate_line_item_id!) // Non-null assertion
 
           if (updateError) throw updateError
         }
@@ -495,7 +509,7 @@ export const biddingService = {
         const { count, error: countError } = await supabase
           .from("bid_items")
           .select("id", { count: "exact" })
-          .eq("change_order_line_item_id", bidItem.change_order_line_item_id)
+          .eq("change_order_line_item_id", bidItem.change_order_line_item_id!) // Non-null assertion
 
         if (countError) throw countError
 
@@ -504,7 +518,7 @@ export const biddingService = {
           const { error: updateError } = await supabase
             .from("change_order_line_items")
             .update({ has_bids: false })
-            .eq("id", bidItem.change_order_line_item_id)
+            .eq("id", bidItem.change_order_line_item_id!) // Non-null assertion
 
           if (updateError) throw updateError
         }
@@ -532,7 +546,7 @@ export const biddingService = {
         .single()
 
       if (error) throw error
-      return data
+      return data as BidSubcontractor // Explicitly cast
     } catch (error) {
       throw new Error(handleSupabaseError(error))
     }
@@ -631,7 +645,7 @@ export const biddingService = {
 
         if (error) throw error
         responseId = existingResponse.id
-        response = data
+        response = data as BidResponse // Explicitly cast
       } else {
         // Create new response
         const { data, error } = await supabase
@@ -652,7 +666,7 @@ export const biddingService = {
 
         if (error) throw error
         responseId = data.id
-        response = data
+        response = data as BidResponse // Explicitly cast
 
         // Update subcontractor status
         const { error: subError } = await supabase

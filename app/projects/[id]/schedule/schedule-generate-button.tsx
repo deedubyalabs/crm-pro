@@ -16,7 +16,6 @@ import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { format } from "date-fns"
 import { CalendarIcon, Loader2 } from "lucide-react"
-import { useAIContext } from "@/contexts/ai-context"
 import ClientOnly from "@/components/ClientOnly"
 
 interface ScheduleGenerateButtonProps {
@@ -32,21 +31,11 @@ export default function ScheduleGenerateButton({
   hasExistingJobs,
   size = "default",
 }: ScheduleGenerateButtonProps) {
-  const { setAssistantOpen, setContext } = useAIContext()
   const [open, setOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [startDate, setStartDate] = useState<Date | undefined>(new Date())
   const [useTemplates, setUseTemplates] = useState(true)
   const [includeWeather, setIncludeWeather] = useState(true)
-
-  const handleGenerateScheduleWithAI = () => {
-    setIsLoading(true)
-    // Set context for AI assistant and open the drawer with an initial message
-    setContext("project", projectId, `Let's build the schedule for project @${projectName}.`)
-    setAssistantOpen(true)
-    setOpen(false) // Close the dialog
-    setIsLoading(false)
-  }
 
   return (
     <ClientOnly>
@@ -114,10 +103,6 @@ export default function ScheduleGenerateButton({
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>
               Cancel
-            </Button>
-            <Button onClick={handleGenerateScheduleWithAI} disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Start Conversation
             </Button>
           </DialogFooter>
         </DialogContent>

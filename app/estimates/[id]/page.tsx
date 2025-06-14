@@ -18,12 +18,14 @@ export const metadata: Metadata = {
 }
 
 export default async function EstimateDetailPage({ params }: { params: { id: string } }) {
+  const { id } = await params; // Explicitly await params to satisfy Next.js warning
+
   // Handle the "new" route parameter by redirecting to the new estimate page
-  if (params.id === "new") {
+  if (id === "new") {
     redirect("/estimates/new")
   }
 
-  const estimate = await estimateService.getEstimateById(params.id)
+  const estimate = await estimateService.getEstimateById(id)
 
   if (!estimate) {
     notFound()
@@ -112,17 +114,17 @@ export default async function EstimateDetailPage({ params }: { params: { id: str
         </div>
       </div>
 
-      {/* Display links to generated SOV and Invoice if available */}
-      {(estimate.is_converted_to_sov || estimate.is_initial_invoice_generated) && (
+      {/* Display links to generated BOV and Invoice if available */}
+      {(estimate.is_converted_to_bov || estimate.is_initial_invoice_generated) && (
         <Card>
           <CardHeader>
             <CardTitle>Generated Documents</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {estimate.is_converted_to_sov && estimate.schedule_of_value_id && (
+            {estimate.is_converted_to_bov && estimate.blueprint_of_values_id && (
               <p>
-                <Link href={`/schedule-of-values/${estimate.schedule_of_value_id}`} className="text-blue-600 hover:underline">
-                  View Schedule of Values
+                <Link href={`/blueprint-of-values/${estimate.blueprint_of_values_id}`} className="text-blue-600 hover:underline">
+                  View Blueprint of Values
                 </Link>
               </p>
             )}

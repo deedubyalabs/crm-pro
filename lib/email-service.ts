@@ -9,7 +9,7 @@ import PaymentReminderEmail from "@/emails/payment-reminder-email"
 import ChangeOrderApprovalEmail from "@/emails/change-order-approval-email" // Import new email template
 
 // Initialize Resend with API key
-const resend = new Resend(process.env.RESEND_API_KEY)
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const emailService = {
   /**

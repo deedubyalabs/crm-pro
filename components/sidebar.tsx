@@ -107,9 +107,9 @@ export default function Sidebar({ className }: SidebarProps) {
       icon: FileText,
     },
     {
-      title: "Voice Notes",
-      href: "/voice-notes",
-      icon: Mic,
+      title: "Bids",
+      href: "/bids",
+      icon: ClipboardList, // Using ClipboardList for now, can be changed later
     },
   ]
 
@@ -152,11 +152,6 @@ export default function Sidebar({ className }: SidebarProps) {
   ]
 
   const adminNavItems = [
-    {
-      title: "Agent Workspace",
-      href: "/agent-workspace",
-      icon: Bot,
-    },
     {
       title: "Client Portal",
       href: "/client-portal-admin",

@@ -23,8 +23,8 @@ export function EstimateStatusActions({ estimate }: EstimateStatusActionsProps) 
       // For now, pass null for userId. In a real app, this would come from auth context.
       const result = await estimateService.handleEstimateAccepted(estimate.id, null)
       let description = "The estimate has been marked as Accepted."
-      if (result.sovGenerated && result.sovId) {
-        description += ` A Schedule of Values has been generated. View it <a href="/schedule-of-values/${result.sovId}" class="underline">here</a>.`
+      if (result.bovGenerated && result.bovId) {
+        description += ` A Blueprint of Values has been generated. View it <a href="/blueprint-of-values/${result.bovId}" class="underline">here</a>.`
       }
       if (result.initialInvoiceGenerated && result.invoiceId) {
         description += ` An initial deposit invoice has been created. View it <a href="/invoices/${result.invoiceId}" class="underline">here</a>.`

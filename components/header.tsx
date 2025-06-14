@@ -15,7 +15,6 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Bell, User, LogOut, Settings, Brain } from "lucide-react" // Import Brain icon
 import { useSidebar } from "@/contexts/sidebar-context"
-import { useAIContext } from "@/contexts/ai-context" // Import useAIContext
 import { cn } from "@/lib/utils"
 
 export default function Header() {
@@ -44,11 +43,9 @@ export default function Header() {
     if (path.startsWith("/expenses")) return "Expenses"
     if (path.startsWith("/payments")) return "Payments"
     if (path.startsWith("/documents")) return "Documents"
-    if (path.startsWith("/voice-notes")) return "Voice Notes"
     if (path.startsWith("/calendar")) return "Calendar"
     if (path.startsWith("/financial-dashboard")) return "Financial Dashboard"
     if (path.startsWith("/cost-items")) return "Cost Items"
-    if (path.startsWith("/agent-workspace")) return "Agent Workspace"
     if (path.startsWith("/client-portal-admin")) return "Client Portal Admin"
     if (path.startsWith("/settings")) return "Settings"
     if (path.startsWith("/inbox")) return "Inbox"
@@ -57,8 +54,6 @@ export default function Header() {
     const parts = path.split("/").filter(Boolean)
     return parts.length > 0 ? parts[0].charAt(0).toUpperCase() + parts[0].slice(1) : "Home"
   }
-
-  const { setAssistantOpen } = useAIContext() // Use AI context
 
   return (
     <header
@@ -70,11 +65,6 @@ export default function Header() {
         <h1 className="text-xl font-semibold">{getPageTitle()}</h1>
       </div>
       <div className="flex items-center gap-4">
-        {/* AI Assistant Button */}
-        <Button variant="ghost" size="icon" onClick={() => setAssistantOpen(true)}>
-          <Brain className="h-5 w-5" />
-          <span className="sr-only">Open AI Assistant</span>
-        </Button>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

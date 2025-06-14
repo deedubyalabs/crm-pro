@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { estimateService } from "@/lib/estimates"
 import { EstimatesList } from "./estimates-list"
+import { EstimateStatus } from "@/types/estimates"
 
 export const metadata: Metadata = {
   title: "Estimates | PROActive ONE",
@@ -14,7 +15,7 @@ export default async function EstimatesPage({
 }) {
   const awaitedSearchParams = await searchParams;
 
-  const status = typeof awaitedSearchParams.status === "string" ? awaitedSearchParams.status : undefined
+  const status = typeof awaitedSearchParams.status === "string" ? awaitedSearchParams.status as EstimateStatus : undefined
   const search = typeof awaitedSearchParams.search === "string" ? awaitedSearchParams.search : undefined
   const opportunityId = typeof awaitedSearchParams.opportunityId === "string" ? awaitedSearchParams.opportunityId : undefined
   const personId = typeof awaitedSearchParams.personId === "string" ? awaitedSearchParams.personId : undefined
@@ -22,7 +23,7 @@ export default async function EstimatesPage({
   const endDate = typeof awaitedSearchParams.endDate === "string" ? awaitedSearchParams.endDate : undefined
 
   const estimates = await estimateService.getEstimates({
-    status: status as any,
+    status,
     search,
     opportunityId,
     personId,

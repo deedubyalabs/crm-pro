@@ -15,10 +15,10 @@ import { formatCurrency } from "@/lib/utils"
 
 interface Invoice {
   id: string
-  invoice_number: string
+  invoice_number: string | null
   status: string
-  issue_date: string
-  due_date: string
+  issue_date: string | null
+  due_date: string | null
   total_amount: number
   amount_paid: number
   project: {
@@ -27,9 +27,9 @@ interface Invoice {
   }
   person: {
     id: string
-    first_name: string
-    last_name: string
-    business_name: string
+    first_name: string | null
+    last_name: string | null
+    business_name: string | null
   }
 }
 

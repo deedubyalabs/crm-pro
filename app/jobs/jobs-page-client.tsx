@@ -7,6 +7,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import JobForm from "@/components/job-form"
 import JobDetailDrawer from "@/components/job-detail-drawer"
 import JobsList from "./jobs-list" // Assuming this is the existing JobsList component
+import { Job } from "@/types/job" // Import Job type
 
 interface JobsPageClientProps {
   status?: string
@@ -15,6 +16,7 @@ interface JobsPageClientProps {
   search?: string
   startDate?: string
   endDate?: string
+  jobs: Job[] // Add jobs prop
 }
 
 export default function JobsPageClient({
@@ -24,6 +26,7 @@ export default function JobsPageClient({
   search,
   startDate,
   endDate,
+  jobs, // Destructure jobs prop
 }: JobsPageClientProps) {
   const [isNewJobDrawerOpen, setIsNewJobDrawerOpen] = useState(false)
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null)
@@ -66,6 +69,7 @@ export default function JobsPageClient({
 
       {/* Jobs List Component */}
       <JobsList
+        jobs={jobs} // Pass the fetched jobs
         status={status}
         projectId={projectId}
         assignedTo={assignedTo} // Pass the renamed prop

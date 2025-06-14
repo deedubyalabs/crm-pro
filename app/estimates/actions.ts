@@ -2,7 +2,6 @@
 
 import { estimateService } from "@/lib/estimates"
 import type { EstimateLineItem, EstimatePaymentSchedule, Estimate } from "@/types/estimates" // Import Estimate type
-import type { Message } from "@/components/ai/conversational-estimator/types" // Import Message type
 
 // Define a type for the input data for creating or updating an estimate
 interface EstimateInput {
@@ -41,7 +40,7 @@ export async function createEstimateAction(
     const expirationDate = input.expiration_date instanceof Date ? input.expiration_date.toISOString().split("T")[0] : input.expiration_date;
 
     const estimateData = {
-      opportunity_id: input.opportunity_id,
+      opportunity_id: input.opportunity_id ?? null,
       person_id: input.person_id,
       estimate_number: estimateNumber,
       status: input.status,

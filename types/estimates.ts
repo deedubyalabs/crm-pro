@@ -26,9 +26,9 @@ export interface Estimate {
   scope_of_work: string | null // New field
   cover_sheet_details: string | null // New field
   is_converted_to_project: boolean // New field
-  is_converted_to_sov: boolean // New field
+  is_converted_to_bov: boolean // New field
   is_initial_invoice_generated: boolean // New field
-  schedule_of_value_id: string | null // New field
+  blueprint_of_values_id: string | null // New field
   initial_invoice_id: string | null // New field
   created_at: string
   updated_at: string
@@ -56,9 +56,9 @@ export interface NewEstimate {
   scope_of_work?: string | null // New field
   cover_sheet_details?: string | null // New field
   is_converted_to_project?: boolean // New field
-  is_converted_to_sov?: boolean // New field
+  is_converted_to_bov?: boolean // New field
   is_initial_invoice_generated?: boolean // New field
-  schedule_of_value_id?: string | null // New field
+  blueprint_of_values_id?: string | null // New field
   initial_invoice_id?: string | null // New field
   created_by?: string | null
   deposit_required?: boolean
@@ -83,9 +83,9 @@ export interface UpdateEstimate {
   scope_of_work?: string | null // New field
   cover_sheet_details?: string | null // New field
   is_converted_to_project?: boolean // New field
-  is_converted_to_sov?: boolean // New field
+  is_converted_to_bov?: boolean // New field
   is_initial_invoice_generated?: boolean // New field
-  schedule_of_value_id?: string | null // New field
+  blueprint_of_values_id?: string | null // New field
   initial_invoice_id?: string | null // New field
   updated_by?: string | null
   deposit_required?: boolean
@@ -97,8 +97,6 @@ export interface EstimateLineItem {
   id: string
   estimate_id: string
   cost_item_id: string | null
-  aiSuggestionId?: string | null // Added for tracking AI suggestions
-  isAISuggested?: boolean // Added for visual cue
   description: string
   quantity: number
   unit: string
@@ -107,7 +105,6 @@ export interface EstimateLineItem {
   total: number
   sort_order: number
   section_name: string | null
-  notes: string | null // Added notes property
   is_optional: boolean // Added for optional items
   is_taxable: boolean // Added for taxable items
   assigned_to_user_id: string | null // Added for item assignment
@@ -157,7 +154,6 @@ export interface EstimatePaymentSchedule {
   estimate_id: string
   description: string
   amount: number
-  percentage: number | null
   due_type: PaymentScheduleDueType | null // Added due_type
   due_date: string | null
   sort_order: number
@@ -166,10 +162,10 @@ export interface EstimatePaymentSchedule {
 }
 
 export interface NewEstimatePaymentSchedule {
+  percentage: null
   estimate_id: string
   description: string
   amount: number
-  percentage?: number | null
   due_type?: PaymentScheduleDueType | null // Allow null for due_type
   due_date?: string | null
   sort_order?: number
@@ -178,7 +174,6 @@ export interface NewEstimatePaymentSchedule {
 export interface UpdateEstimatePaymentSchedule {
   description?: string
   amount?: number
-  percentage?: number | null
   due_type?: PaymentScheduleDueType // Added due_type
   due_date?: string | null
   sort_order?: number
@@ -201,7 +196,6 @@ export interface EstimateWithDetails extends Estimate {
   } | null
   lineItems: EstimateLineItem[]
   paymentSchedules?: EstimatePaymentSchedule[]
-  ai_conversation_history?: string | null // Added for saving conversation history
   tax_rate_percentage?: number | null; // Added tax rate percentage
 }
 

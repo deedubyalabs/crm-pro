@@ -58,10 +58,10 @@ export const personService = {
       const { data, error } = await query
 
       if (error) throw error
-      return data
+      return data || [] // Ensure data is always an array
     } catch (error) {
-      console.error("Error fetching people:", error)
-      throw new Error(handleSupabaseError(error))
+      console.error("Error fetching people from Supabase:", error); // More specific log
+      throw new Error(handleSupabaseError(error));
     }
   },
 

@@ -1,0 +1,116 @@
+PROActive OS Workflow Blueprint: The Complete Estimation Experience
+Overall Goal: To provide a fast, flexible, and accurate estimation experience that allows the contractor to move seamlessly from scope definition to a professional, client-ready proposal, and then convert that proposal into an active project.
+Core UI/UX Principles:
+Context is King: The user should rarely have to leave the main Estimate Creation page. New items, categories, and sections are created in side drawers or modals.
+Collaborative AI-Ready: While this describes the manual flow, the UI is designed for the Pro-pilot AI Assistant to work alongside the user (as discussed, in a dedicated chat panel on this page).
+See It Build: The estimate form on the right should update dynamically as items are added or modified, giving the user instant visual feedback.
+Part 1: Estimate Creation & The Main Interface
+User Journey: The contractor needs to start a new estimate for a potential project.
+Workflow & UI Experience:
+Initiation:
+The user navigates to the Estimates module from the main sidebar.
+They click the "+ New Estimate" button.
+Alternatively, from an Opportunity detail page, they click a "Create Estimate" button.
+The Estimate Creation Page: This is a full-page interface, divided into two main panels:
+Left Panel (~40%): "AI Estimate Conversation" / Scope Definition Area.
+This is the dedicated space for the Pro-pilot AI Assistant. For the manual MVP, this area might be simpler, perhaps a large "Notes / Scope" text area where the user can paste or type out the project scope manually. The full conversational UI will be built here.
+It includes controls for uploading files (plans, photos) relevant to the estimate.
+Right Panel (~60%): The Estimate Form (Tabbed Interface).
+This is where the structured estimate is built and displayed. It contains several tabs.
+"Details" Tab (Initial View):
+The user fills out the high-level estimate information.
+Fields:
+Estimate Name: (e.g., "Smith Kitchen Remodel")
+Estimate #: (Auto-generated but editable)
+Client: (Searchable dropdown of People. Pre-filled if created from an Opportunity/Person).
+Status: (Dropdown: Draft, Sent, Accepted, Declined, Archived). Defaults to "Draft".
+Issue Date / Expiry Date: (Date pickers).
+Project Type: (Dropdown with "add as you go" from project_types table).
+Part 2: Building the Estimate - Line Items, Cost Items & Groups
+User Journey: The contractor needs to add materials, labor, and other costs to the estimate.
+Workflow & UI Experience (within the "Line Items" Tab):
+The "Line Items" Tab UI:
+This tab starts empty with a message like "No items yet. Click 'Add Item' or 'Add Section' to get started."
+Key Action Buttons:
++ Add Item: The primary button for adding line items.
++ Add Section: For creating organizational sections (e.g., "Framing," "Electrical," "Finishes").
+% Bulk Markup: To apply a markup to multiple items at once.
+New section name: A text input field used with the + Add Section button.
+Adding a Section:
+User types "Framing" into the New section name input and clicks + Add Section.
+A new "Framing" section header appears in the line items list. Sections should be re-orderable (drag-and-drop).
+Each section has its own subtotal and options (e.g., apply markup to this section, mark section as "Optional" for client).
+Adding an Item (The Core Workflow):
+User clicks the + Add Item button (either globally or within a specific section).
+This opens a right-hand side drawer titled "Add Items to Estimate". This side drawer is critical and must be designed well.
+The "Add Items to Estimate" Side Drawer:
+This drawer has a tabbed interface at the top:
+Tab 1: Cost Items (Default): For pulling from your pre-defined library.
+Tab 2: Manual Entry: For one-off items not in the library.
+"Cost Items" Tab UI:
+Search Bar: "Search Cost Items..."
+Category Filter: A dropdown to filter by Cost Item Category (Material, Labor, Equipment, etc. - from the new cost_item_categories table).
+Item List: Displays the filtered list of cost items. Each item shows: Name, Description, Unit Cost, Unit.
+Item Groups: A toggle or sub-tab to view Cost Item Groups (pre-defined assemblies of multiple cost items, e.g., a "Standard Outlet" group might include the outlet, box, wire, and labor). Selecting a group adds all its constituent items to the estimate.
+Action: User clicks on one or more items/groups to select them. Selected items appear in a "Selected Items" list at the bottom of the drawer.
+"Manual Entry" Tab UI:
+A simple form for creating a one-off line item.
+Fields: Description, Quantity, Unit, Unit Cost, Markup (%), Taxable (checkbox).
+"Add to Cost Items Database" Checkbox: If checked, upon saving, this manual item is also added to the main cost_items table for future use.
+Bottom of Side Drawer:
+Shows a list of "Selected Items" waiting to be added.
+"Add X Items to Estimate" Button: Clicking this closes the drawer and adds the selected items to the Line Items tab in the main estimate form.
+Managing Line Items in the Main Form:
+Once added, each line item appears in the list.
+In-place Editing: Each field (Description, Qty, Unit Cost, Markup) should be editable directly in the list.
+Each item has controls: Delete, Move (drag-and-drop to reorder or move between sections), Mark as Optional, Mark as Taxable.
+Part 3: Finalizing the Estimate
+User Journey: The contractor has added all line items and now needs to finalize the proposal.
+Workflow & UI Experience (Navigating the Right-Panel Tabs):
+"Summary" Tab:
+A read-only view that dynamically calculates and displays:
+Subtotal
+Discount (if applicable)
+Tax Amount
+Total Estimate
+Estimated Cost (sum of all line item costs)
+Total Markup Amount
+Profit Margin (%)
+Total Hours Needed (sum of hours from labor items)
+This tab also contains the "AI Insights (Coming Soon)" placeholder.
+"Documents" Tab:
+This is where the "Scope of Work" is managed.
+A large, rich-text editor for the Scope of Work. (This is where the Pro-pilot will place its auto-generated scope document).
+Fields for "Terms and Conditions" and "Cover Sheet Details."
+An area to upload/link other relevant files (plans, photos).
+"Payment Schedule" Tab:
+A simple interface to define payment milestones.
+User clicks "+ Add Payment".
+Fields: Payment Name (e.g., "Deposit," "Upon Rough-in Completion"), Amount (can be % or fixed $), Due Date.
+Review & Submit:
+A prominent "Review and Submit" button is always visible at the bottom of the right panel.
+Clicking it opens a final preview modal showing what the client will see (a professional-looking PDF proposal).
+The modal has options: "Send to Client" (which would trigger an email workflow), "Download PDF," and "Mark as Sent."
+Part 4: Converting to a Project
+User Journey: The client has accepted the estimate, and the contractor needs to convert it into an active project.
+Workflow & UI Experience:
+Acceptance:
+The user navigates to the accepted estimate.
+They change the Status in the "Details" tab to "Accepted."
+The Post-Acceptance Prompt:
+Upon changing the status to "Accepted," a modal or prominent notification appears.
+Message: "Estimate Accepted! What's next?"
+Buttons:
+"Create Project from Estimate"
+"Create Blueprint of Values"
+"Generate Deposit Invoice"
+"Create Project from Estimate" Flow:
+Clicking this button navigates the user to the New Project form (in a side drawer or new page).
+Pre-filled Data: The form is pre-populated with data from the estimate:
+Project Name (from Estimate Name)
+Client (from Estimate Client)
+linked_estimate_id
+budget_amount (from Estimate Total)
+description (from Estimate Scope of Work)
+The user confirms the details and clicks "Create Project."
+They are then redirected to the newly created Project Detail page.

@@ -45,7 +45,7 @@ export class JobService {
       .from('jobs')
       .select(`
         *,
-        people(first_name, last_name, business_name),
+        people!jobs_assigned_to_fkey(first_name, last_name, business_name),
         projects(project_name),
         opportunities(opportunity_name)
       `);

@@ -17,10 +17,16 @@ interface BidRequestPageProps {
 }
 
 export default async function BidRequestPage({ params }: BidRequestPageProps) {
-  const bidRequest = await biddingService.getBidRequestById(params.id)
+  const { id } = await params; // Explicitly await params to satisfy Next.js warning
+
+  if (id === "new") {
+    notFound(); // This page is for viewing existing bid requests, not creating new ones.
+  }
+
+  const bidRequest = await biddingService.getBidRequestById(id);
 
   if (!bidRequest) {
-    notFound()
+    notFound();
   }
 
   // Get bid comparison if there are responses
@@ -156,7 +162,7 @@ export default async function BidRequestPage({ params }: BidRequestPageProps) {
                     className="hover:underline flex items-center"
                   >
                     <FileText className="mr-2 h-4 w-4" />
-                    {bidRequest.changeOrder.co_number}
+                    Change Order ID: {bidRequest.changeOrder.id}
                   </Link>
                 </p>
               </div>

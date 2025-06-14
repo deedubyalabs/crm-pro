@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import {
   Sheet,
   SheetContent,
@@ -11,25 +11,16 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Plus, Search } from "lucide-react"
+import { Plus, Search } from "lucide-react" // Re-added Plus icon
 import { costItemService } from "@/lib/cost-items"
-import { bigboxService } from "@/lib/bigbox-service" // Import bigboxService
-import type { CostItem, CostItemType, NewCostItem } from "@/types/cost-items"
-import type { BigBoxProduct } from "@/types/bigbox" // Import BigBoxProduct type
+import { bigboxService } from "@/lib/bigbox-service"
+import type { CostItem, CostItemType } from "@/types/cost-items"
+import type { BigBoxProduct } from "@/types/bigbox"
 import { formatCurrency } from "@/lib/utils"
 import { toast } from "@/components/ui/use-toast"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { createCostItemAction } from "@/app/cost-items/actions"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs" // Import Tabs components
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select" // Added Select imports
+import { CreateCostItemDialog } from "@/app/cost-items/components/CreateCostItemDialog"
 
 interface CostItemSelectorDrawerProps {
   isOpen: boolean
@@ -41,67 +32,31 @@ export function CostItemSelectorDrawer({ isOpen, onClose, onSelectCostItem }: Co
   const [costItems, setCostItems] = useState<CostItem[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [filterType, setFilterType] = useState<CostItemType | "all">("all")
-  const [isCreatingNew, setIsCreatingNew] = useState(false)
-  const [newCostItem, setNewCostItem] = useState<Partial<NewCostItem>>({
-    item_code: "",
-    name: "",
-    type: "Material",
-    unit: "EA",
-    unit_cost: 0,
-    default_markup: 0,
-    is_active: true,
-  })
-  const [isSubmittingNew, setIsSubmittingNew] = useState(false)
-  const [bigboxSearchTerm, setBigboxSearchTerm] = useState("") // New state for BigBox search
-  const [bigboxSearchResults, setBigboxSearchResults] = useState<BigBoxProduct[]>([]) // New state for BigBox results
-  const [isSearchingBigbox, setIsSearchingBigbox] = useState(false) // New state for BigBox search loading
+  const [isBigboxSearchLoading, setIsBigboxSearchLoading] = useState(false) // Renamed for clarity
+  const [bigboxSearchTerm, setBigboxSearchTerm] = useState("")
+  const [bigboxSearchResults, setBigboxSearchResults] = useState<BigBoxProduct[]>([])
+  const [isCreateCostItemDialogOpen, setIsCreateCostItemDialogOpen] = useState(false) // State for new dialog
 
-  useEffect(() => {
-    const fetchCostItems = async () => {
-      const filters = {
-        search: searchTerm || undefined,
-        type: filterType === "all" ? undefined : filterType,
-        isActive: true, // Only show active items in selector
-      }
-      const items = await costItemService.getCostItems(filters)
-      setCostItems(items)
+  // Memoized fetch function to avoid re-creating on every render
+  const fetchCostItems = useCallback(async () => {
+    const filters = {
+      search: searchTerm || undefined,
+      type: filterType === "all" ? undefined : filterType,
+      isActive: true,
     }
-    fetchCostItems()
+    const items = await costItemService.getCostItems(filters)
+    setCostItems(items)
   }, [searchTerm, filterType])
 
-  const handleCreateNewCostItem = async () => {
-    setIsSubmittingNew(true)
-    try {
-      // Basic validation
-      if (!newCostItem.item_code || !newCostItem.name || !newCostItem.type || !newCostItem.unit) {
-        throw new Error("Please fill all required fields for the new cost item.")
-      }
-      if (newCostItem.unit_cost === undefined || newCostItem.unit_cost < 0) {
-        throw new Error("Unit cost must be a non-negative number.")
-      }
-      if (newCostItem.default_markup === undefined || newCostItem.default_markup < 0) {
-        throw new Error("Default markup must be a non-negative number.")
-      }
-
-      const createdItem = await createCostItemAction(newCostItem as NewCostItem)
-      toast({ title: "Cost Item Created", description: `${createdItem.name} has been added to your catalog.` })
-      onSelectCostItem(createdItem) // Select the newly created item
-      setIsCreatingNew(false)
-      onClose()
-    } catch (error) {
-      toast({
-        title: "Error Creating Cost Item",
-        description: error instanceof Error ? error.message : "Failed to create new cost item.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsSubmittingNew(false)
+  useEffect(() => {
+    if (isOpen) { // Only fetch when the drawer is open
+      fetchCostItems()
     }
-  }
+  }, [isOpen, fetchCostItems]) // Depend on isOpen and memoized fetchCostItems
 
   const handleBigboxSearch = async () => {
-    setIsSearchingBigbox(true)
-    setBigboxSearchResults([]) // Clear previous results
+    setIsBigboxSearchLoading(true)
+    setBigboxSearchResults([])
     try {
       const result = await bigboxService.searchProducts(bigboxSearchTerm)
       if (result.search_results) {
@@ -120,16 +75,16 @@ export function CostItemSelectorDrawer({ isOpen, onClose, onSelectCostItem }: Co
         variant: "destructive",
       })
     } finally {
-      setIsSearchingBigbox(false)
+      setIsBigboxSearchLoading(false)
     }
   }
 
   const handleImportBigboxProduct = async (product: BigBoxProduct) => {
-    setIsSubmittingNew(true) // Use this to indicate import is in progress
+    // No longer using isSubmittingNew, as it's handled by the createCostItemAction
     try {
       const importedCostItem = await bigboxService.createCostItemFromProduct(product)
       toast({ title: "Product Imported", description: `${importedCostItem.name} imported from BigBox and added to catalog.` })
-      onSelectCostItem(importedCostItem) // Select the newly imported item
+      onSelectCostItem(importedCostItem)
       onClose()
     } catch (error) {
       toast({
@@ -137,9 +92,17 @@ export function CostItemSelectorDrawer({ isOpen, onClose, onSelectCostItem }: Co
         description: error instanceof Error ? error.message : "Failed to import product from BigBox.",
         variant: "destructive",
       })
-    } finally {
-      setIsSubmittingNew(false)
     }
+  }
+
+  const handleCostItemCreated = (costItemId: string) => {
+    // After a new cost item is created, re-fetch the list to include it
+    fetchCostItems()
+    // Optionally, select the newly created item if desired
+    // const newlyCreatedItem = costItems.find(item => item.id === costItemId);
+    // if (newlyCreatedItem) {
+    //   onSelectCostItem(newlyCreatedItem);
+    // }
   }
 
   const costItemTypes: CostItemType[] = ["Material", "Labor", "Equipment", "Subcontractor", "Other"]
@@ -181,8 +144,8 @@ export function CostItemSelectorDrawer({ isOpen, onClose, onSelectCostItem }: Co
                   ))}
                 </SelectContent>
               </Select>
-              <Button onClick={() => setIsCreatingNew(true)}>
-                <Plus className="mr-2 h-4 w-4" /> New
+              <Button onClick={() => setIsCreateCostItemDialogOpen(true)}> {/* Open new dialog */}
+                New Cost Item
               </Button>
             </div>
 
@@ -237,9 +200,9 @@ export function CostItemSelectorDrawer({ isOpen, onClose, onSelectCostItem }: Co
                   }
                 }}
               />
-              <Button onClick={handleBigboxSearch} disabled={isSearchingBigbox}>
-                {isSearchingBigbox ? "Searching..." : <Search className="mr-2 h-4 w-4" />}
-                {isSearchingBigbox ? "Searching..." : "Search BigBox"}
+              <Button onClick={handleBigboxSearch} disabled={isBigboxSearchLoading}>
+                {isBigboxSearchLoading ? "Searching..." : <Search className="mr-2 h-4 w-4" />}
+                {isBigboxSearchLoading ? "Searching..." : "Search BigBox"}
               </Button>
             </div>
 
@@ -254,7 +217,7 @@ export function CostItemSelectorDrawer({ isOpen, onClose, onSelectCostItem }: Co
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {isSearchingBigbox ? (
+                  {isBigboxSearchLoading ? (
                     <TableRow>
                       <TableCell colSpan={4} className="h-24 text-center">
                         Searching BigBox...
@@ -273,7 +236,7 @@ export function CostItemSelectorDrawer({ isOpen, onClose, onSelectCostItem }: Co
                         <TableCell>{product.brand}</TableCell>
                         <TableCell className="text-right">{formatCurrency(product.offers?.primary?.price || 0)}</TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="sm" onClick={() => handleImportBigboxProduct(product)} disabled={isSubmittingNew}>
+                          <Button variant="ghost" size="sm" onClick={() => handleImportBigboxProduct(product)}>
                             Import
                           </Button>
                         </TableCell>
@@ -286,113 +249,12 @@ export function CostItemSelectorDrawer({ isOpen, onClose, onSelectCostItem }: Co
           </TabsContent>
         </Tabs>
 
-        <Dialog open={isCreatingNew} onOpenChange={setIsCreatingNew}>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>Create New Cost Item</DialogTitle>
-              <DialogDescription>
-                Enter details for a new cost item. It will be added to your catalog.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="new-item-code" className="text-right">
-                  Item Code
-                </Label>
-                <Input
-                  id="new-item-code"
-                  value={newCostItem.item_code || ""}
-                  onChange={(e) => setNewCostItem({ ...newCostItem, item_code: e.target.value })}
-                  className="col-span-3"
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="new-item-name" className="text-right">
-                  Name
-                </Label>
-                <Input
-                  id="new-item-name"
-                  value={newCostItem.name || ""}
-                  onChange={(e) => setNewCostItem({ ...newCostItem, name: e.target.value })}
-                  className="col-span-3"
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="new-item-type" className="text-right">
-                  Type
-                </Label>
-                <Select
-                  value={newCostItem.type || ""}
-                  onValueChange={(value) => setNewCostItem({ ...newCostItem, type: value as CostItemType })}
-                >
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {costItemTypes.map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {type}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="new-item-unit" className="text-right">
-                  Unit
-                </Label>
-                <Input
-                  id="new-item-unit"
-                  value={newCostItem.unit || ""}
-                  onChange={(e) => setNewCostItem({ ...newCostItem, unit: e.target.value })}
-                  className="col-span-3"
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="new-item-unit-cost" className="text-right">
-                  Unit Cost
-                </Label>
-                <Input
-                  id="new-item-unit-cost"
-                  type="number"
-                  step="0.01"
-                  value={newCostItem.unit_cost || 0}
-                  onChange={(e) => setNewCostItem({ ...newCostItem, unit_cost: parseFloat(e.target.value) })}
-                  className="col-span-3"
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="new-item-markup" className="text-right">
-                  Default Markup (%)
-                </Label>
-                <Input
-                  id="new-item-markup"
-                  type="number"
-                  step="0.01"
-                  value={newCostItem.default_markup || 0}
-                  onChange={(e) => setNewCostItem({ ...newCostItem, default_markup: parseFloat(e.target.value) })}
-                  className="col-span-3"
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="new-item-description" className="text-right">
-                  Description
-                </Label>
-                <Textarea
-                  id="new-item-description"
-                  value={newCostItem.description || ""}
-                  onChange={(e) => setNewCostItem({ ...newCostItem, description: e.target.value })}
-                  className="col-span-3"
-                />
-              </div>
-            </div>
-            <div className="flex justify-end">
-              <Button onClick={handleCreateNewCostItem} disabled={isSubmittingNew}>
-                {isSubmittingNew ? "Creating..." : "Create Item"}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        {/* Integrate the new CreateCostItemDialog */}
+        <CreateCostItemDialog
+          isOpen={isCreateCostItemDialogOpen}
+          onClose={() => setIsCreateCostItemDialogOpen(false)}
+          onCostItemCreated={handleCostItemCreated}
+        />
       </SheetContent>
     </Sheet>
   )

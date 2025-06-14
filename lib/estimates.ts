@@ -13,34 +13,34 @@ import type {
   UpdateEstimatePaymentSchedule,
   LineItemsBySection,
 } from "@/types/estimates"
-import { scheduleOfValuesService } from "./schedule-of-values";
+import { blueprintOfValuesService } from "./blueprint-of-values";
 import { invoiceService, Invoice } from "./invoices"; // Import Invoice type from lib/invoices
 
 export const estimateService = {
   // Helper to handle actions when an estimate is accepted
-  async handleEstimateAccepted(estimateId: string, userId: string | null): Promise<{ sovGenerated: boolean; initialInvoiceGenerated: boolean; sovId: string | null; invoiceId: string | null }> {
-    let sovGenerated = false;
+  async handleEstimateAccepted(estimateId: string, userId: string | null): Promise<{ bovGenerated: boolean; initialInvoiceGenerated: boolean; bovId: string | null; invoiceId: string | null }> {
+    let bovGenerated = false;
     let initialInvoiceGenerated = false;
-    let sovId: string | null = null;
+    let bovId: string | null = null;
     let invoiceId: string | null = null;
 
     try {
       const estimate = await this.getEstimateById(estimateId);
       if (!estimate) {
         console.warn(`Estimate with ID ${estimateId} not found for handling acceptance.`);
-        return { sovGenerated, initialInvoiceGenerated, sovId: null, invoiceId: null };
+        return { bovGenerated, initialInvoiceGenerated, bovId: null, invoiceId: null };
       }
 
-      // 1. Generate Schedule of Values (SOV) if not already converted
-      if (!estimate.is_converted_to_sov) {
+      // 1. Generate Blueprint of Values (BOV) if not already converted
+      if (!estimate.is_converted_to_bov) {
         try {
-          const newSov = await scheduleOfValuesService.convertEstimateToScheduleOfValue(estimateId, userId);
-          sovGenerated = true;
-          sovId = newSov.id;
-          console.log(`SOV generated for estimate ${estimateId} with ID ${sovId}`);
+          const newBov = await blueprintOfValuesService.convertEstimateToBlueprintOfValues(estimateId, userId);
+          bovGenerated = true;
+          bovId = newBov.id;
+          console.log(`BOV generated for estimate ${estimateId} with ID ${bovId}`);
         } catch (error) {
-          console.error(`Failed to generate SOV for estimate ${estimateId}:`, error);
-          // Continue even if SOV generation fails
+          console.error(`Failed to generate BOV for estimate ${estimateId}:`, error);
+          // Continue even if BOV generation fails
         }
       }
 
@@ -66,6 +66,7 @@ export const estimateService = {
               total: estimate.deposit_amount,
               sort_order: 0,
             }],
+            id: ""
           };
           const createdInvoiceId = await invoiceService.createInvoice(newInvoice);
           initialInvoiceGenerated = true;
@@ -85,10 +86,10 @@ export const estimateService = {
         }
       }
 
-      // Update the estimate with SOV ID if generated
-      if (sovId) {
+      // Update the estimate with BOV ID if generated
+      if (bovId) {
         await supabase.from("estimates").update({
-          schedule_of_value_id: sovId,
+          blueprint_of_values_id: bovId,
           updated_at: new Date().toISOString(),
         }).eq("id", estimateId);
       }
@@ -96,7 +97,7 @@ export const estimateService = {
     } catch (error) {
       console.error("Error in handleEstimateAccepted:", error);
     }
-    return { sovGenerated, initialInvoiceGenerated, sovId, invoiceId };
+    return { bovGenerated, initialInvoiceGenerated, bovId, invoiceId };
   },
 
   async getEstimatesByProjectId(projectId: string): Promise<EstimateWithDetails[]> {
@@ -150,14 +151,12 @@ export const estimateService = {
           scope_of_work,
           cover_sheet_details,
           is_converted_to_project,
-          is_converted_to_sov,
+          is_converted_to_bov,
           is_initial_invoice_generated,
-          schedule_of_value_id,
+          blueprint_of_values_id,
           initial_invoice_id,
           created_at,
           updated_at,
-          created_by,
-          updated_by,
           deposit_required,
           deposit_amount,
           deposit_percentage,
@@ -237,14 +236,12 @@ export const estimateService = {
           scope_of_work,
           cover_sheet_details,
           is_converted_to_project,
-          is_converted_to_sov,
+          is_converted_to_bov,
           is_initial_invoice_generated,
-          schedule_of_value_id,
+          blueprint_of_values_id,
           initial_invoice_id,
           created_at,
           updated_at,
-          created_by,
-          updated_by,
           deposit_required,
           deposit_amount,
           deposit_percentage,
@@ -280,8 +277,6 @@ export const estimateService = {
           id,
           estimate_id,
           cost_item_id,
-          aiSuggestionId,
-          isAISuggested,
           description,
           quantity,
           unit,
@@ -290,7 +285,6 @@ export const estimateService = {
           total,
           sort_order,
           section_name,
-          notes,
           is_optional,
           is_taxable,
           assigned_to_user_id,
@@ -317,13 +311,11 @@ export const estimateService = {
           estimate_id,
           description,
           amount,
-          percentage,
           due_type,
           due_date,
           sort_order,
           created_at,
-          updated_at,
-          percentage
+          updated_at
         `)
         .eq("estimate_id", id)
         .order("sort_order")
@@ -378,9 +370,9 @@ export const estimateService = {
           total_amount: totalAmount,
           project_id: estimate.project_id ?? null,
           is_converted_to_project: estimate.is_converted_to_project ?? false,
-          is_converted_to_sov: estimate.is_converted_to_sov ?? false,
+          is_converted_to_bov: estimate.is_converted_to_bov ?? false,
           is_initial_invoice_generated: estimate.is_initial_invoice_generated ?? false,
-          schedule_of_value_id: estimate.schedule_of_value_id ?? null,
+          blueprint_of_values_id: estimate.blueprint_of_values_id ?? null,
           initial_invoice_id: estimate.initial_invoice_id ?? null,
         } as any) // Cast to any to bypass strict type checking
         .select(`
@@ -401,14 +393,12 @@ export const estimateService = {
           scope_of_work,
           cover_sheet_details,
           is_converted_to_project,
-          is_converted_to_sov,
+          is_converted_to_bov,
           is_initial_invoice_generated,
-          schedule_of_value_id,
+          blueprint_of_values_id,
           initial_invoice_id,
           created_at,
           updated_at,
-          created_by,
-          updated_by,
           deposit_required,
           deposit_amount,
           deposit_percentage
@@ -512,14 +502,12 @@ export const estimateService = {
           scope_of_work,
           cover_sheet_details,
           is_converted_to_project,
-          is_converted_to_sov,
+          is_converted_to_bov,
           is_initial_invoice_generated,
-          schedule_of_value_id,
+          blueprint_of_values_id,
           initial_invoice_id,
           created_at,
           updated_at,
-          created_by,
-          updated_by,
           deposit_required,
           deposit_amount,
           deposit_percentage
@@ -609,8 +597,6 @@ export const estimateService = {
           id,
           estimate_id,
           cost_item_id,
-          aiSuggestionId,
-          isAISuggested,
           description,
           quantity,
           unit,
@@ -619,7 +605,6 @@ export const estimateService = {
           total,
           sort_order,
           section_name,
-          notes,
           is_optional,
           is_taxable,
           assigned_to_user_id,
@@ -650,8 +635,6 @@ export const estimateService = {
           id,
           estimate_id,
           cost_item_id,
-          aiSuggestionId,
-          isAISuggested,
           description,
           quantity,
           unit,
@@ -660,7 +643,6 @@ export const estimateService = {
           total,
           sort_order,
           section_name,
-          notes,
           is_optional,
           is_taxable,
           assigned_to_user_id,
@@ -722,8 +704,6 @@ export const estimateService = {
           id,
           estimate_id,
           cost_item_id,
-          aiSuggestionId,
-          isAISuggested,
           description,
           quantity,
           unit,
@@ -732,7 +712,6 @@ export const estimateService = {
           total,
           sort_order,
           section_name,
-          notes,
           is_optional,
           is_taxable,
           assigned_to_user_id,
@@ -768,8 +747,6 @@ export const estimateService = {
           id,
           estimate_id,
           cost_item_id,
-          aiSuggestionId,
-          isAISuggested,
           description,
           quantity,
           unit,
@@ -778,7 +755,6 @@ export const estimateService = {
           total,
           sort_order,
           section_name,
-          notes,
           is_optional,
           is_taxable,
           assigned_to_user_id,
@@ -892,7 +868,6 @@ export const estimateService = {
           estimate_id,
           description,
           amount,
-          percentage,
           due_type,
           due_date,
           sort_order,
@@ -931,7 +906,6 @@ export const estimateService = {
           estimate_id,
           description,
           amount,
-          percentage,
           due_type,
           due_date,
           sort_order,
@@ -958,7 +932,6 @@ export const estimateService = {
           estimate_id,
           description,
           amount,
-          percentage,
           due_type,
           due_date,
           sort_order,

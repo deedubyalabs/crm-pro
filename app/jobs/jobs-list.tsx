@@ -1,6 +1,5 @@
-import React, { JSX } from "react" // Added React import
+import React, { JSX } from "react"
 import Link from "next/link"
-import { jobService } from "@/lib/jobs"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -30,45 +29,39 @@ import {
   PauseCircle,
 } from "lucide-react"
 import { formatDate } from "@/lib/utils"
-import { projectService } from "@/lib/projects"
+import { projectService } from "@/lib/projects" // Keep projectService for project filter
 import { Progress } from "@/components/ui/progress"
-import JobListItemClient from "./job-list-item-client" // Import the new client component
-import { JobWithAssignedToUser } from "@/types/job" // Import JobWithAssignedToUser
-import { Database, Constants } from "@/types/supabase" // Import Database and Constants
+import JobListItemClient from "./job-list-item-client"
+import { Job, JobWithAssignedToUser } from "@/types/job" // Import Job and JobWithAssignedToUser
+import { Constants } from "@/types/supabase" // Import Constants
 
 interface JobsListProps {
-  status?: string // Revert to string due to persistent type issues with Select component
+  jobs: Job[] // Jobs are now passed as a prop
+  status?: string
   projectId?: string
-  assignedTo?: string // Changed from assignedToId to assignedTo
+  assignedTo?: string
   search?: string
   startDate?: string
   endDate?: string
-  onJobClick?: (jobId: string) => void // Add onJobClick prop
+  onJobClick?: (jobId: string) => void
 }
 
-export default async function JobsList({ status, projectId, assignedTo, search, startDate, endDate, onJobClick }: JobsListProps) {
-  // Map incoming status to valid database enum values
-  const validStatus = status ? 
-    (['Pending', 'Scheduled', 'In Progress', 'Blocked', 'Completed', 'Canceled'].includes(status) ? 
-      status as Database["public"]["Enums"]["job_status"] : 
-      undefined) : 
-    undefined;
-
-  // Fetch jobs with filters
-  const jobs = await jobService.getJobs({
-    status: validStatus,
-    projectId,
-    assignedTo, // Changed from assignedToId to assignedTo
-    search,
-    startDate,
-    endDate,
-  })
-
-  // Fetch projects for filter
-  const projects = await projectService.getProjects()
+export default function JobsList({ jobs, status, projectId, assignedTo, search, startDate, endDate, onJobClick }: JobsListProps) {
+  // Fetch projects for filter (still needed for the Select component)
+  // This should ideally be passed as a prop from the Server Component as well for full SSR,
+  // but for now, keeping it here to avoid breaking the filter functionality immediately.
+  // A more robust solution would involve passing `projects` from JobsPage to JobsPageClient to JobsList.
+  const [projects, setProjects] = React.useState<any[]>([]); // Use React.useState
+  React.useEffect(() => { // Use React.useEffect
+    const fetchProjects = async () => {
+      const fetchedProjects = await projectService.getProjects();
+      setProjects(fetchedProjects);
+    };
+    fetchProjects();
+  }, []);
 
   // Helper function to get status badge
-  function getStatusBadge(status: string): JSX.Element { // Explicitly type status
+  function getStatusBadge(status: string): JSX.Element {
     switch (status) {
       case "Pending":
         return <Badge variant="outline">Pending</Badge>
@@ -89,14 +82,14 @@ export default async function JobsList({ status, projectId, assignedTo, search, 
       case "delayed":
         return <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">Delayed</Badge>
       case "cancelled":
-        return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Cancelled</Badge>
+        return <Badge className="bg-red-100 text-red-800 hover:bg-red-800">Cancelled</Badge>
       default:
         return <Badge variant="outline">{status}</Badge>
     }
   }
 
   // Helper function to get status icon
-  function getStatusIcon(status: string): JSX.Element | null { // Explicitly type status
+  function getStatusIcon(status: string): JSX.Element | null {
     switch (status) {
       case "Pending":
         return <PauseCircle className="h-4 w-4 text-muted-foreground" />
@@ -186,10 +179,10 @@ export default async function JobsList({ status, projectId, assignedTo, search, 
                 return (
                   <JobListItemClient
                     key={job.id}
-                    job={job as JobWithAssignedToUser} // Cast to JobWithAssignedToUser
-                    onJobClick={onJobClick || (() => {})} // Provide a default empty function if onJobClick is undefined
-                    calculateProgress={calculateProgress} // Pass helper function
-                    isOverdue={isOverdue} // Pass helper function
+                    job={job as JobWithAssignedToUser}
+                    onJobClick={onJobClick || (() => {})}
+                    calculateProgress={calculateProgress}
+                    isOverdue={isOverdue}
                     getStatusBadge={getStatusBadge}
                     getStatusIcon={getStatusIcon}
                   />
@@ -235,9 +228,9 @@ function isOverdue(job: any): boolean {
   }
   if (job.due_date) {
     const today = new Date();
-    today.setHours(0, 0, 0, 0); // Normalize today to start of day
+    today.setHours(0, 0, 0, 0);
     const dueDate = new Date(job.due_date);
-    dueDate.setHours(0, 0, 0, 0); // Normalize due date to start of day
+    dueDate.setHours(0, 0, 0, 0);
     return dueDate < today;
   }
   return false;

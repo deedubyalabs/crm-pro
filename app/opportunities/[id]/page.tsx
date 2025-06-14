@@ -140,31 +140,6 @@ export default function OpportunityDetailPage({ params: { id } }: { params: { id
       setIsDraftingEmail(true);
       setDraftedEmailText(""); // Clear previous draft
       setIsEmailModalOpen(true); // Open modal immediately
-
-      try {
-        const response = await fetch("/api/ai/draft-communication", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            opportunityId: opportunity.id,
-            communicationType: "estimate_follow_up",
-          }),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || "Failed to draft email");
-        }
-
-        const data = await response.json();
-        setDraftedEmailText(data.draftedEmailText);
-
-      } catch (error) {
-        console.error("Error drafting email:", error);
-        setDraftedEmailText(`Error drafting email: ${error instanceof Error ? error.message : String(error)}`);
-      } finally {
-        setIsDraftingEmail(false);
-      }
     };
 
     // Handle copying email text to clipboard
@@ -197,22 +172,6 @@ export default function OpportunityDetailPage({ params: { id } }: { params: { id
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            {/* AI Actions Dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline">
-                  <MessageSquare className="mr-2 h-4 w-4" /> AI Actions
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>AI Actions</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleDraftFollowUpEmail} disabled={isDraftingEmail}>
-                  {isDraftingEmail ? "Drafting..." : "Draft Follow-Up Email"}
-                </DropdownMenuItem>
-                {/* Add other AI actions here */}
-              </DropdownMenuContent>
-            </DropdownMenu>
 
             {opportunity.status !== "Estimate Accepted" && opportunity.status !== "Lost" && (
               <Button variant="outline" asChild>
@@ -647,35 +606,6 @@ export default function OpportunityDetailPage({ params: { id } }: { params: { id
             </Card>
           </div>
         </div>
-
-        {/* AI Email Draft Modal */}
-        <Dialog open={isEmailModalOpen} onOpenChange={setIsEmailModalOpen}>
-          <DialogContent className="sm:max-w-[600px]">
-            <DialogHeader>
-              <DialogTitle>AI Email Draft</DialogTitle>
-              <DialogDescription>
-                Here is a draft email based on the opportunity context. You can copy and paste it into your email client.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="draftedEmail">Drafted Email</Label>
-                <Textarea
-                  id="draftedEmail"
-                  value={draftedEmailText}
-                  readOnly
-                  rows={10}
-                  className="col-span-3"
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button onClick={handleCopyToClipboard} disabled={!draftedEmailText || isDraftingEmail}>
-                <Copy className="mr-2 h-4 w-4" /> Copy to Clipboard
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </div>
     )
 }

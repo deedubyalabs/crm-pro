@@ -26,8 +26,6 @@ export type NewChangeOrder = {
   description: string; // Changed to required string based on schema
   reason?: string | null;
   requested_by?: string | null;
-  issue_date?: string | null;
-  approval_date?: string | null;
   total_amount: number;
   impact_on_timeline?: number | null;
   approved_by_person_id?: string | null;
@@ -45,8 +43,6 @@ export type UpdateChangeOrder = {
   description?: string; // Changed to required string based on schema
   reason?: string | null;
   requested_by?: string | null;
-  issue_date?: string | null;
-  approval_date?: string | null;
   total_amount?: number;
   impact_on_timeline?: number | null;
   approved_by_person_id?: string | null;
@@ -73,19 +69,16 @@ export const changeOrderService = {
         .select(`
           id,
           project_id,
-          person_id, // Include person_id
+          person_id,
           change_order_number,
           status,
           title,
           description,
           reason,
           requested_by,
-          issue_date,
-          approval_date,
           total_amount,
           impact_on_timeline,
-          approved_by_person_id, // Include approved_by_person_id
-          created_by_user_id,
+          approved_by_person_id,
           created_at,
           updated_at,
           project:projects(id, project_name),
@@ -119,12 +112,9 @@ export const changeOrderService = {
           description,
           reason,
           requested_by,
-          issue_date,
-          approval_date,
           total_amount,
           impact_on_timeline,
           approved_by_person_id,
-          created_by_user_id,
           created_at,
           updated_at,
           project:projects(id, project_name),
@@ -213,12 +203,9 @@ export const changeOrderService = {
         description: (coData as any).description,
         reason: (coData as any).reason ?? null,
         requested_by: (coData as any).requested_by ?? null,
-        issue_date: (coData as any).issue_date ?? null,
-        approval_date: (coData as any).approval_date ?? null,
         total_amount: (coData as any).total_amount,
         impact_on_timeline: (coData as any).impact_on_timeline ?? null,
         approved_by_person_id: (coData as any).approved_by_person_id ?? null,
-        created_by_user_id: (coData as any).created_by_user_id ?? null,
       };
 
       const { data: createdCO, error: changeOrderError } = await supabase
@@ -274,7 +261,8 @@ export const changeOrderService = {
       // Create payload and filter out undefined values
       const basePayload = {
         updated_at: now,
-        ...(coUpdateData as any) // Cast coUpdateData to any here
+        ...(coUpdateData as any), // Cast coUpdateData to any here
+        created_by_user_id: undefined, // Ensure this is not sent in update
       };
       
       // Explicitly cast the entire payload to TablesUpdate<"change_orders">

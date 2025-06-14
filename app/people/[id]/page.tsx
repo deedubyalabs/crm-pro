@@ -7,7 +7,6 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input" // Import Input
-import LeadAISection from "@/components/crm/LeadAISection" // Import LeadAISection
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { getInitials } from "@/lib/utils"
 import EditPersonSheetTrigger from "@/components/crm/EditPersonSheetTrigger" // Import EditPersonSheetTrigger
@@ -369,12 +368,6 @@ export default async function PersonPage({ params }: { params: { id: string } })
                 >
                   Activity ({activitiesCount})
                 </TabsTrigger>
-                <TabsTrigger
-                  value="ai-insights"
-                  className="rounded-none border-b-2 border-transparent px-4 py-3 data-[state=active]:border-primary data-[state=active]:bg-transparent"
-                >
-                  AI Insights
-                </TabsTrigger>
               </TabsList>
 
               {/* Opportunities Tab */}
@@ -557,13 +550,6 @@ export default async function PersonPage({ params }: { params: { id: string } })
                       Log Activity
                     </Button>
                   </div>
-                </div>
-              </TabsContent>
-
-              {/* AI Insights Tab */}
-              <TabsContent value="ai-insights" className="p-0">
-                <div className="p-6">
-                  <LeadAISection personId={person.id} personType={person.person_type} />
                 </div>
               </TabsContent>
             </Tabs>

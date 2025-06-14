@@ -139,7 +139,7 @@ PROActive ONE is a web-based application built with a modern tech stack (Next.js
         *   Comprehensive project detail view (central hub):
             *   Summary (status, key dates, budget vs. actual).
             *   Financials (linked Estimates, Change Orders, Invoices, Payments, Expenses, Purchase Orders, Bills, Job Costing summary).
-            *   Schedule of Values.
+            *   Blueprint of Values.
             *   Schedule (Gantt chart view, task list).
             *   Jobs/Tasks.
             *   Daily Logs.
@@ -166,7 +166,7 @@ PROActive ONE is a web-based application built with a modern tech stack (Next.js
             *   Terms & Conditions, Scope of Work, Cover Sheet, Notes, Files.
             *   Bidding section for managing subcontractor bids on specific line items/sections.
             *   Preview & Send functionality (PDF generation).
-            *   Convert to Project/Invoice/Schedule of Values upon approval.
+            *   Convert to Project/Invoice/Blueprint of Values upon approval.
     *   **Jobs (Tasks & To-Do's) Module:**
         *   List view and Kanban board view.
         *   Side drawer for task creation (link to Person, Opportunity, Project).
@@ -208,13 +208,13 @@ PROActive ONE is a web-based application built with a modern tech stack (Next.js
     *   **Change Orders Module:**
         *   List view and status tracking.
         *   Create COs linked to Projects.
-        *   Add CO line items (import from Estimate/SOV or manual).
+        *   Add CO line items (import from Estimate/BOV or manual).
         *   Approval workflow with client (e-signature).
-        *   Automatic update to Project financials and Schedule of Values.
+        *   Automatic update to Project financials and Blueprint of Values.
     *   **Invoices Module:**
         *   List view, status tracking (Draft, Sent, Paid, Overdue).
         *   Create Invoices from Projects, Estimates, or manually.
-        *   Add various item types: from Cost Items, SOV, Estimate, Time & Materials (unbilled Time Cards, Expenses, COs), Manual Items, Discounts, Retainage.
+        *   Add various item types: from Cost Items, BOV, Estimate, Time & Materials (unbilled Time Cards, Expenses, COs), Manual Items, Discounts, Retainage.
         *   Professional PDF generation.
         *   Send via email (integration).
         *   Square integration for online payments.

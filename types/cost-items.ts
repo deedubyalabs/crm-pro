@@ -13,6 +13,8 @@ export type CostItemFilters = {
   search?: string
   isActive?: boolean
   groupId?: string // Added for filtering by group
+  page?: number // New: for pagination
+  limit?: number // New: for pagination
 }
 
 export interface CostItemGroup {

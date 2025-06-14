@@ -1,6 +1,6 @@
 import type { EstimateLineItem } from "./estimates"
 import type { ChangeOrderLineItem } from "./change-orders"
-import type { Person } from "./people"
+import type { Person } from "@/types/people"
 
 export type BidStatus = "draft" | "sent" | "viewed" | "responded" | "awarded" | "declined" | "expired" | "cancelled"
 
@@ -135,7 +135,6 @@ export interface BidRequestWithDetails extends BidRequest {
   } | null
   changeOrder?: {
     id: string
-    co_number: string
   } | null
 }
 

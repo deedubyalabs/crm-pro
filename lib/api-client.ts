@@ -12,8 +12,10 @@ class ApiClient {
   private apiKey: string | null
 
   constructor() {
-    this.baseUrl = process.env.NEXT_PUBLIC_API_URL || "/api/v1"
-    this.apiKey = null
+    // If NEXT_PUBLIC_API_URL is not set, default to an empty string
+    // as API routes are typically relative to the origin, e.g., /api/people
+    this.baseUrl = process.env.NEXT_PUBLIC_API_URL || "";
+    this.apiKey = null;
   }
 
   setApiKey(apiKey: string) {
@@ -34,18 +36,17 @@ class ApiClient {
 
   async get<T>(endpoint: string, params?: Record<string, string>): Promise<ApiResponse<T>> {
     try {
-      const url = new URL(`${this.baseUrl}${endpoint}`)
+      let url = `${this.baseUrl}${endpoint}`;
 
       if (params) {
-        Object.keys(params).forEach((key) => {
-          url.searchParams.append(key, params[key])
-        })
+        const searchParams = new URLSearchParams(params).toString();
+        url = `${url}?${searchParams}`;
       }
 
-      const response = await fetch(url.toString(), {
+      const response = await fetch(url, {
         method: "GET",
         headers: this.getHeaders(),
-      })
+      });
 
       if (!response.ok) {
         const errorData = await response.json()
@@ -55,7 +56,8 @@ class ApiClient {
       const data = await response.json()
       return { data, error: null }
     } catch (error) {
-      return { data: null, error: (error as Error).message }
+      console.error("Error in apiClient.get:", error); // Add more specific logging
+      return { data: null, error: (error as Error).message };
     }
   }
 

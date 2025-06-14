@@ -25,6 +25,9 @@ export interface Document {
   job_id: string | null
   person_id: string | null
   opportunity_id: string | null
+  estimate_id: string | null
+  change_order_id: string | null // Added change_order_id
+  invoice_id: string | null // Added invoice_id
   created_by: string
   created_at: string
   updated_at: string
@@ -65,4 +68,5 @@ export interface DocumentFilters {
   tags?: string[]
   startDate?: string
   endDate?: string
+  estimateId?: string // Added estimateId filter
 }

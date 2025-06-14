@@ -20,19 +20,25 @@ export default async function CostItemsPage({
 }: {
   searchParams: { [key: string]: string | string[] | undefined }
 }) {
-  const currentTab = typeof searchParams.tab === "string" ? searchParams.tab : "all"
-  const searchTerm = typeof searchParams.search === "string" ? searchParams.search : undefined
-  const itemType = typeof searchParams.type === "string" ? (searchParams.type as CostItemType) : undefined
-  const isActive = searchParams.isActive === "true" ? true : searchParams.isActive === "false" ? false : undefined
-  const groupId = typeof searchParams.groupId === "string" ? searchParams.groupId : undefined
+  // Await searchParams before accessing its properties
+  const awaitedSearchParams = await searchParams;
+  const currentTab = typeof awaitedSearchParams.tab === "string" ? awaitedSearchParams.tab : "all"
+  const searchTerm = typeof awaitedSearchParams.search === "string" ? awaitedSearchParams.search : undefined
+  const itemType = typeof awaitedSearchParams.type === "string" ? (awaitedSearchParams.type as CostItemType) : undefined
+  const isActive = awaitedSearchParams.isActive === "true" ? true : awaitedSearchParams.isActive === "false" ? false : undefined
+  const groupId = typeof awaitedSearchParams.groupId === "string" ? awaitedSearchParams.groupId : undefined
+  const page = parseInt(typeof awaitedSearchParams.page === "string" ? awaitedSearchParams.page : "1")
+  const limit = 10 // This should match the itemsPerPage in CostItemsList
 
   // Fetch all cost items and groups for the respective tabs
-  const [costItems, costItemGroups] = await Promise.all([
+  const [{ costItems, totalCount }, costItemGroups] = await Promise.all([
     costItemService.getCostItems({
       type: itemType,
       search: searchTerm,
       isActive: isActive,
       groupId: groupId,
+      page: page,
+      limit: limit,
     }),
     costItemService.getCostItemGroups(),
   ])
@@ -81,7 +87,7 @@ export default async function CostItemsPage({
 
         <TabsContent value="all">
           <Suspense fallback={<div>Loading all cost items...</div>}>
-            <CostItemsList costItems={costItems} costItemGroups={costItemGroups} />
+            <CostItemsList costItems={costItems} costItemGroups={costItemGroups} totalCount={totalCount} />
           </Suspense>
         </TabsContent>
 
@@ -91,6 +97,7 @@ export default async function CostItemsPage({
               <CostItemsList
                 costItems={costItems.filter(item => item.type === type)}
                 costItemGroups={costItemGroups}
+                totalCount={totalCount} // Pass totalCount to filtered lists as well
               />
             </Suspense>
           </TabsContent>

@@ -44,14 +44,13 @@ export function EstimateLineItemRow({
   const [unitCost, setUnitCost] = useState(lineItem.unit_cost?.toString() || "0")
   const [markup, setMarkup] = useState(lineItem.markup?.toString() || "0")
   const [total, setTotal] = useState(lineItem.total || 0)
-  const [selectedCostItemId, setSelectedCostItemId] = useState(lineItem.cost_item_id || "")
+  const [selectedCostItemId, setSelectedCostItemId] = useState(lineItem.cost_item_id || "none") // Use "none" for no selection
   const [description, setDescription] = useState(lineItem.description || "")
   const [unit, setUnit] = useState(lineItem.unit || "EA")
-  const [section, setSection] = useState(lineItem.section_name || "")
-  const [notes, setNotes] = useState(lineItem.notes || "")
+  const [section, setSection] = useState(lineItem.section_name || "none") // Use "none" for no section
   const [isOptional, setIsOptional] = useState(lineItem.is_optional || false)
   const [isTaxable, setIsTaxable] = useState<boolean>(lineItem.is_taxable || true)
-  const [assignedToUserId, setAssignedToUserId] = useState(lineItem.assigned_to_user_id || "")
+  const [assignedToUserId, setAssignedToUserId] = useState(lineItem.assigned_to_user_id || "none") // Use "none" for unassigned
   const [users, setUsers] = useState<User[]>([]);
   const [isCostItemDrawerOpen, setIsCostItemDrawerOpen] = useState(false) // State for drawer visibility
 
@@ -98,14 +97,13 @@ export function EstimateLineItemRow({
       total: newTotal,
       description,
       unit,
-      cost_item_id: selectedCostItemId || null,
-      section_name: section || null,
-      notes,
+      cost_item_id: selectedCostItemId === "none" ? null : selectedCostItemId, // Convert "none" to null
+      section_name: section === "none" ? null : section, // Convert "none" to null
       is_optional: isOptional,
       is_taxable: isTaxable,
-      assigned_to_user_id: assignedToUserId || null,
+      assigned_to_user_id: assignedToUserId === "none" ? null : assignedToUserId, // Convert "none" to null
     })
-  }, [quantity, unitCost, markup, description, unit, selectedCostItemId, section, notes, isOptional, isTaxable, assignedToUserId, lineItem]) // Added lineItem to dependency array
+  }, [quantity, unitCost, markup, description, unit, selectedCostItemId, section, isOptional, isTaxable, assignedToUserId])
 
   // Handle cost item selection from the existing dropdown
   const handleCostItemChange = (costItemId: string) => {
@@ -147,7 +145,7 @@ export function EstimateLineItemRow({
                 <SelectValue placeholder="Select item or enter custom" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Clear Selection</SelectItem> {/* Option for no selection */}
+                <SelectItem value="none">Clear Selection</SelectItem> {/* Use "none" for no selection */}
                 <SelectItem value="custom">Custom Item</SelectItem>
                 {costItems.filter(item => item.id).map((item) => ( // Filter out items with null/undefined/empty IDs
                   <SelectItem key={item.id} value={item.id}>
@@ -176,7 +174,7 @@ export function EstimateLineItemRow({
               <SelectValue placeholder="Select section (optional)" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">No Section</SelectItem> {/* Option for no section */}
+              <SelectItem value="none">No Section</SelectItem> {/* Use "none" for no section */}
               {sections.map((sectionName) => (
                 sectionName !== "" && (
                   <SelectItem key={sectionName} value={sectionName}>
@@ -193,12 +191,6 @@ export function EstimateLineItemRow({
             onChange={(e) => setDescription(e.target.value)}
             className="min-h-[60px]"
           />
-           <Textarea
-              placeholder="Notes (optional)"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              className="min-h-[40px] text-xs text-muted-foreground"
-            />
 
             <div className="flex items-center space-x-2">
               <Checkbox
@@ -222,7 +214,7 @@ export function EstimateLineItemRow({
                 <SelectValue placeholder="Assign to user (optional)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Unassigned</SelectItem>
+                <SelectItem value="none">Unassigned</SelectItem> {/* Use "none" for unassigned */}
                 {users.map((user) => (
                   <SelectItem key={user.id} value={user.id}>
                     {user.first_name} {user.last_name}

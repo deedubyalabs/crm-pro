@@ -9,9 +9,9 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { estimateService } from "@/lib/estimates"
-import { scheduleOfValuesService } from "@/lib/schedule-of-values"
-import { EstimateWithDetails } from "@/types/estimates"
-import { ScheduleOfValueWithItems } from "@/types/schedule-of-values"
+import { blueprintOfValuesService } from "@/lib/blueprint-of-values"
+import { EstimateWithDetails, EstimateLineItem } from "@/types/estimates"
+import { BlueprintOfValuesWithItems, BlueprintOfValuesItem } from "@/types/blueprint-of-values"
 import { ChangeOrderLineItem } from "@/types/change-orders"
 import { Loader2 } from "lucide-react"
 
@@ -22,14 +22,14 @@ interface ImportLineItemsDrawerProps {
   onImport: (lineItems: Partial<ChangeOrderLineItem>[]) => void;
 }
 
-type SourceType = "estimate" | "sov" | "";
+type SourceType = "estimate" | "bov" | "";
 
 export function ImportLineItemsDrawer({ isOpen, onClose, projectId, onImport }: ImportLineItemsDrawerProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [sourceType, setSourceType] = useState<SourceType>("")
   const [selectedSourceId, setSelectedSourceId] = useState<string>("")
   const [estimates, setEstimates] = useState<EstimateWithDetails[]>([])
-  const [sovs, setSovs] = useState<ScheduleOfValueWithItems[]>([])
+  const [bovs, setBovs] = useState<BlueprintOfValuesWithItems[]>([])
   const [availableLineItems, setAvailableLineItems] = useState<Partial<ChangeOrderLineItem>[]>([])
   const [selectedLineItemIds, setSelectedLineItemIds] = useState<Set<string>>(new Set())
 
@@ -40,8 +40,8 @@ export function ImportLineItemsDrawer({ isOpen, onClose, projectId, onImport }: 
         try {
           const fetchedEstimates = await estimateService.getEstimatesByProjectId(projectId)
           setEstimates(fetchedEstimates)
-          const fetchedSovs = await scheduleOfValuesService.getScheduleOfValuesByProjectId(projectId) // This will still error, will fix after reading lib/schedule-of-values.ts
-          setSovs(fetchedSovs)
+          const fetchedBovs = await blueprintOfValuesService.getBlueprintOfValuesByProjectId(projectId) // This will still error, will fix after reading lib/project-of-values.ts
+          setBovs(fetchedBovs)
         } catch (error) {
           console.error("Error fetching sources:", error)
         } finally {
@@ -67,7 +67,7 @@ export function ImportLineItemsDrawer({ isOpen, onClose, projectId, onImport }: 
           if (sourceType === "estimate") {
             const estimate = estimates.find(e => e.id === selectedSourceId)
             if (estimate?.lineItems) {
-              items = estimate.lineItems.map(item => ({
+              items = estimate.lineItems.map((item: EstimateLineItem) => ({ // Explicitly type item
                 description: item.description,
                 quantity: item.quantity,
                 unit: item.unit,
@@ -75,10 +75,10 @@ export function ImportLineItemsDrawer({ isOpen, onClose, projectId, onImport }: 
                 total: item.total,
               }))
             }
-          } else if (sourceType === "sov") {
-            const sov = sovs.find(s => s.id === selectedSourceId)
-            if (sov?.items) { // Changed from lineItems to items
-              items = sov.items.map(item => ({
+          } else if (sourceType === "bov") {
+            const bov = bovs.find(s => s.id === selectedSourceId)
+            if (bov?.items) { // Changed from lineItems to items
+              items = bov.items.map((item: BlueprintOfValuesItem) => ({ // Explicitly type item
                 description: item.description,
                 quantity: item.quantity,
                 unit: item.unit,
@@ -100,7 +100,7 @@ export function ImportLineItemsDrawer({ isOpen, onClose, projectId, onImport }: 
       }
     }
     fetchLineItems()
-  }, [selectedSourceId, sourceType, estimates, sovs])
+  }, [selectedSourceId, sourceType, estimates, bovs])
 
   const handleCheckboxChange = (id: string, isChecked: boolean) => {
     setSelectedLineItemIds(prev => {
@@ -125,7 +125,7 @@ export function ImportLineItemsDrawer({ isOpen, onClose, projectId, onImport }: 
   return (
     <SideDrawer isOpen={isOpen} onClose={onClose} title="Import Line Items">
       <div className="p-4 flex flex-col h-full">
-        <Heading title="Import Line Items" description="Select items from an existing Estimate or Schedule of Values." />
+        <Heading title="Import Line Items" description="Select items from an existing Estimate or Blueprint of Values." />
 
         <div className="mt-4 space-y-4">
           <Select onValueChange={(value: SourceType) => { setSourceType(value); setSelectedSourceId("") }} value={sourceType}>
@@ -134,7 +134,7 @@ export function ImportLineItemsDrawer({ isOpen, onClose, projectId, onImport }: 
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="estimate">Estimate</SelectItem>
-              <SelectItem value="sov">Schedule of Values</SelectItem>
+              <SelectItem value="bov">Blueprint of Values</SelectItem>
             </SelectContent>
           </Select>
 
@@ -153,15 +153,15 @@ export function ImportLineItemsDrawer({ isOpen, onClose, projectId, onImport }: 
             </Select>
           )}
 
-          {sourceType === "sov" && (
+          {sourceType === "bov" && (
             <Select onValueChange={setSelectedSourceId} value={selectedSourceId}>
               <SelectTrigger>
-                <SelectValue placeholder="Select a Schedule of Values" />
+                <SelectValue placeholder="Select a Blueprint of Values" />
               </SelectTrigger>
               <SelectContent>
-                {sovs.map(sov => (
-                  <SelectItem key={sov.id} value={sov.id}>
-                    {sov.sov_number} - {sov.name}
+                {bovs.map(bov => (
+                  <SelectItem key={bov.id} value={bov.id}>
+                    {bov.bov_number} - {bov.name}
                   </SelectItem>
                 ))}
               </SelectContent>
