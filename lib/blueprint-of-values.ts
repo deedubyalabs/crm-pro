@@ -1,48 +1,39 @@
 import { supabase, handleSupabaseError } from "@/lib/supabase";
 import { v4 as uuidv4 } from "uuid";
 import { EstimateLineItem } from "@/types/estimates";
-import { BlueprintOfValues, BlueprintOfValuesItem, NewBlueprintOfValues, NewBlueprintOfValuesItem, BlueprintOfValuesWithItems } from "@/types/blueprint-of-values";
+import { BlueprintOfValue, BlueprintOfValueLineItem, NewBlueprintOfValue, NewBlueprintOfValueLineItem, BlueprintOfValueWithItems } from "@/types/blueprint-of-values";
 
 export const blueprintOfValuesService = {
-  async createBlueprintOfValues(bov: NewBlueprintOfValues, items: NewBlueprintOfValuesItem[] = []): Promise<BlueprintOfValues> {
+  async createBlueprintOfValues(bov: NewBlueprintOfValue, items: NewBlueprintOfValueLineItem[] = []): Promise<BlueprintOfValue> {
     try {
-      const bovId = uuidv4(); // Removed bov.id as it's omitted in NewBlueprintOfValues
+      const bovId = uuidv4();
       const now = new Date().toISOString();
-
-      // Calculate total amount from items
-      const totalAmount = items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
 
       const { data, error } = await supabase.from("blueprint_of_values").insert({
         ...bov,
         id: bovId,
-        total_amount: totalAmount,
         created_at: now,
         updated_at: now,
       }).select().single();
 
       if (error) throw error;
 
-      const createdBov = data as BlueprintOfValues;
+      const createdBov = data as BlueprintOfValue;
 
       if (items.length > 0) {
         const bovItems = items.map((item, index) => ({
-          id: uuidv4(), // Removed item.id as it's omitted in NewBlueprintOfValuesItem
+          ...item, // Spread existing properties
+          id: uuidv4(),
           bov_id: createdBov.id,
-          description: item.description,
-          quantity: item.quantity,
-          unit: item.unit,
-          unit_price: item.unit_price,
-          total: item.quantity * item.unit_price,
-          is_billed: item.is_billed,
-          invoice_line_item_id: item.invoice_line_item_id,
-          linked_estimate_line_item_id: item.linked_estimate_line_item_id,
-          linked_change_order_line_item_id: item.linked_change_order_line_item_id,
-          sort_order: item.sort_order || index,
           created_at: now,
           updated_at: now,
+          // Ensure default values for optional fields if not provided
+          amount_previously_billed: item.amount_previously_billed ?? 0,
+          percent_previously_billed: item.percent_previously_billed ?? 0,
+          remaining_to_bill: item.remaining_to_bill ?? item.scheduled_value, // Default to scheduled_value
         }));
 
-        const { error: itemsError } = await supabase.from("project_values_blueprint_items").insert(pvbItems);
+        const { error: itemsError } = await supabase.from("blueprint_of_value_line_items").insert(bovItems);
         if (itemsError) throw itemsError;
       }
 
@@ -53,7 +44,7 @@ export const blueprintOfValuesService = {
     }
   },
 
-  async getBlueprintOfValuesByProjectId(projectId: string): Promise<BlueprintOfValuesWithItems[]> {
+  async getBlueprintOfValuesByProjectId(projectId: string): Promise<BlueprintOfValueWithItems[]> {
     try {
       const { data, error } = await supabase
         .from("blueprint_of_values")
@@ -63,42 +54,45 @@ export const blueprintOfValuesService = {
           name,
           status,
           project_id,
-          items:blueprint_of_values_items (
+          estimate_id,
+          items:blueprint_of_value_line_items (
             id,
+            item_name,
             description,
-            quantity,
-            unit,
-            unit_price,
-            total
+            scheduled_value,
+            amount_previously_billed,
+            remaining_to_bill,
+            percent_previously_billed,
+            estimate_line_item_id
           )
         `)
         .eq("project_id", projectId)
         .order("created_at", { ascending: false })
 
       if (error) throw error
-      return (data || []) as unknown as BlueprintOfValuesWithItems[]
+      return (data || []) as unknown as BlueprintOfValueWithItems[]
     } catch (error) {
       throw new Error(handleSupabaseError(error))
     }
   },
 
-  async getBlueprintOfValuesById(id: string): Promise<BlueprintOfValues | null> {
+  async getBlueprintOfValuesById(id: string): Promise<BlueprintOfValue | null> {
     try {
       const { data, error } = await supabase
         .from("blueprint_of_values")
-        .select(`*, items:blueprint_of_values_items(*)`)
+        .select(`*, items:blueprint_of_value_line_items(*)`)
         .eq("id", id)
         .single();
 
       if (error) throw error;
-      return data as BlueprintOfValues;
+      return data as BlueprintOfValue;
     } catch (error) {
       console.error("Error fetching Blueprint of Values:", error);
       throw new Error(handleSupabaseError(error));
     }
   },
 
-  async convertEstimateToBlueprintOfValues(estimateId: string, userId: string | null): Promise<BlueprintOfValues> {
+  async convertEstimateToBlueprintOfValues(estimateId: string, userId: string | null): Promise<BlueprintOfValue> {
     try {
       // Fetch estimate and its line items, explicitly selecting all required fields for EstimateLineItem
       const { data: estimate, error: estimateError } = await supabase
@@ -107,22 +101,9 @@ export const blueprintOfValuesService = {
           *,
           line_items:estimate_line_items(
             id,
-            estimate_id,
-            cost_item_id,
             description,
-            quantity,
-            unit,
-            unit_cost,
-            markup,
             total,
-            sort_order,
-            section_name,
-            notes,
-            is_optional,
-            is_taxable,
-            assigned_to_user_id,
-            created_at,
-            updated_at
+            sort_order
           )
         `)
         .eq("id", estimateId)
@@ -131,26 +112,25 @@ export const blueprintOfValuesService = {
       if (estimateError) throw estimateError;
       if (!estimate) throw new Error("Estimate not found.");
 
-      const newBov: NewBlueprintOfValues = {
+      const newBov: NewBlueprintOfValue = {
         project_id: estimate.project_id,
         estimate_id: estimate.id,
         name: `BOV for Estimate ${estimate.estimate_number}`,
         status: "Draft",
+        bov_number: await this.generateBovNumber(), // Generate a new BOV number
       };
 
       // Explicitly cast estimate.line_items to EstimateLineItem[]
       const typedEstimateLineItems = estimate.line_items as unknown as EstimateLineItem[];
 
-      const bovItems: NewBlueprintOfValuesItem[] = typedEstimateLineItems.map((item) => ({
+      const bovItems: NewBlueprintOfValueLineItem[] = typedEstimateLineItems.map((item) => ({
+        item_name: item.description, // Use description as item_name
         description: item.description,
-        quantity: item.quantity,
-        unit: item.unit,
-        unit_price: item.unit_cost, // Assuming unit_cost from estimate becomes unit_price for BOV
-        is_billed: false,
-        invoice_line_item_id: null,
-        linked_estimate_line_item_id: item.id,
-        linked_change_order_line_item_id: null,
-        sort_order: item.sort_order,
+        scheduled_value: item.total, // Use total from estimate line item as scheduled_value
+        amount_previously_billed: 0,
+        remaining_to_bill: item.total, // Initially, remaining to bill is the scheduled value
+        percent_previously_billed: 0,
+        estimate_line_item_id: item.id,
         bov_id: "", // Will be filled by createBlueprintOfValues
       }));
 
@@ -159,6 +139,7 @@ export const blueprintOfValuesService = {
       // Update the estimate to mark it as converted to BOV
       await supabase.from("estimates").update({
         is_converted_to_bov: true,
+        blueprint_of_values_id: createdBov.id, // Link the created BOV to the estimate
         updated_at: new Date().toISOString(),
       }).eq("id", estimateId);
 
@@ -167,5 +148,34 @@ export const blueprintOfValuesService = {
       console.error("Error converting estimate to Blueprint of Values:", error);
       throw new Error(handleSupabaseError(error));
     }
+  },
+
+  // Helper to generate a unique BOV number
+  async generateBovNumber(): Promise<string> {
+    const prefix = "BOV";
+    const date = new Date();
+    const year = date.getFullYear().toString().slice(-2);
+    const month = (date.getMonth() + 1).toString().padStart(2, "0");
+
+    // Get the latest BOV number with this prefix
+    const { data, error } = await supabase
+      .from("blueprint_of_values")
+      .select("bov_number")
+      .ilike("bov_number", `${prefix}${year}${month}%`)
+      .order("bov_number", { ascending: false })
+      .limit(1);
+
+    if (error) throw error;
+
+    let sequence = 1;
+    if (data && data.length > 0 && data[0].bov_number) {
+      // Extract the sequence number from the latest BOV number
+      const latestSequence = Number.parseInt(data[0].bov_number.slice(-4), 10);
+      if (!isNaN(latestSequence)) {
+        sequence = latestSequence + 1;
+      }
+    }
+
+    return `${prefix}${year}${month}${sequence.toString().padStart(4, "0")}`;
   },
 };

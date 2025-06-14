@@ -8,10 +8,13 @@ export const metadata = {
   description: "Edit an estimate",
 }
 
-export default async function EditEstimatePage({ params: { id } }: { params: { id: string } }) {
+export default async function EditEstimatePage({ params }: { params: Promise<{ id: string }> | { id: string } }) {
+  const resolvedParams = await params;
+  const id = resolvedParams.id;
+
   // Handle the "new" route parameter by redirecting to the new estimate page
   if (id === "new") {
-    redirect("/estimates/new")
+    redirect("/estimates/new");
   }
 
   const estimate: EstimateWithDetails | null = await estimateService.getEstimateById(id)

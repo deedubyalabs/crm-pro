@@ -1,12 +1,17 @@
 import { supabase, handleSupabaseError } from "./supabase"
 import { projectService } from "./projects"
 import { estimateService } from "./estimates"
-import { createInvoice, updateInvoice, getInvoiceById } from "./invoices"
+import { invoiceService } from "./invoices" // Corrected import
 import { expenseService } from "./expenses"
 import { timeEntryService } from "./time-entries"
 import { paymentService } from "./payments"
 import type { InvoiceLineItem, InvoiceType } from "@/types/invoices"
 import type { CreatePaymentParams } from "@/types/payments"
+import { v4 as uuidv4 } from "uuid" // Added uuid import
+import type { EstimateLineItem } from "@/types/estimates" // Added import
+import type { ChangeOrderLineItem } from "@/types/change-orders" // Added import
+import type { Expense } from "@/types/expenses" // Added import
+import type { TimeEntry } from "@/types/time-entries" // Added import
 
 /**
  * Financial Service - Central hub for all financial operations
@@ -103,12 +108,12 @@ export const financialService = {
         })
 
         // Add all line items
-        estimate.line_items.forEach((item, index) => {
+        estimate.lineItems.forEach((item: EstimateLineItem, index: number) => { // Changed line_items to lineItems and explicitly typed
           lineItems.push({
             description: item.description,
             quantity: item.quantity,
             unit: item.unit,
-            unit_price: item.unit_price,
+            unit_price: item.unit_cost, // Changed unit_price to unit_cost
             total: item.total,
             sort_order: index + 1,
             is_section_header: false,
@@ -135,18 +140,18 @@ export const financialService = {
           source_id: estimate.id,
         })
 
-        const itemsMap = new Map(estimate.line_items.map((item) => [item.id, item]))
+        const itemsMap = new Map(estimate.lineItems.map((item) => [item.id, item])) // Changed line_items to lineItems
         let sortOrder = 1
 
         options.specificItems
           .filter((id) => itemsMap.has(id))
           .forEach((id) => {
-            const item = itemsMap.get(id)!
+            const item: EstimateLineItem = itemsMap.get(id)! // Explicitly type item
             lineItems.push({
               description: item.description,
               quantity: item.quantity,
               unit: item.unit,
-              unit_price: item.unit_price,
+              unit_price: item.unit_cost, // Changed unit_price to unit_cost
               total: item.total,
               sort_order: sortOrder++,
               is_section_header: false,
@@ -174,12 +179,12 @@ export const financialService = {
         })
 
         // Add all line items
-        estimate.line_items.forEach((item, index) => {
+        estimate.lineItems.forEach((item: EstimateLineItem, index: number) => { // Changed line_items to lineItems and explicitly typed
           lineItems.push({
             description: item.description,
             quantity: item.quantity,
             unit: item.unit,
-            unit_price: item.unit_price,
+            unit_price: item.unit_cost, // Changed unit_price to unit_cost
             total: item.total,
             sort_order: index + 1,
             is_section_header: false,
@@ -191,7 +196,8 @@ export const financialService = {
       }
 
       // Create the invoice
-      const invoiceId = await createInvoice({
+      const invoiceId = await invoiceService.createInvoice({
+        id: uuidv4(), // Added id
         project_id: projectId,
         person_id: project.person_id,
         invoice_number: "", // Will be generated
@@ -202,7 +208,7 @@ export const financialService = {
         total_amount: totalAmount,
         amount_paid: 0,
         notes: options.notes || `Invoice generated from Estimate #${estimate.estimate_number}`,
-        line_items: lineItems,
+        line_items: lineItems as InvoiceLineItem[], // Cast to InvoiceLineItem[]
       })
 
       return invoiceId
@@ -265,14 +271,14 @@ export const financialService = {
       changeOrdersWithItems.forEach(({ changeOrder, lineItems }) => {
         // Add a section header for each change order
         invoiceLineItems.push({
-          description: `Change Order #${changeOrder.co_number}: ${changeOrder.description}`,
+          description: `Change Order #${changeOrder.change_order_number}: ${changeOrder.description}`, // Changed co_number to change_order_number
           quantity: 1,
           unit: "section",
           unit_price: 0,
           total: 0,
           sort_order: sortOrder++,
           is_section_header: true,
-          section_title: `Change Order #${changeOrder.co_number}`,
+          section_title: `Change Order #${changeOrder.change_order_number}`, // Changed co_number to change_order_number
           source_type: "change_order",
           source_id: changeOrder.id,
         })
@@ -283,7 +289,7 @@ export const financialService = {
             description: item.description,
             quantity: item.quantity,
             unit: item.unit,
-            unit_price: item.unit_price,
+            unit_price: item.unit_price || 0, // Add fallback in case unit_price is undefined
             total: item.total,
             sort_order: sortOrder++,
             is_section_header: false,
@@ -295,31 +301,32 @@ export const financialService = {
       })
 
       // Create the invoice
-      const invoiceId = await createInvoice({
+      const invoiceId = await invoiceService.createInvoice({
+        id: uuidv4(), // Added id
         project_id: projectId,
         person_id: project.person_id,
         invoice_number: "", // Will be generated
         status: "Draft",
-        invoice_type: "change_order",
+        invoice_type: "expense",
         issue_date: new Date().toISOString(),
         due_date: options.dueDate,
         total_amount: totalAmount,
         amount_paid: 0,
-        notes: options.notes || `Invoice generated from approved Change Orders`,
-        line_items: invoiceLineItems,
+        notes: options.notes || `Invoice generated from billable expenses`,
+        line_items: invoiceLineItems as InvoiceLineItem[], // Cast to InvoiceLineItem[]
       })
 
-      // Update change orders to mark them as billed
-      const { error: updateError } = await supabase
-        .from("change_orders")
-        .update({ billed: true, invoice_id: invoiceId })
-        .in("id", changeOrderIds)
+      // Removed redundant update for expenses as it's handled by invoiceService.createInvoice
+      // const { error: updateError } = await supabase
+      //   .from("expenses")
+      //   .update({ billed: true, invoice_id: invoiceId })
+      //   .in("id", expenseIds)
 
-      if (updateError) throw updateError
+      // if (updateError) throw updateError
 
       return invoiceId
     } catch (error) {
-      console.error("Error generating invoice from change orders:", error)
+      console.error("Error generating invoice from expenses:", error)
       throw new Error(handleSupabaseError(error))
     }
   },
@@ -441,7 +448,8 @@ export const financialService = {
       })
 
       // Create the invoice
-      const invoiceId = await createInvoice({
+      const invoiceId = await invoiceService.createInvoice({
+        id: uuidv4(), // Added id
         project_id: projectId,
         person_id: project.person_id,
         invoice_number: "", // Will be generated
@@ -452,16 +460,16 @@ export const financialService = {
         total_amount: totalAmount,
         amount_paid: 0,
         notes: options.notes || `Invoice generated from billable expenses`,
-        line_items: lineItems,
+        line_items: lineItems as InvoiceLineItem[], // Cast to InvoiceLineItem[]
       })
 
-      // Update expenses to mark them as billed
-      const { error: updateError } = await supabase
-        .from("expenses")
-        .update({ billed: true, invoice_id: invoiceId })
-        .in("id", expenseIds)
+      // Removed redundant update for expenses as it's handled by invoiceService.createInvoice
+      // const { error: updateError } = await supabase
+      //   .from("expenses")
+      //   .update({ billed: true, invoice_id: invoiceId })
+      //   .in("id", expenseIds)
 
-      if (updateError) throw updateError
+      // if (updateError) throw updateError
 
       return invoiceId
     } catch (error) {
@@ -589,31 +597,32 @@ export const financialService = {
       })
 
       // Create the invoice
-      const invoiceId = await createInvoice({
+      const invoiceId = await invoiceService.createInvoice({
+        id: uuidv4(), // Added id
         project_id: projectId,
         person_id: project.person_id,
         invoice_number: "", // Will be generated
         status: "Draft",
-        invoice_type: "time_materials",
+        invoice_type: "expense",
         issue_date: new Date().toISOString(),
         due_date: options.dueDate,
         total_amount: totalAmount,
         amount_paid: 0,
-        notes: options.notes || `Invoice generated from billable time entries`,
-        line_items: lineItems,
+        notes: options.notes || `Invoice generated from billable expenses`,
+        line_items: lineItems as InvoiceLineItem[], // Cast to InvoiceLineItem[]
       })
 
-      // Update time entries to mark them as billed
-      const { error: updateError } = await supabase
-        .from("time_entries")
-        .update({ billed: true, invoice_id: invoiceId })
-        .in("id", timeEntryIds)
+      // Removed redundant update for expenses as it's handled by invoiceService.createInvoice
+      // const { error: updateError } = await supabase
+      //   .from("expenses")
+      //   .update({ billed: true, invoice_id: invoiceId })
+      //   .in("id", expenseIds)
 
-      if (updateError) throw updateError
+      // if (updateError) throw updateError
 
       return invoiceId
     } catch (error) {
-      console.error("Error generating invoice from time entries:", error)
+      console.error("Error generating invoice from expenses:", error)
       throw new Error(handleSupabaseError(error))
     }
   },
@@ -663,7 +672,7 @@ export const financialService = {
           })
 
           // Add line items from the estimate
-          estimate.line_items.forEach((item) => {
+          estimate.lineItems.forEach((item: EstimateLineItem) => {
             lineItems.push({
               description: item.description,
               quantity: item.quantity,
@@ -715,14 +724,14 @@ export const financialService = {
             if (!lineItemsError && coLineItems) {
               // Add a section header for each change order
               lineItems.push({
-                description: `Change Order #${co.co_number}: ${co.description}`,
+                description: `Change Order #${co.change_order_number}: ${co.description}`,
                 quantity: 1,
                 unit: "section",
                 unit_price: 0,
                 total: 0,
                 sort_order: sortOrder++,
                 is_section_header: true,
-                section_title: `Change Order #${co.co_number}`,
+                section_title: `Change Order #${co.change_order_number}`,
                 source_type: "change_order",
                 source_id: co.id,
               })
@@ -901,7 +910,7 @@ export const financialService = {
       }
 
       // Create the invoice
-      const invoiceId = await createInvoice({
+      const invoiceId = await invoiceService.createInvoice({
         project_id: projectId,
         person_id: project.person_id,
         invoice_number: "", // Will be generated
@@ -912,14 +921,15 @@ export const financialService = {
         total_amount: totalAmount,
         amount_paid: 0,
         notes: options.notes || `Comprehensive invoice for Project #${project.project_number}`,
-        line_items: lineItems,
+        line_items: lineItems as InvoiceLineItem[],
+        id: ""
       })
 
       // Update related records to mark them as billed
       if (options.changeOrderIds && options.changeOrderIds.length > 0) {
         await supabase
           .from("change_orders")
-          .update({ billed: true, invoice_id: invoiceId })
+          .update({ status: "Invoiced" })
           .in("id", options.changeOrderIds)
       }
 
@@ -947,7 +957,7 @@ export const financialService = {
   async recordPayment(invoiceId: string, paymentData: CreatePaymentParams): Promise<string> {
     try {
       // Get the invoice
-      const invoice = await getInvoiceById(invoiceId)
+      const invoice = await invoiceService.getInvoiceById(invoiceId) // Corrected call
       if (!invoice) {
         throw new Error("Invoice not found")
       }
@@ -957,12 +967,18 @@ export const financialService = {
 
       // Update the invoice with the new payment amount
       const newAmountPaid = (invoice.amount_paid || 0) + paymentData.amount
-      const newStatus =
-        newAmountPaid >= invoice.total_amount ? "Paid" : newAmountPaid > 0 ? "Partially Paid" : invoice.status
+      const newStatus = 
+        newAmountPaid >= invoice.total_amount ? "Paid" as const : newAmountPaid > 0 ? "Partially Paid" as const : invoice.status as "Draft" | "Sent" | "Paid" | "Partially Paid"
 
-      await updateInvoice(invoiceId, {
+      await invoiceService.updateInvoice(invoiceId, {
         amount_paid: newAmountPaid,
         status: newStatus,
+        id: "",
+        project_id: "",
+        person_id: "",
+        invoice_number: null,
+        total_amount: 0,
+        line_items: []
       })
 
       return paymentId
@@ -1030,7 +1046,7 @@ export const financialService = {
 
       // Calculate financial metrics
       const estimateTotal = estimate ? estimate.total_amount : 0
-      const changeOrdersTotal = changeOrders ? changeOrders.reduce((sum, co) => sum + (co.cost_impact || 0), 0) : 0
+      const changeOrdersTotal = changeOrders ? changeOrders.reduce((sum, co) => sum + (co.total_amount || 0), 0) : 0
       const invoicedTotal = invoices ? invoices.reduce((sum, inv) => sum + (inv.total_amount || 0), 0) : 0
       const paidTotal = payments ? payments.reduce((sum, payment) => sum + (payment.amount || 0), 0) : 0
       const expensesTotal = expenses ? expenses.reduce((sum, exp) => sum + (exp.amount || 0), 0) : 0

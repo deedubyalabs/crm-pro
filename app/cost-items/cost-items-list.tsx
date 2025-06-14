@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Search, Trash2 } from "lucide-react"
+import { Plus, Search, Trash2, MoreHorizontal } from "lucide-react"
 import type { CostItem, CostItemGroup } from "@/types/cost-items"
 import { formatCurrency } from "@/lib/utils"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -26,6 +26,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { toast } from "@/hooks/use-toast"
 import { costItemService } from "@/lib/cost-items" // Import costItemService
 
@@ -43,7 +49,7 @@ export function CostItemsList({ costItems, costItemGroups, totalCount }: CostIte
   const [selectedItems, setSelectedItems] = useState<string[]>([]) // New: for bulk delete
 
   // Pagination state
-  const itemsPerPage = 10 // Fixed items per page
+  const itemsPerPage = parseInt(searchParams.get("limit") || "10") // Dynamic items per page
   const currentPage = parseInt(searchParams.get("page") || "1")
   const totalPages = Math.ceil(totalCount / itemsPerPage)
 
@@ -86,6 +92,14 @@ export function CostItemsList({ costItems, costItemGroups, totalCount }: CostIte
   const handlePageChange = (page: number) => {
     const params = new URLSearchParams(searchParams.toString())
     params.set("page", page.toString())
+    router.push(`/cost-items?${params.toString()}`)
+  }
+
+  // Handle items per page change
+  const handleItemsPerPageChange = (value: string) => {
+    const params = new URLSearchParams(searchParams.toString())
+    params.set("limit", value)
+    params.set("page", "1") // Reset to first page on limit change
     router.push(`/cost-items?${params.toString()}`)
   }
 
@@ -165,24 +179,6 @@ export function CostItemsList({ costItems, costItemGroups, totalCount }: CostIte
 
   return (
     <>
-      <div className="flex flex-col md:flex-row gap-4 mb-6 justify-end">
-            <div className="flex flex-wrap gap-2">
-              <Select value={currentGroupId} onValueChange={(value) => handleFilterChange("itemCode", value)}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Filter by Category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Cost Codes</SelectItem>
-                  {costItemGroups.map((item_code) => (
-                    <SelectItem key={item_code.id} value={item_code.id}>
-                      {item_code.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
           <div className="rounded-md border">
             <Table>
               <TableHeader>
@@ -194,13 +190,12 @@ export function CostItemsList({ costItems, costItemGroups, totalCount }: CostIte
                       aria-label="Select all"
                     />
                   </TableHead>
-                  <TableHead>Cost Code</TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Type</TableHead>
-                  <TableHead>Group</TableHead>
                   <TableHead>Unit</TableHead>
                   <TableHead className="text-right">Unit Cost</TableHead>
                   <TableHead className="text-right">Markup</TableHead>
+                  <TableHead>Cost Code</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -222,13 +217,12 @@ export function CostItemsList({ costItems, costItemGroups, totalCount }: CostIte
                           aria-label={`Select item ${item.name}`}
                         />
                       </TableCell>
-                      <TableCell className="font-medium">{item.item_code}</TableCell>
                       <TableCell>{item.name}</TableCell>
                       <TableCell>{getTypeBadge(item.type)}</TableCell>
-                      <TableCell>{item.cost_item_group?.name || "N/A"}</TableCell>
                       <TableCell>{item.unit}</TableCell>
                       <TableCell className="text-right">{formatCurrency(item.unit_cost)}</TableCell>
                       <TableCell className="text-right">{item.default_markup}%</TableCell>
+                      <TableCell className="font-medium">{item.item_code}</TableCell>
                       <TableCell>
                         {item.is_active ? (
                           <Badge variant="outline" className="bg-green-50 text-green-700">
@@ -241,12 +235,22 @@ export function CostItemsList({ costItems, costItemGroups, totalCount }: CostIte
                         )}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" asChild>
-                          <Link href={`/cost-items/${item.id}`}>View</Link>
-                        </Button>
-                        <Button variant="ghost" size="sm" asChild>
-                          <Link href={`/cost-items/${item.id}/edit`}>Edit</Link>
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                              <span className="sr-only">Open menu</span>
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem asChild>
+                              <Link href={`/cost-items/${item.id}`}>View</Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                              <Link href={`/cost-items/${item.id}/edit`}>Edit</Link>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))
@@ -256,31 +260,50 @@ export function CostItemsList({ costItems, costItemGroups, totalCount }: CostIte
           </div>
 
           <div className="flex items-center justify-between space-x-2 py-4">
-            <div className="flex-1 text-sm text-muted-foreground">
-              {selectedItems.length} of {costItems.length} row(s) selected.
-            </div>
-            {selectedItems.length > 0 && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive" size="sm">
-                    <Trash2 className="h-4 w-4 mr-2" /> Delete Selected ({selectedItems.length})
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This action cannot be undone. This will permanently delete the selected cost items.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleBulkDelete}>Continue</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+            {selectedItems.length > 0 ? (
+              <div className="flex-1 text-sm text-muted-foreground">
+                {selectedItems.length} of {costItems.length} row(s) selected.
+              </div>
+            ) : (
+              <div className="flex-1 text-sm text-muted-foreground">
+                Showing {(currentPage - 1) * itemsPerPage + 1}-
+                {Math.min(currentPage * itemsPerPage, totalCount)} of {totalCount} items.
+              </div>
             )}
-            <div className="space-x-2">
+
+            <div className="flex items-center space-x-2">
+              <Select value={itemsPerPage.toString()} onValueChange={handleItemsPerPageChange}>
+                <SelectTrigger className="h-8 w-[130px]">
+                  <SelectValue placeholder="Items per page" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10 per page</SelectItem>
+                  <SelectItem value="25">25 per page</SelectItem>
+                  <SelectItem value="50">50 per page</SelectItem>
+                  <SelectItem value="100">100 per page</SelectItem>
+                </SelectContent>
+              </Select>
+              {selectedItems.length > 0 && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" size="sm">
+                      <Trash2 className="h-4 w-4 mr-2" /> Delete Selected ({selectedItems.length})
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This action cannot be undone. This will permanently delete the selected cost items.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleBulkDelete}>Continue</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
               <Button
                 variant="outline"
                 size="sm"

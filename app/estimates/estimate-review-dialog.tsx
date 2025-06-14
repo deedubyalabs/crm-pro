@@ -9,7 +9,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import type { EstimateWithDetails, EstimateLineItem, EstimatePaymentSchedule } from "@/types/estimates"
+import type { EstimateWithDetails, EstimateLineItem, EstimatePaymentSchedule, EstimateSection } from "@/types/estimates"
 import { formatCurrency } from "@/lib/utils"
 import { Sparkles } from "lucide-react"
 
@@ -18,7 +18,7 @@ interface EstimateReviewDialogProps {
   onClose: () => void
   onConfirmSubmit: () => void
   estimate: EstimateWithDetails | undefined
-  lineItems: Partial<EstimateLineItem>[]
+  sections: EstimateSection[] // Changed from lineItems to sections
   paymentSchedules: Partial<EstimatePaymentSchedule>[]
   totalAmount: number
 }
@@ -28,7 +28,7 @@ export function EstimateReviewDialog({
   onClose,
   onConfirmSubmit,
   estimate,
-  lineItems,
+  sections, // Receive sections instead of lineItems
   paymentSchedules,
   totalAmount,
 }: EstimateReviewDialogProps) {
@@ -57,14 +57,25 @@ export function EstimateReviewDialog({
           {/* Line Items Preview */}
           <div className="border rounded-md p-4">
             <h3 className="text-lg font-semibold mb-2">Line Items</h3>
-            {lineItems.length === 0 ? (
+            {sections.every(section => section.line_items.length === 0) ? ( // Check if all sections are empty
               <p className="text-muted-foreground">No line items to display.</p>
             ) : (
-              <div className="space-y-2">
-                {lineItems.map((item, index) => (
-                  <div key={item.id || index} className="grid grid-cols-3 gap-2 text-sm">
-                    <span className="col-span-2">{item.description}</span>
-                    <span className="text-right">{formatCurrency(item.total || 0)}</span>
+              <div className="space-y-4">
+                {sections.map(section => (
+                  <div key={section.id} className="mb-4">
+                    <h4 className="font-semibold text-md mb-2">{section.name}</h4>
+                    {section.line_items.length === 0 ? (
+                      <p className="text-muted-foreground text-sm pl-4">No items in this section.</p>
+                    ) : (
+                      <div className="space-y-2 pl-4">
+                        {section.line_items.map((item, index) => (
+                          <div key={item.id || index} className="grid grid-cols-3 gap-2 text-sm">
+                            <span className="col-span-2">{item.description}</span>
+                            <span className="text-right">{formatCurrency(item.total || 0)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

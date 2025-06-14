@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
+import { v4 as uuidv4 } from "uuid" // Import uuid
 import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
@@ -16,17 +17,24 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "@/components/ui/use-toast"
 import { CalendarIcon, Plus, Percent, DollarSign } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { cn, formatCurrency } from "@/lib/utils"
 import { format } from "date-fns"
 import { EstimateLineItemRow } from "./estimate-line-item"
 import { PaymentScheduleItem } from "./payment-schedule-item"
 import { BulkMarkupDialog } from "./bulk-markup-dialog" // Import new dialog
-import { CostItemSelectorDrawer } from "./cost-item-selector-drawer" // Import CostItemSelectorDrawer
+import { CostItemSelectorDrawer as CostItemSelectorDialog } from "./cost-item-selector-drawer" // Import CostItemSelectorDialog
 import { EstimateSummary } from "./estimate-summary" // Import EstimateSummary
 import { EstimateReviewDialog } from "./estimate-review-dialog" // Import EstimateReviewDialog
 import { EstimateBiddingSection } from "./components/EstimateBiddingSection" // Import EstimateBiddingSection
 import { EstimateDocumentsSection } from "./components/EstimateDocumentsSection" // Import EstimateDocumentsSection
-import type { EstimateLineItem, EstimateWithDetails, EstimatePaymentSchedule } from "@/types/estimates"
+import { EstimateSectionHeader } from "./components/EstimateSectionHeader" // Import EstimateSectionHeader
+import type { EstimateLineItem, EstimateWithDetails, EstimatePaymentSchedule, EstimateSection } from "@/types/estimates"
 import type { CostItem } from "@/types/cost-items"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -37,6 +45,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog" // Import Dialog components
+import { CustomLineItemDialog } from "./custom-line-item-dialog" // Import CustomLineItemDialog
 
 // Define the form schema
 const formSchema = z.object({
@@ -60,30 +69,18 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>
 
 interface EstimateFormProps {
-  estimate?: EstimateWithDetails
-  costItems: CostItem[]
-  opportunities: { id: string; name: string; person_id: string }[]
-  people: { id: string; name: string }[]
-  onSubmit: (
-    values: FormValues,
-    lineItems: Partial<EstimateLineItem>[],
-    paymentSchedules: Partial<EstimatePaymentSchedule>[],
-  ) => Promise<void>
-}
-
-interface EstimateFormProps {
   estimate?: EstimateWithDetails;
   costItems: CostItem[];
   opportunities: { id: string; name: string; person_id: string }[];
   people: { id: string; name: string }[];
   onSubmit: (
     values: FormValues,
-    lineItems: Partial<EstimateLineItem>[],
+    sections: EstimateSection[], // Changed from lineItems to sections
     paymentSchedules: Partial<EstimatePaymentSchedule>[],
   ) => Promise<void>;
   // Props for managing state from parent
-  lineItems: Partial<EstimateLineItem>[];
-  onLineItemsChange: (lineItems: Partial<EstimateLineItem>[]) => void;
+  sections: EstimateSection[];
+  onSectionsChange: (sections: EstimateSection[]) => void;
   paymentSchedules: Partial<EstimatePaymentSchedule>[];
   onPaymentSchedulesChange: (paymentSchedules: Partial<EstimatePaymentSchedule>[]) => void;
   initialActiveTab?: string; // Allow parent to control initial active tab
@@ -96,8 +93,8 @@ export function EstimateForm({
   opportunities,
   people,
   onSubmit,
-  lineItems, // Receive lineItems from parent
-  onLineItemsChange, // Receive lineItems change handler from parent
+  sections, // Receive sections from parent
+  onSectionsChange, // Receive sections change handler from parent
   paymentSchedules, // Receive paymentSchedules from parent
   onPaymentSchedulesChange, // Receive paymentSchedules change handler from parent
   initialActiveTab = "details", // Default to 'details'
@@ -112,11 +109,12 @@ export function EstimateForm({
 
 
   const [selectedOpportunityId, setSelectedOpportunityId] = useState(estimate?.opportunity_id || "");
-  const [sections, setSections] = useState<string[]>([]);
   const [newSectionName, setNewSectionName] = useState("");
   const [isBulkMarkupDialogOpen, setIsBulkMarkupDialogOpen] = useState(false); // State for bulk markup dialog
   const [isCostItemSelectorOpen, setIsCostItemSelectorOpen] = useState(false); // State for cost item selector drawer
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false); // State for review dialog
+  const [isCustomLineItemDialogOpen, setIsCustomLineItemDialogOpen] = useState(false); // State for custom line item dialog
+  const [currentSectionIdForAddItem, setCurrentSectionIdForAddItem] = useState<string | null>(null); // State to store sectionId for adding items
 
   // Initialize the form with default values or existing estimate data
   const form = useForm<FormValues>({
@@ -176,17 +174,6 @@ export function EstimateForm({
     }
   }, [estimate, form]); // Depend on estimate and form instance
 
-  // Extract unique sections from line items (depends on lineItems prop)
-  useEffect(() => {
-    const uniqueSections = Array.from(
-      new Set(
-        lineItems
-          .map((item) => item.section_name)
-          .filter((section): section is string => section !== null && section !== undefined && section !== "")
-      )
-    );
-    setSections(uniqueSections);
-  }, [lineItems]); // Depend on lineItems prop
 
   // Update person_id when opportunity changes
   useEffect(() => {
@@ -200,7 +187,9 @@ export function EstimateForm({
   }, [form.watch("opportunity_id"), opportunities, form]); // Added dependencies
 
   // Calculate subtotal, tax, and total amount when line items, discount, or tax change
-  const subtotalAmount = lineItems.reduce((sum, item) => sum + (item.total || 0), 0);
+  const subtotalAmount = sections.reduce((sum, section) => {
+    return sum + section.line_items.reduce((sectionSum, item) => sectionSum + (item.total || 0), 0);
+  }, 0);
 
   const discountType = form.watch("discount_type");
   const discountValue = form.watch("discount_value") || 0;
@@ -220,10 +209,12 @@ export function EstimateForm({
 
   // Handle applying bulk markup
   const handleApplyBulkMarkup = (markupPercentage: number, scope: string) => {
-    const updatedLineItems = lineItems.map((item) => {
-      let applyMarkup = false;
-      // Ensure item.costItem exists before accessing its properties
-      const itemType = item.costItem?.type; // Corrected to camelCase
+    const updatedSections = sections.map((section) => ({
+      ...section,
+      line_items: section.line_items.map((item) => {
+        let applyMarkup = false;
+        // Ensure item.costItem exists before accessing its properties
+        const itemType = item.costItem?.type; // Corrected to camelCase
 
       if (scope === "all") {
         applyMarkup = true;
@@ -251,21 +242,97 @@ export function EstimateForm({
           markup: newMarkup,
           total: newTotal,
         };
-      }
-      return item;
-    });
-    onLineItemsChange(updatedLineItems);
+        }
+        return item;
+      }),
+    }));
+    onSectionsChange(updatedSections);
     toast({ title: "Bulk Markup Applied", description: "Markup has been applied to selected items." });
   };
 
-  // Handle adding a new line item (uses onLineItemsChange prop)
-  const handleAddLineItem = () => {
-    setIsCostItemSelectorOpen(true); // Open the cost item selector drawer
+  // Handle updating a section (name, optional, taxable)
+  const handleUpdateSection = (id: string, updatedSection: Partial<EstimateSection>) => {
+    const updatedSections = sections.map((section) =>
+      section.id === id ? { ...section, ...updatedSection } : section
+    );
+    onSectionsChange(updatedSections);
   };
 
-  // Handle selecting a cost item from the drawer
-  const handleSelectCostItemFromDrawer = (selectedCostItem: CostItem) => {
-    const newLineItem: Partial<EstimateLineItem> = {
+  // Handle deleting a section
+  const handleDeleteSection = (id: string) => {
+    const updatedSections = sections.filter((section) => section.id !== id);
+    onSectionsChange(updatedSections);
+  };
+
+  // Handle adding a new line item (uses onLineItemsChange prop) - now handled by dropdown
+  const handleAddExistingLineItem = (sectionId?: string) => {
+    setIsCostItemSelectorOpen(true); // Open the cost item selector drawer
+    setCurrentSectionIdForAddItem(sectionId || null); // Store sectionId
+  };
+
+  const handleAddCustomLineItem = (customItem: Partial<EstimateLineItem>) => { // Removed sectionId parameter
+    const newCustomItem: EstimateLineItem = {
+      id: uuidv4(),
+      estimate_id: estimate?.id || '',
+      description: customItem.description ?? '',
+      quantity: customItem.quantity || 1,
+      unit: customItem.unit || "EA",
+      unit_cost: customItem.unit_cost || 0,
+      markup: customItem.markup || 0,
+      total: (customItem.quantity || 1) * (customItem.unit_cost || 0) * (1 + (customItem.markup || 0) / 100),
+      is_optional: customItem.is_optional || false,
+      is_taxable: customItem.is_taxable || true,
+      assigned_to_user_id: customItem.assigned_to_user_id || null,
+      section_name: customItem.section_name ?? null,
+      cost_item_id: null,
+      sort_order: 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    const targetSectionId = currentSectionIdForAddItem || (sections.length > 0 ? sections[0].id : null); // Use stored sectionId
+    let updatedSections = [...sections];
+
+    if (!targetSectionId) {
+      const newDefaultSection: EstimateSection = {
+        id: uuidv4(),
+        estimate_id: estimate?.id || '',
+        name: "No Section",
+        description: null,
+        is_optional: false,
+        is_taxable: true,
+        sort_order: 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        line_items: [],
+      };
+      updatedSections.push(newDefaultSection);
+      newDefaultSection.line_items.push(newCustomItem);
+    } else {
+      const sectionIndex = updatedSections.findIndex(s => s.id === targetSectionId);
+      if (sectionIndex !== -1) {
+        updatedSections[sectionIndex] = {
+          ...updatedSections[sectionIndex],
+          line_items: [...updatedSections[sectionIndex].line_items, newCustomItem],
+        };
+      } else {
+        if (updatedSections.length > 0) {
+          updatedSections[0].line_items.push(newCustomItem);
+        } else {
+          console.error("No valid section found to add item.");
+        }
+      }
+    }
+    onSectionsChange(updatedSections);
+    setIsCustomLineItemDialogOpen(false); // Close the custom line item dialog
+    setCurrentSectionIdForAddItem(null); // Clear stored sectionId
+  };
+
+  // Handle selecting cost items from the drawer
+  const handleSelectCostItemsFromDrawer = (selectedCostItems: CostItem[]) => { // Removed sectionId parameter
+    const newEstimateLineItems: EstimateLineItem[] = selectedCostItems.map((selectedCostItem) => ({
+      id: uuidv4(),
+      estimate_id: estimate?.id || '',
       cost_item_id: selectedCostItem.id,
       description: selectedCostItem.name,
       quantity: 1,
@@ -276,30 +343,101 @@ export function EstimateForm({
       is_optional: false,
       is_taxable: true,
       assigned_to_user_id: null,
-      costItem: selectedCostItem, // Attach the full cost item for display/reference
-    };
-    onLineItemsChange([...lineItems, newLineItem]);
+      section_name: null,
+      sort_order: 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      costItem: selectedCostItem,
+    }));
+
+    const targetSectionId = currentSectionIdForAddItem || (sections.length > 0 ? sections[0].id : null); // Use stored sectionId
+    let updatedSections = [...sections];
+
+    if (!targetSectionId) {
+      const newDefaultSection: EstimateSection = {
+        id: uuidv4(),
+        estimate_id: estimate?.id || '',
+        name: "No Section",
+        description: null,
+        is_optional: false,
+        is_taxable: true,
+        sort_order: 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        line_items: [],
+      };
+      updatedSections.push(newDefaultSection);
+      newDefaultSection.line_items.push(...newEstimateLineItems);
+    } else {
+      const sectionIndex = updatedSections.findIndex(s => s.id === targetSectionId);
+      if (sectionIndex !== -1) {
+        updatedSections[sectionIndex] = {
+          ...updatedSections[sectionIndex],
+          line_items: [...updatedSections[sectionIndex].line_items, ...newEstimateLineItems],
+        };
+      } else {
+        if (updatedSections.length > 0) {
+          updatedSections[0].line_items.push(...newEstimateLineItems);
+        } else {
+          console.error("No valid section found to add item.");
+        }
+      }
+    }
+    onSectionsChange(updatedSections);
     setIsCostItemSelectorOpen(false); // Close the drawer
+    setCurrentSectionIdForAddItem(null); // Clear stored sectionId
   };
 
-  // Handle updating a line item (uses onLineItemsChange prop)
-  const handleUpdateLineItem = (index: number, updatedLineItem: Partial<EstimateLineItem>) => {
-    const newLineItems = [...lineItems];
-    newLineItems[index] = updatedLineItem;
-    onLineItemsChange(newLineItems);
+  // Handle updating a line item (uses onSectionsChange prop)
+  const handleUpdateLineItem = (id: string, updatedLineItem: Partial<EstimateLineItem>) => {
+    const updatedSections = sections.map((section) => ({
+      ...section,
+      line_items: section.line_items.map((item) => {
+        if (item.id === id) {
+          // Create a new object to ensure type compatibility and handle undefined from Partial
+          const newItem: EstimateLineItem = {
+            ...item,
+            ...updatedLineItem,
+            // Explicitly handle section_name to ensure it's string | null
+            section_name: updatedLineItem.section_name === "none" ? null : (updatedLineItem.section_name ?? item.section_name),
+            // Ensure other boolean/nullable fields are explicitly handled if they can be undefined in Partial
+            is_optional: updatedLineItem.is_optional ?? item.is_optional,
+            is_taxable: updatedLineItem.is_taxable ?? item.is_taxable,
+            assigned_to_user_id: updatedLineItem.assigned_to_user_id === "none" ? null : (updatedLineItem.assigned_to_user_id ?? item.assigned_to_user_id),
+          };
+          return newItem;
+        }
+        return item;
+      }),
+    }));
+    onSectionsChange(updatedSections);
   };
 
-  // Handle deleting a line item (uses onLineItemsChange prop)
-  const handleDeleteLineItem = (index: number) => {
-    const newLineItems = [...lineItems];
-    newLineItems.splice(index, 1);
-    onLineItemsChange(newLineItems);
+  // Handle deleting a line item (uses onSectionsChange prop)
+  const handleDeleteLineItem = (id: string) => {
+    const updatedSections = sections.map((section) => ({
+      ...section,
+      line_items: section.line_items.filter((item) => item.id !== id),
+    }));
+    onSectionsChange(updatedSections);
   };
 
-  // Handle adding a new section (updates internal sections state)
+  // Handle adding a new section (updates sections prop)
   const handleAddSection = () => {
-    if (newSectionName && !sections.includes(newSectionName)) {
-      setSections([...sections, newSectionName]);
+    if (newSectionName) {
+      const newSection: EstimateSection = {
+        id: uuidv4(),
+        estimate_id: estimate?.id || '', // Provide estimate_id
+        name: newSectionName,
+        description: null, // Provide description
+        is_optional: false, // Default to not optional
+        is_taxable: true, // Default to taxable
+        sort_order: sections.length, // Simple sort order for new section
+        created_at: new Date().toISOString(), // Provide created_at
+        updated_at: new Date().toISOString(), // Provide updated_at
+        line_items: [],
+      };
+      onSectionsChange([...sections, newSection]);
       setNewSectionName("");
     }
   };
@@ -332,7 +470,7 @@ export function EstimateForm({
 
   // Handle form submission
   const handleSubmit = async (values: FormValues) => {
-    if (lineItems.length === 0) {
+    if (sections.every(section => section.line_items.length === 0)) {
       toast({
         title: "Error",
         description: "Please add at least one line item to the estimate",
@@ -343,7 +481,7 @@ export function EstimateForm({
 
     setIsSubmitting(true);
     try {
-      await onSubmit(values, lineItems, paymentSchedules);
+      await onSubmit(values, sections, paymentSchedules); // Pass sections instead of lineItems
       toast({
         title: estimate ? "Estimate updated" : "Estimate created",
         description: estimate
@@ -680,7 +818,7 @@ export function EstimateForm({
                   <CardTitle>Line Items</CardTitle>
                   <div className="flex items-center space-x-2">
                     <Button type="button" onClick={() => setIsBulkMarkupDialogOpen(true)} variant="outline">
-                      <Percent className="mr-2 h-4 w-4" /> Bulk Markup
+                      <Percent className="mr-2 h-4 w-4" /> Add Bulk Markup
                     </Button>
                     <div className="flex items-center space-x-2">
                       <Input
@@ -693,38 +831,67 @@ export function EstimateForm({
                         Add Section
                       </Button>
                     </div>
-                    <Button type="button" onClick={handleAddLineItem} variant="outline">
-                      <Plus className="mr-2 h-4 w-4" /> Add Item
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button type="button" variant="outline">
+                          <Plus className="mr-2 h-4 w-4" /> Add Item
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        <DropdownMenuItem onClick={() => handleAddExistingLineItem()}>
+                          Add from Cost Items Library
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setIsCustomLineItemDialogOpen(true)}>
+                          Create Custom Cost Item(s)
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  {lineItems.length === 0 ? (
+                  {sections.every(section => section.line_items.length === 0) ? (
                     <div className="text-center py-4">
                       <p className="text-muted-foreground">No items added yet. Click "Add Item" to get started.</p>
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      <div className="grid grid-cols-12 gap-2 text-sm font-medium text-muted-foreground">
-                        <div className="col-span-4">Description</div>
-                        <div className="col-span-1">Qty</div>
-                        <div className="col-span-1">Unit</div>
-                        <div className="col-span-2 text-right">Unit Cost</div>
-                        <div className="col-span-1">Markup %</div>
-                        <div className="col-span-2 text-right">Total</div>
-                        <div className="col-span-1"></div>
-                      </div>
-
-                      {lineItems.map((item, index) => (
-                        <EstimateLineItemRow
-                          key={item.id || `new-${index}`}
-                          lineItem={item}
-                          costItems={costItems}
-                          sections={sections}
-                          onUpdate={(updatedItem) => handleUpdateLineItem(index, updatedItem)}
-                          onDelete={() => handleDeleteLineItem(index)}
-                          isNew={!item.id}
-                        />
+                      {/* Render sections and their line items */}
+                      {sections.map((section) => (
+                        <div key={section.id} className="mb-6">
+                          <EstimateSectionHeader
+                            section={section}
+                            onUpdateSection={handleUpdateSection}
+                            onDeleteSection={handleDeleteSection}
+                            onAddExistingLineItem={(sectionId) => handleAddExistingLineItem(sectionId)}
+                            onAddCustomLineItem={(sectionId) => {
+                              setCurrentSectionIdForAddItem(sectionId);
+                              setIsCustomLineItemDialogOpen(true);
+                            }}
+                          />
+                          <div className="grid grid-cols-12 gap-2 text-sm font-medium text-muted-foreground mt-4 mb-2">
+                            <div className="col-span-3">Item Name</div>
+                            <div className="col-span-1 text-right">Qty</div>
+                            <div className="col-span-1 text-right">Unit</div>
+                            <div className="col-span-1 text-right">Cost</div>
+                            <div className="col-span-1 text-center">MU %</div>
+                            <div className="col-span-1 text-right">Tax</div>
+                            <div className="col-span-1 text-right">Total</div>
+                            <div className="col-span-1 text-right">Assigned To</div>
+                            <div className="col-span-1 text-center">Optional</div>
+                            <div className="col-span-1"></div>
+                          </div>
+                          <div className="space-y-4">
+                            {section.line_items.map((item, index) => (
+                              <EstimateLineItemRow
+                                key={item.id || `new-${index}`}
+                                lineItem={item}
+                                onUpdate={(updatedItem) => handleUpdateLineItem(item.id!, updatedItem)}
+                                onDelete={() => handleDeleteLineItem(item.id!)}
+                                isNew={!item.id}
+                              />
+                            ))}
+                          </div>
+                        </div>
                       ))}
 
                       <div className="flex justify-end pt-4 border-t">
@@ -743,7 +910,7 @@ export function EstimateForm({
                                 render={({ field }) => (
                                   <Select
                                     onValueChange={field.onChange}
-                                    value={field.value || ""} // Use value from form state
+                                    value={field.value || ""}
                                   >
                                     <SelectTrigger className="w-[100px]">
                                       <SelectValue placeholder="Type" />
@@ -779,7 +946,7 @@ export function EstimateForm({
                                         {...field}
                                         disabled={!form.watch("discount_type")}
                                         className="w-[80px] text-right"
-                                        value={field.value ?? ""} // Use value from form state, handle undefined
+                                        value={field.value ?? ""}
                                       />
                                     </FormControl>
                                   </FormItem>
@@ -870,7 +1037,7 @@ export function EstimateForm({
             <TabsContent value="summary">
               <EstimateSummary
                 estimate={estimate}
-                lineItems={lineItems}
+                sections={sections} // Pass sections instead of lineItems
                 subtotalAmount={subtotalAmount}
                 discountedSubtotal={discountedSubtotal}
                 taxAmount={taxAmount}
@@ -920,19 +1087,26 @@ export function EstimateForm({
         onClose={() => setIsBulkMarkupDialogOpen(false)}
         onApplyMarkup={handleApplyBulkMarkup}
       />
-      <CostItemSelectorDrawer
+      <CostItemSelectorDialog
         isOpen={isCostItemSelectorOpen}
         onClose={() => setIsCostItemSelectorOpen(false)}
-        onSelectCostItem={handleSelectCostItemFromDrawer}
+        onSelectCostItems={handleSelectCostItemsFromDrawer}
+        // No need to pass sectionId here, it's handled by currentSectionIdForAddItem
       />
       <EstimateReviewDialog
         isOpen={isReviewDialogOpen}
         onClose={() => setIsReviewDialogOpen(false)}
         onConfirmSubmit={handleConfirmSubmit}
         estimate={estimate}
-        lineItems={lineItems}
+        sections={sections}
         paymentSchedules={paymentSchedules}
         totalAmount={totalAmount}
+      />
+      <CustomLineItemDialog
+        isOpen={isCustomLineItemDialogOpen}
+        onClose={() => setIsCustomLineItemDialogOpen(false)}
+        onAddCustomItem={handleAddCustomLineItem} // handleAddCustomLineItem now uses currentSectionIdForAddItem
+        sections={sections.map(s => s.name)} // Pass section names for selection
       />
     </Form>
   );

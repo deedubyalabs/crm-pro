@@ -1,5 +1,5 @@
 import { supabase, handleSupabaseError } from "./supabase"
-import type { CostItem, NewCostItem, UpdateCostItem, CostItemFilters, CostItemGroup, NewCostItemGroup, UpdateCostItemGroup } from "@/types/cost-items"
+import type { CostItem, NewCostItem, UpdateCostItem, CostItemFilters, CostItemGroup, NewCostItemGroup, UpdateCostItemGroup, CostItemType } from "@/types/cost-items"
 
 export const costItemService = {
   async getCostItems(
@@ -22,23 +22,77 @@ export const costItemService = {
         query = query.or(`name.ilike.${searchTerm},item_code.ilike.${searchTerm},description.ilike.${searchTerm}`)
       }
 
+      let queryForCount = supabase.from("cost_items").select("id", { count: "exact" });
+
+      // Apply filters to the count query
+      if (filters?.type) {
+        queryForCount = queryForCount.eq("type", filters.type)
+      }
+
+      if (filters?.isActive !== undefined) {
+        queryForCount = queryForCount.eq("is_active", filters.isActive)
+      }
+
+      if (filters?.search) {
+        const searchTerm = `%${filters.search}%`
+        queryForCount = queryForCount.or(`name.ilike.${searchTerm},item_code.ilike.${searchTerm},description.ilike.${searchTerm}`)
+      }
+
       if (filters?.groupId) {
-        query = query.eq("cost_item_group_id", filters.groupId)
+        queryForCount = queryForCount.eq("cost_item_group_id", filters.groupId)
       }
 
-      // Apply pagination
-      if (filters?.page && filters?.limit) {
-        const from = (filters.page - 1) * filters.limit
-        const to = from + filters.limit - 1
-        query = query.range(from, to)
+      const { count: totalCount, error: countError } = await queryForCount;
+
+      if (countError) throw countError;
+
+      let effectivePage = filters?.page || 1;
+      const limit = filters?.limit || 10;
+      const totalPages = Math.ceil((totalCount || 0) / limit);
+
+      // Adjust page if it's out of bounds for the filtered results
+      if (effectivePage > totalPages && totalPages > 0) {
+        effectivePage = 1; // Reset to first page if current page is out of bounds
+      } else if (totalPages === 0) {
+        effectivePage = 1; // If no items, ensure page is 1
       }
 
-      const { data, error, count } = await query
+      const from = (effectivePage - 1) * limit;
+      const to = from + limit - 1;
 
-      if (error) throw error
-      return { costItems: data || [], totalCount: count || 0 }
+      // Now, build and execute the query for actual data with pagination
+      let queryForData = supabase.from("cost_items").select("*, cost_item_groups(*)").order("name");
+
+      // Apply filters to the data query
+      if (filters?.type) {
+        queryForData = queryForData.eq("type", filters.type)
+      }
+
+      if (filters?.isActive !== undefined) {
+        queryForData = queryForData.eq("is_active", filters.isActive)
+      }
+
+      if (filters?.search) {
+        const searchTerm = `%${filters.search}%`
+        queryForData = queryForData.or(`name.ilike.${searchTerm},item_code.ilike.${searchTerm},description.ilike.${searchTerm}`)
+      }
+
+      if (filters?.groupId) {
+        queryForData = queryForData.eq("cost_item_group_id", filters.groupId)
+      }
+
+      const { data, error } = await queryForData.range(from, to);
+
+      if (error) throw error;
+      // Explicitly cast data to CostItem[] and ensure 'type' is CostItemType
+      const typedCostItems: CostItem[] = (data || []).map(item => ({
+        ...item,
+        type: item.type as CostItemType, // Cast 'type' to CostItemType
+        sync_with_bigbox: item.sync_with_bigbox as boolean | null, // Ensure nullable boolean
+      }));
+      return { costItems: typedCostItems, totalCount: totalCount || 0 };
     } catch (error) {
-      throw new Error(handleSupabaseError(error))
+      throw new Error(handleSupabaseError(error));
     }
   },
 

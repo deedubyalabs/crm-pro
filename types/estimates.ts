@@ -128,7 +128,7 @@ export interface NewEstimateLineItem {
   markup: number
   total: number
   sort_order?: number
-  section_name?: string | null
+  section_id?: string | null // Changed from section_name to section_id
   is_optional?: boolean // Added for optional items
   is_taxable?: boolean // Added for taxable items
   assigned_to_user_id?: string | null // Added for item assignment
@@ -143,10 +143,38 @@ export interface UpdateEstimateLineItem {
   markup?: number
   total?: number
   sort_order?: number
-  section_name?: string | null
+  section_id?: string | null // Changed from section_name to section_id
   is_optional?: boolean // Added for optional items
   is_taxable?: boolean // Added for taxable items
   assigned_to_user_id?: string | null // Added for item assignment
+}
+
+export interface EstimateSection {
+  id: string;
+  estimate_id: string;
+  name: string;
+  description: string | null;
+  is_optional: boolean;
+  is_taxable: boolean; // Added for taxable sections
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+  line_items: EstimateLineItem[]; // Line items belonging to this section
+}
+
+export interface NewEstimateSection {
+  estimate_id: string;
+  name: string;
+  description?: string | null;
+  is_optional?: boolean;
+  sort_order?: number;
+}
+
+export interface UpdateEstimateSection {
+  name?: string;
+  description?: string | null;
+  is_optional?: boolean;
+  sort_order?: number;
 }
 
 export interface EstimatePaymentSchedule {
@@ -194,7 +222,7 @@ export interface EstimateWithDetails extends Estimate {
     id: string
     opportunity_name: string
   } | null
-  lineItems: EstimateLineItem[]
+  sections: EstimateSection[]; // Changed from lineItems to sections
   paymentSchedules?: EstimatePaymentSchedule[]
   tax_rate_percentage?: number | null; // Added tax rate percentage
 }
@@ -206,8 +234,4 @@ export interface EstimateFilters {
   search?: string
   startDate?: string
   endDate?: string
-}
-
-export interface LineItemsBySection {
-  [section: string]: EstimateLineItem[]
 }

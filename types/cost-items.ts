@@ -1,12 +1,28 @@
 import type { Database } from "./supabase"
 
-export type CostItem = Database["public"]["Tables"]["cost_items"]["Row"] & {
+export type CostItemType = "Material" | "Labor" | "Equipment" | "Subcontractor" | "Overhead" | "Other"
+
+export type CostItem = {
+  id: string;
+  item_code: string;
+  name: string;
+  description: string | null;
+  type: CostItemType;
+  unit: string;
+  unit_cost: number;
+  default_markup: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  sync_with_bigbox: boolean | null;
+  last_price_sync: string | null;
+  cost_item_group_id: string | null;
+} & {
   cost_item_group?: CostItemGroup | null; // Include related group data
 }
+
 export type NewCostItem = Database["public"]["Tables"]["cost_items"]["Insert"]
 export type UpdateCostItem = Database["public"]["Tables"]["cost_items"]["Update"]
-
-export type CostItemType = "Material" | "Labor" | "Equipment" | "Subcontractor" | "Other"
 
 export type CostItemFilters = {
   type?: CostItemType

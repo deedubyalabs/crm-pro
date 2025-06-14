@@ -28,7 +28,7 @@ export default async function CostItemsPage({
   const isActive = awaitedSearchParams.isActive === "true" ? true : awaitedSearchParams.isActive === "false" ? false : undefined
   const groupId = typeof awaitedSearchParams.groupId === "string" ? awaitedSearchParams.groupId : undefined
   const page = parseInt(typeof awaitedSearchParams.page === "string" ? awaitedSearchParams.page : "1")
-  const limit = 10 // This should match the itemsPerPage in CostItemsList
+  const limit = parseInt(typeof awaitedSearchParams.limit === "string" ? awaitedSearchParams.limit : "10") // Get limit from searchParams
 
   // Fetch all cost items and groups for the respective tabs
   const [{ costItems, totalCount }, costItemGroups] = await Promise.all([
@@ -43,6 +43,15 @@ export default async function CostItemsPage({
     costItemService.getCostItemGroups(),
   ])
 
+  // If the current page is out of bounds after filtering/searching, redirect to page 1
+  if (costItems.length === 0 && totalCount > 0 && page > 1) {
+    const params = new URLSearchParams(awaitedSearchParams as Record<string, string>);
+    params.set("page", "1");
+    // Use Next.js's redirect function for server components
+    const { redirect } = await import("next/navigation");
+    redirect(`/cost-items?${params.toString()}`);
+  }
+
   const costItemTypes: CostItemType[] = ["Material", "Labor", "Equipment", "Subcontractor", "Other"]
 
   return (
@@ -50,12 +59,6 @@ export default async function CostItemsPage({
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Cost Items Catalog</h1>
         <div className="flex gap-2">
-          <Button asChild variant="outline">
-            <Link href="/cost-items/bulk-create">
-              <Plus className="mr-2 h-4 w-4" />
-              Bulk Create
-            </Link>
-          </Button>
           <Button asChild>
             <Link href="/cost-items/new">
               <Plus className="mr-2 h-4 w-4" />

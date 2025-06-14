@@ -1,16 +1,16 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { v4 as uuidv4 } from "uuid"
-
 import { EstimateForm } from "./estimate-form"
 import { costItemService } from "@/lib/cost-items"
 import { opportunityService } from "@/lib/opportunities"
 import { personService } from "@/lib/people"
-import type { EstimateLineItem, EstimatePaymentSchedule, EstimateWithDetails } from "@/types/estimates"
+import type { EstimateLineItem, EstimatePaymentSchedule, EstimateWithDetails, EstimateSection } from "@/types/estimates"
 import { useRouter, useSearchParams } from "next/navigation" // Import useSearchParams
 import { createEstimateAction, EstimateActionResult, updateEstimateAction } from "./actions"
 import { Button } from "@/components/ui/button"; // Import Button component
+import type { CostItem, CostItemType } from "@/types/cost-items" // Import CostItem and CostItemType
+import { v4 as uuidv4 } from "uuid" // Import uuid for section IDs
 
 interface UnifiedEstimateClientPageProps {
   estimate?: EstimateWithDetails; // Optional existing estimate data
@@ -27,8 +27,23 @@ export default function UnifiedEstimateClientPage({ estimate }: UnifiedEstimateC
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [activeTab, setActiveTab] = useState('details');
-  // State for line items and payment schedules, managed in parent
-  const [lineItems, setLineItems] = useState<Partial<EstimateLineItem>[]>(estimate?.lineItems || []);
+  // State for sections and payment schedules, managed in parent
+  const [estimateSections, setEstimateSections] = useState<EstimateSection[]>(
+    estimate?.sections && estimate.sections.length > 0
+      ? estimate.sections
+      : [{
+          id: uuidv4(),
+          estimate_id: estimate?.id || '', // Will be updated on save
+          name: 'General',
+          description: null,
+          is_optional: false,
+          is_taxable: true, // Added is_taxable
+          sort_order: 0,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          line_items: [],
+        }]
+  );
   const [paymentSchedules, setPaymentSchedules] = useState<Partial<EstimatePaymentSchedule>[]>(estimate?.paymentSchedules || []);
 
   const [showCreateProjectButton, setShowCreateProjectButton] = useState(false); // State to control button visibility
@@ -43,29 +58,18 @@ export default function UnifiedEstimateClientPage({ estimate }: UnifiedEstimateC
   }, [estimate]); // Update button visibility when estimate changes
 
   // Get cost items for the line item selector
-  const [costItems, setCostItems] = React.useState<Array<{
-    id: string;
-    item_code: string;
-    name: string;
-    description: string | null;
-    type: string;
-    unit: string;
-    unit_cost: number;
-    default_markup: number;
-    is_active: boolean;
-    created_at: string;
-    updated_at: string;
-    cost_item_group_id: string | null;
-    last_price_sync: string | null;
-    sync_with_bigbox: boolean;
-  }>>([])
+  const [costItems, setCostItems] = React.useState<CostItem[]>([])
   const [opportunityOptions, setOpportunityOptions] = React.useState<Array<{ id: string; name: string; person_id: string }>>([])
   const [peopleOptions, setPeopleOptions] = React.useState<Array<{ id: string; name: string }>>([])
 
   useEffect(() => {
     const loadData = async () => {
-      const costItemsData = await costItemService.getCostItems({ isActive: true })
-      setCostItems(costItemsData)
+      const { costItems: fetchedCostItems } = await costItemService.getCostItems({ isActive: true })
+      setCostItems(fetchedCostItems.map(item => ({
+        ...item,
+        sync_with_bigbox: item.sync_with_bigbox ?? false,
+        type: item.type as CostItemType
+      })))
 
       const opportunities = await opportunityService.getOpportunities()
       const opportunityOptionsData = opportunities.map((opp) => ({
@@ -132,7 +136,7 @@ export default function UnifiedEstimateClientPage({ estimate }: UnifiedEstimateC
       if (!estimate && (prefilledPersonId || prefilledOpportunityId)) {
          setInitialEstimateData({
            ...prefilledEstimate,
-           lineItems: [],
+           sections: estimateSections, // Use the initialized sections
            paymentSchedules: [],
            ai_conversation_history: null, // No history for new estimates
            id: '', // Placeholder, will be generated on save
@@ -142,20 +146,26 @@ export default function UnifiedEstimateClientPage({ estimate }: UnifiedEstimateC
            total_amount: 0,
            // person and opportunity are now provided in prefilledEstimate
          } as any); // Cast to any to bypass type error for now
+      } else if (estimate) {
+        // If an estimate exists, ensure initialEstimateData reflects its sections
+        setInitialEstimateData({
+          ...estimate,
+          sections: estimate.sections,
+        });
       }
     }
 
     loadData()
   }, [estimate, personIdFromUrl, opportunityIdFromUrl]); // Add dependencies for URL params and estimate
 
-  async function handleFormSubmit(values: any, lineItems: Partial<EstimateLineItem>[], paymentSchedules: Partial<EstimatePaymentSchedule>[]) {
+  async function handleFormSubmit(values: any, sections: EstimateSection[], paymentSchedules: Partial<EstimatePaymentSchedule>[]) {
     setIsProcessing(true)
     try {
       let result: EstimateActionResult; // Use the unified action result type
 
       const estimateDataToSave = {
         ...values,
-        lineItems: lineItems,
+        sections: sections, // Pass sections instead of lineItems
         paymentSchedules: paymentSchedules,
       };
 
@@ -189,7 +199,7 @@ export default function UnifiedEstimateClientPage({ estimate }: UnifiedEstimateC
   };
 
   return (
-    <div className="container mx-auto py-6 space-y-8 text-sm">
+    <div className="w-full px-6 py-6 space-y-8 text-xs">
     {/* Heading and Button at the top */}
     <div className="mb-6"> {/* Added margin-bottom for spacing */}
       <h2 className="text-3xl font-bold tracking-tight"> {/* Increased font size for prominence */}
@@ -210,8 +220,8 @@ export default function UnifiedEstimateClientPage({ estimate }: UnifiedEstimateC
         opportunities={opportunityOptions}
         people={peopleOptions}
         onSubmit={handleFormSubmit}
-        lineItems={lineItems}
-        onLineItemsChange={setLineItems}
+        sections={estimateSections} // Pass sections
+        onSectionsChange={setEstimateSections} // Pass sections change handler
         paymentSchedules={paymentSchedules}
         onPaymentSchedulesChange={setPaymentSchedules}
         initialActiveTab="details"

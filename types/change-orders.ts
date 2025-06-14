@@ -33,6 +33,7 @@ export type ChangeOrderWithDetails = ChangeOrder & {
 }
 
 export type ChangeOrderLineItem = {
+  unit_cost: number | undefined
   id: string
   change_order_id: string
   description: string

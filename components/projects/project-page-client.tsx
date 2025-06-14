@@ -5,9 +5,10 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { CalendarDays, FileText, ClipboardList, DollarSign, Pencil, Mic, ListTodo, Package, Lightbulb, MessageSquareText } from "lucide-react"
+import { CalendarDays, FileText, ClipboardList, DollarSign, Pencil, Mic, ListTodo, Package, Lightbulb, MessageSquareText, LayoutDashboard } from "lucide-react"
 import ClientOnly from "@/components/ClientOnly"
 import ProjectJobsList from "@/components/projects/project-jobs-list"
+import BlueprintOfValuesList from "@/components/projects/blueprint-of-values-list"
 
 export default function ProjectPageClient({ project, projectId }: { project: any, projectId: string }) {
   const [isInsightsDrawerOpen, setIsInsightsDrawerOpen] = useState(false)
@@ -129,11 +130,15 @@ export default function ProjectPageClient({ project, projectId }: { project: any
       <Tabs defaultValue="jobs">
         <TabsList>
           <TabsTrigger value="jobs">Jobs</TabsTrigger>
+          <TabsTrigger value="bov">Blueprint of Values</TabsTrigger>
           <TabsTrigger value="financial">Financial</TabsTrigger>
           <TabsTrigger value="schedule">Schedule</TabsTrigger>
         </TabsList>
         <TabsContent value="jobs" className="space-y-4">
           <ProjectJobsList projectId={projectId} />
+        </TabsContent>
+        <TabsContent value="bov" className="space-y-4">
+          <BlueprintOfValuesList projectId={projectId} />
         </TabsContent>
         <TabsContent value="financial" className="space-y-4">
           {/* Financial Dashboard Component */}
