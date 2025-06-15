@@ -8,9 +8,11 @@ import { personService } from "@/lib/people"
 import type { EstimateLineItem, EstimatePaymentSchedule, EstimateWithDetails, EstimateSection } from "@/types/estimates"
 import { useRouter, useSearchParams } from "next/navigation" // Import useSearchParams
 import { createEstimateAction, EstimateActionResult, updateEstimateAction } from "./actions"
-import { Button } from "@/components/ui/button"; // Import Button component
-import type { CostItem, CostItemType } from "@/types/cost-items" // Import CostItem and CostItemType
-import { v4 as uuidv4 } from "uuid" // Import uuid for section IDs
+import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { MoreHorizontal } from "lucide-react";
+import type { CostItem, CostItemType } from "@/types/cost-items"
+import { v4 as uuidv4 } from "uuid"
 
 interface UnifiedEstimateClientPageProps {
   estimate?: EstimateWithDetails; // Optional existing estimate data
@@ -198,19 +200,13 @@ export default function UnifiedEstimateClientPage({ estimate }: UnifiedEstimateC
   return (
     <div className="w-full px-6 py-6 space-y-8 text-xs">
     {/* Heading and Button at the top */}
-    <div className="mb-6"> {/* Added margin-bottom for spacing */}
-      <h2 className="text-3xl font-bold tracking-tight"> {/* Increased font size for prominence */}
+    <div className="mb-6 flex items-center justify-between">
+      <h2 className="text-3xl font-bold tracking-tight">
         {estimate ? `Edit Estimate ${estimate.estimate_number || '(Draft)'}` : "New Estimate"}
       </h2>
-      {showCreateProjectButton && (
-        <Button onClick={handleCreateProject} className="mt-4"> {/* Added margin-top for spacing */}
-          Create Project from this Estimate
-        </Button>
-      )}
     </div>
 
-    {/* Estimate Form below the heading and button */}
-    <div> {/* Removed lg:w-2/3 */}
+    <div>
        <EstimateForm
         estimate={initialEstimateData} // Pass initialEstimateData to form
         costItems={costItems}

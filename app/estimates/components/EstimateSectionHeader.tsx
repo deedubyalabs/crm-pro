@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
-import { MoreVertical, Plus, Trash2, Edit, Check, X } from "lucide-react"
+import { Menu, Plus, Trash2, Edit, Check, X, Percent } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,7 +20,8 @@ interface EstimateSectionHeaderProps {
   onDeleteSection: (id: string) => void;
   onAddExistingLineItem: (sectionId: string) => void;
   onAddCustomLineItem: (sectionId: string) => void;
-  onToggleSectionOptionality: (sectionId: string, isOptional: boolean) => void; // New prop
+  onToggleSectionOptionality: (sectionId: string, isOptional: boolean) => void;
+  onApplySectionBulkMarkup: (sectionId: string) => void; // New prop for section-specific bulk markup
 }
 
 export function EstimateSectionHeader({
@@ -29,7 +30,8 @@ export function EstimateSectionHeader({
   onDeleteSection,
   onAddExistingLineItem,
   onAddCustomLineItem,
-  onToggleSectionOptionality, // Destructure new prop
+  onToggleSectionOptionality,
+  onApplySectionBulkMarkup, // Destructure new prop
 }: EstimateSectionHeaderProps) {
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState(section.name);
@@ -101,12 +103,15 @@ export function EstimateSectionHeader({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon">
-              <MoreVertical className="h-4 w-4" />
+              <Menu className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={() => setIsEditingName(true)}>
               <Edit className="mr-2 h-4 w-4" /> Rename Section
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onApplySectionBulkMarkup(section.id)}>
+              <Percent className="mr-2 h-4 w-4" /> Apply Bulk Markup
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => handleToggleOptional(!section.is_optional)}>
               <Checkbox

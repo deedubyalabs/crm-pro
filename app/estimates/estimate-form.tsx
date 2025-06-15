@@ -16,11 +16,12 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "@/components/ui/use-toast"
-import { CalendarIcon, Plus, Percent, DollarSign } from "lucide-react"
+import { CalendarIcon, Plus, Percent, DollarSign, MoreHorizontal, MoreVertical, ListTodo, ListPlus, Database, CirclePercent, SquarePlus } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { cn, formatCurrency } from "@/lib/utils"
@@ -37,6 +38,7 @@ import { EstimateSectionHeader } from "./components/EstimateSectionHeader" // Im
 import type { EstimateLineItem, EstimateWithDetails, EstimatePaymentSchedule, EstimateSection } from "@/types/estimates"
 import type { CostItem } from "@/types/cost-items"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label" // Import Label
 import {
   Dialog,
   DialogContent,
@@ -44,8 +46,8 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from "@/components/ui/dialog" // Import Dialog components
-import { CustomLineItemDialog } from "./custom-line-item-dialog" // Import CustomLineItemDialog
+} from "@/components/ui/dialog"
+import { CustomLineItemDialog } from "./custom-line-item-dialog"
 
 // Define the form schema
 const formSchema = z.object({
@@ -110,11 +112,14 @@ export function EstimateForm({
 
   const [selectedOpportunityId, setSelectedOpportunityId] = useState(estimate?.opportunity_id || "");
   const [newSectionName, setNewSectionName] = useState("");
-  const [isBulkMarkupDialogOpen, setIsBulkMarkupDialogOpen] = useState(false); // State for bulk markup dialog
-  const [isCostItemSelectorOpen, setIsCostItemSelectorOpen] = useState(false); // State for cost item selector drawer
-  const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false); // State for review dialog
-  const [isCustomLineItemDialogOpen, setIsCustomLineItemDialogOpen] = useState(false); // State for custom line item dialog
-  const [currentSectionIdForAddItem, setCurrentSectionIdForAddItem] = useState<string | null>(null); // State to store sectionId for adding items
+  const [isNewSectionOptional, setIsNewSectionOptional] = useState(false); // State for new section optional toggle
+  const [isAddSectionDialogOpen, setIsAddSectionDialogOpen] = useState(false); // State for add section dialog
+  const [isBulkMarkupDialogOpen, setIsBulkMarkupDialogOpen] = useState(false);
+  const [currentSectionIdForBulkMarkup, setCurrentSectionIdForBulkMarkup] = useState<string | null>(null); // New state for section-specific bulk markup
+  const [isCostItemSelectorOpen, setIsCostItemSelectorOpen] = useState(false);
+  const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
+  const [isCustomLineItemDialogOpen, setIsCustomLineItemDialogOpen] = useState(false);
+  const [currentSectionIdForAddItem, setCurrentSectionIdForAddItem] = useState<string | null>(null);
 
   // Initialize the form with default values or existing estimate data
   const form = useForm<FormValues>({
@@ -217,45 +222,62 @@ export function EstimateForm({
 
   // Handle applying bulk markup
   const handleApplyBulkMarkup = (markupPercentage: number, scope: string) => {
-    const updatedSections = sections.map((section) => ({
-      ...section,
-      line_items: section.line_items.map((item) => {
-        let applyMarkup = false;
-        // Ensure item.costItem exists before accessing its properties
-        const itemType = item.costItem?.type; // Corrected to camelCase
+    const targetSections = currentSectionIdForBulkMarkup
+      ? sections.filter(s => s.id === currentSectionIdForBulkMarkup)
+      : sections;
 
-      if (scope === "all") {
-        applyMarkup = true;
-      } else if (scope === "material" && itemType === "Material") {
-        applyMarkup = true;
-      } else if (scope === "labor" && itemType === "Labor") {
-        applyMarkup = true;
-      } else if (scope === "equipment" && itemType === "Equipment") {
-        applyMarkup = true;
-      } else if (scope === "subcontractor" && itemType === "Subcontractor") {
-        applyMarkup = true;
-      } else if (scope === "other" && itemType === "Other") {
-        applyMarkup = true;
+    const updatedSections = sections.map((section) => {
+      if (currentSectionIdForBulkMarkup && section.id !== currentSectionIdForBulkMarkup) {
+        return section; // Skip sections not targeted for bulk markup
       }
 
-      if (applyMarkup) {
-        const newMarkup = markupPercentage;
-        const newUnitCost = item.unit_cost || 0;
-        const newQuantity = item.quantity || 0;
-        const subtotal = newQuantity * newUnitCost;
-        const newTotal = subtotal * (1 + newMarkup / 100);
+      return {
+        ...section,
+        line_items: section.line_items.map((item) => {
+          let applyMarkup = false;
+          const itemType = item.costItem?.type;
 
-        return {
-          ...item,
-          markup: newMarkup,
-          total: newTotal,
-        };
-        }
-        return item;
-      }),
-    }));
+          if (scope === "all") {
+            applyMarkup = true;
+          } else if (scope === "material" && itemType === "Material") {
+            applyMarkup = true;
+          } else if (scope === "labor" && itemType === "Labor") {
+            applyMarkup = true;
+          } else if (scope === "equipment" && itemType === "Equipment") {
+            applyMarkup = true;
+          } else if (scope === "subcontractor" && itemType === "Subcontractor") {
+            applyMarkup = true;
+          } else if (scope === "other" && itemType === "Other") {
+            applyMarkup = true;
+          }
+
+          if (applyMarkup) {
+            const newMarkup = markupPercentage;
+            const newUnitCost = item.unit_cost || 0;
+            const newQuantity = item.quantity || 0;
+            const subtotal = newQuantity * newUnitCost;
+            const newTotal = subtotal * (1 + newMarkup / 100);
+
+            return {
+              ...item,
+              markup: newMarkup,
+              total: newTotal,
+            };
+          }
+          return item;
+        }),
+      };
+    });
     onSectionsChange(updatedSections);
     toast({ title: "Bulk Markup Applied", description: "Markup has been applied to selected items." });
+    setIsBulkMarkupDialogOpen(false); // Close the dialog after applying
+    setCurrentSectionIdForBulkMarkup(null); // Clear the section ID
+  };
+
+  // Function to open bulk markup dialog for a specific section
+  const handleOpenSectionBulkMarkup = (sectionId: string) => {
+    setCurrentSectionIdForBulkMarkup(sectionId);
+    setIsBulkMarkupDialogOpen(true);
   };
 
   // Handle updating a section (name, optional, taxable)
@@ -450,21 +472,33 @@ export function EstimateForm({
 
   // Handle adding a new section (updates sections prop)
   const handleAddSection = () => {
-    if (newSectionName) {
+    setIsAddSectionDialogOpen(true); // Open the dialog instead of directly adding
+  };
+
+  const handleConfirmAddSection = () => {
+    if (newSectionName.trim()) {
       const newSection: EstimateSection = {
         id: uuidv4(),
-        estimate_id: estimate?.id || '', // Provide estimate_id
-        name: newSectionName,
-        description: null, // Provide description
-        is_optional: false, // Default to not optional
-        is_taxable: true, // Default to taxable
-        sort_order: sections.length, // Simple sort order for new section
-        created_at: new Date().toISOString(), // Provide created_at
-        updated_at: new Date().toISOString(), // Provide updated_at
+        estimate_id: estimate?.id || '',
+        name: newSectionName.trim(),
+        description: null,
+        is_optional: isNewSectionOptional, // Use state from dialog
+        is_taxable: true,
+        sort_order: sections.length,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
         line_items: [],
       };
       onSectionsChange([...sections, newSection]);
       setNewSectionName("");
+      setIsNewSectionOptional(false);
+      setIsAddSectionDialogOpen(false);
+    } else {
+      toast({
+        title: "Error",
+        description: "Section name cannot be empty.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -842,37 +876,28 @@ export function EstimateForm({
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle>Line Items</CardTitle>
-                  <div className="flex items-center space-x-2">
-                    <Button type="button" onClick={() => setIsBulkMarkupDialogOpen(true)} variant="outline">
-                      <Percent className="mr-2 h-4 w-4" /> Add Bulk Markup
-                    </Button>
-                    <div className="flex items-center space-x-2">
-                      <Input
-                        placeholder="New section name"
-                        value={newSectionName}
-                        onChange={(e) => setNewSectionName(e.target.value)}
-                        className="w-40"
-                      />
-                      <Button type="button" onClick={handleAddSection} variant="outline" size="sm">
-                        Add Section
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" className="ml-auto">
+                        <MoreVertical className="h-4 w-4" />
+                        <span className="sr-only">Actions</span>
                       </Button>
-                    </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button type="button" variant="outline">
-                          <Plus className="mr-2 h-4 w-4" /> Add Item
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                        <DropdownMenuItem onClick={() => handleAddExistingLineItem()}>
-                          Add from Cost Items Library
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">                        
+                      <DropdownMenuItem onClick={() => handleAddExistingLineItem()}>
+                        <Database className="mr-2 h-4 w-4 text-blue-600" /> Add From Library
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => setIsCustomLineItemDialogOpen(true)}>
-                          Create Custom Cost Item(s)
+                        <ListPlus className="mr-2 h-4 w-4 text-orange-500" /> Add Custom Item
                         </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
+                      <DropdownMenuItem onClick={handleAddSection}>
+                        <SquarePlus className="mr-2 h-4 w-4 text--500" /> Add Section
+                      </DropdownMenuItem> 
+                      <DropdownMenuItem onClick={() => setIsBulkMarkupDialogOpen(true)}>
+                        <CirclePercent className="mr-2 h-4 w-4 text-green-700" /> Add Markup
+                      </DropdownMenuItem>                     
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </CardHeader>
                 <CardContent>
                   {sections.every(section => section.line_items.length === 0) ? (
@@ -893,15 +918,16 @@ export function EstimateForm({
                               setCurrentSectionIdForAddItem(sectionId);
                               setIsCustomLineItemDialogOpen(true);
                             }}
-                            onToggleSectionOptionality={handleToggleSectionOptionality} // New prop
+                            onToggleSectionOptionality={handleToggleSectionOptionality}
+                            onApplySectionBulkMarkup={handleOpenSectionBulkMarkup} // Pass new prop
                           />
                           <div className="grid grid-cols-12 gap-2 text-sm font-medium text-muted-foreground mt-4 mb-2">
                             <div className="col-span-3">Item Name</div>
                             <div className="col-span-1 text-right">Qty</div>
                             <div className="col-span-1 text-right">Unit</div>
                             <div className="col-span-1 text-right">Cost</div>
-                            <div className="col-span-1 text-center">MU %</div>
-                            <div className="col-span-1 text-right">Tax</div>
+                            <div className="col-span-1 text-right">MU %</div>
+                            <div className="col-span-1 text-center">Tax</div>
                             <div className="col-span-1 text-right">Total</div>
                             <div className="col-span-1 text-right">Assigned To</div>
                             <div className="col-span-1 text-center">Optional</div>
@@ -1099,7 +1125,7 @@ export function EstimateForm({
             </TabsContent>
           </Tabs>
 
-          <div className="flex justify-between">
+          <div className="flex justify-end space-x-2 pt-4">
             <Button type="button" variant="outline" onClick={() => router.push("/estimates")}>
               Cancel
             </Button>
@@ -1107,7 +1133,7 @@ export function EstimateForm({
               Review and Submit
             </Button>
           </div>
-        </div> {/* Closes "space-y-6" div */}
+        </div>
       </form>
       <BulkMarkupDialog
         isOpen={isBulkMarkupDialogOpen}
@@ -1118,7 +1144,6 @@ export function EstimateForm({
         isOpen={isCostItemSelectorOpen}
         onClose={() => setIsCostItemSelectorOpen(false)}
         onSelectCostItems={handleSelectCostItemsFromDrawer}
-        // No need to pass sectionId here, it's handled by currentSectionIdForAddItem
       />
       <EstimateReviewDialog
         isOpen={isReviewDialogOpen}
@@ -1132,9 +1157,51 @@ export function EstimateForm({
       <CustomLineItemDialog
         isOpen={isCustomLineItemDialogOpen}
         onClose={() => setIsCustomLineItemDialogOpen(false)}
-        onAddCustomItem={handleAddCustomLineItem} // handleAddCustomLineItem now uses currentSectionIdForAddItem
-        sections={sections.map(s => s.name)} // Pass section names for selection
+        onAddCustomItem={handleAddCustomLineItem}
+        sections={sections.map(s => s.name)}
       />
+
+      {/* Add Section Dialog */}
+      <Dialog open={isAddSectionDialogOpen} onOpenChange={setIsAddSectionDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Add New Section</DialogTitle>
+            <DialogDescription>
+              Enter the name for your new section and specify if it's optional.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="sectionName" className="text-right">
+                Name
+              </Label>
+              <Input
+                id="sectionName"
+                value={newSectionName}
+                onChange={(e) => setNewSectionName(e.target.value)}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="isOptional" className="text-right">
+                Optional
+              </Label>
+              <Checkbox
+                id="isOptional"
+                checked={isNewSectionOptional}
+                onCheckedChange={(checked) => setIsNewSectionOptional(!!checked)}
+                className="col-span-3"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddSectionDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleConfirmAddSection}>Add Section</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Form>
   );
 }
