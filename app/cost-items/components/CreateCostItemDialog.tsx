@@ -1,8 +1,7 @@
 "use client"
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
-import { CostItemForm }
-from "../cost-item-form"
+import { CostItemForm } from "../cost-item-form"
 import { createCostItemAction } from "../actions"
 import { toast } from "@/components/ui/use-toast"
 import { useRouter } from "next/navigation"

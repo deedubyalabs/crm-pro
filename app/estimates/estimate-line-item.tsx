@@ -128,26 +128,26 @@ export function EstimateLineItemRow({
   if (isEditing) {
     return (
       <tr className={cn("items-center", index % 2 === 0 ? "bg-blue-50" : "bg-white")}>
-        <td className="p-2">
+        <td className="p-1">
           {lineItem.costItem?.type ? (
             <Badge variant={getBadgeVariant(lineItem.costItem.type as CostItemType)} className="text-[10px]">{lineItem.costItem.type}</Badge>
           ) : (
             <span className="text-[10px] text-muted-foreground">N/A</span>
           )}
         </td>
-        <td className="p-2">
+      <td className="p-1 w-[200px]">
           <Input
             placeholder="Description"
             value={editedLineItem.costItem?.name || editedLineItem.description}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFieldChange({ description: e.target.value })}
-            className="flex-1"
+            className="flex-1 w-full"
             style={{ fontSize: '10px' }}
           />
         </td>
-        <td className="p-2">
+        <td className="p-1">
           <Input type="number" min="0" step="0.01" value={editedLineItem.quantity?.toString() || "1"} onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFieldChange({ quantity: parseFloat(e.target.value) || 0 })} style={{ fontSize: '10px' }} />
         </td>
-        <td className="p-2">
+        <td className="p-1">
           <Select value={editedLineItem.unit || "EA"} onValueChange={(value: string) => handleFieldChange({ unit: value })}>
             <SelectTrigger style={{ fontSize: '10px' }}>
               <SelectValue />
@@ -170,7 +170,7 @@ export function EstimateLineItemRow({
             </SelectContent>
           </Select>
         </td>
-        <td className="p-2">
+        <td className="p-1">
           <Input
             type="number"
             min="0"
@@ -181,7 +181,7 @@ export function EstimateLineItemRow({
             style={{ fontSize: '10px' }}
           />
         </td>
-        <td className="p-2">
+        <td className="p-1">
           <Input
             type="number"
             min="0"
@@ -192,15 +192,15 @@ export function EstimateLineItemRow({
             style={{ fontSize: '10px' }}
           />
         </td>
-        <td className="p-2 text-center">
+        <td className="p-1 text-center">
           <Checkbox
             id={`taxable-${lineItem.id}`}
             checked={editedLineItem.is_taxable}
             onCheckedChange={(checked: boolean) => handleFieldChange({ is_taxable: !!checked })}
           />
         </td>
-        <td className="p-2 text-right font-medium" style={{ fontSize: '10px' }}>{formatCurrency(liveTotal)}</td>
-        <td className="p-2">
+        <td className="p-1 text-right font-medium" style={{ fontSize: '10px' }}>{formatCurrency(liveTotal)}</td>
+        <td className="p-1">
           <Select value={editedLineItem.assigned_to_user_id || "none"} onValueChange={(value: string) => handleFieldChange({ assigned_to_user_id: value })}>
             <SelectTrigger style={{ fontSize: '10px' }}>
               <SelectValue placeholder="Assign..." />
@@ -215,14 +215,14 @@ export function EstimateLineItemRow({
             </SelectContent>
           </Select>
         </td>
-        <td className="p-2 text-center">
+        <td className="p-1 text-center">
           <Checkbox
             id={`optional-${lineItem.id}`}
             checked={editedLineItem.is_optional}
             onCheckedChange={(checked: boolean) => handleFieldChange({ is_optional: !!checked })}
           />
         </td>
-        <td className="p-2 flex items-center justify-end space-x-1">
+        <td className="p-1 flex items-center justify-end space-x-1">
           <Button variant="ghost" size="icon" onClick={handleSave} className="h-8 w-8">
             <Check className="h-4 w-4 text-green-500" />
           </Button>
@@ -239,42 +239,42 @@ export function EstimateLineItemRow({
 
   return (
     <tr className={cn("items-center", index % 2 === 0 ? "bg-gray-50" : "bg-white")}>
-      <td className="p-2">
+      <td className="p-1">
         {lineItem.costItem?.type ? (
           <Badge variant={getBadgeVariant(lineItem.costItem.type as CostItemType)} className="text-[10px]">{lineItem.costItem.type}</Badge>
         ) : (
           <span className="text-[10px] text-muted-foreground">N/A</span>
         )}
       </td>
-      <td className="p-2 text-[10px] font-medium">
+      <td className="p-1 text-[10px] font-medium min-w-[150px]">
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger>
               <p className="truncate text-left">{lineItem.costItem?.name || lineItem.description}</p>
             </TooltipTrigger>
             {lineItem.description && lineItem.description !== (lineItem.costItem?.name || '') && (
-              <TooltipContent className="max-w-xs p-2" style={{ fontSize: '10px' }}>
+              <TooltipContent className="max-w-xs p-1" style={{ fontSize: '10px' }}>
                 {lineItem.description}
               </TooltipContent>
             )}
           </Tooltip>
         </TooltipProvider>
       </td>
-      <td className="p-2 text-[10px] text-center">{lineItem.quantity}</td>
-      <td className="p-2 text-[10px] text-center">{lineItem.unit}</td>
-      <td className="p-2 text-[10px] text-right">{formatCurrency(lineItem.unit_cost || 0)}</td>
-      <td className="p-2 text-[10px] text-right">{lineItem.markup || 0}%</td>
-      <td className="p-2 text-center">
+      <td className="p-1 text-[10px] text-center">{lineItem.quantity}</td>
+      <td className="p-1 text-[10px] text-center">{lineItem.unit}</td>
+      <td className="p-1 text-[10px] text-right">{formatCurrency(lineItem.unit_cost || 0)}</td>
+      <td className="p-1 text-[10px] text-right">{lineItem.markup || 0}%</td>
+      <td className="p-1 text-center">
         <Checkbox checked={lineItem.is_taxable} disabled />
       </td>
-      <td className="p-2 text-right font-medium" style={{ fontSize: '10px' }}>{formatCurrency(lineItem.total || 0)}</td>
-      <td className="p-2 text-[10px] text-center truncate">
+      <td className="p-1 text-right font-medium" style={{ fontSize: '10px' }}>{formatCurrency(lineItem.total || 0)}</td>
+      <td className="p-1 text-[10px] text-center truncate">
         {assignedUser ? `${assignedUser.first_name} ${assignedUser.last_name}` : 'Unassigned'}
       </td>
-      <td className="p-2 text-center">
+      <td className="p-1 text-center">
         <Checkbox checked={lineItem.is_optional} disabled />
       </td>
-      <td className="p-2 flex items-center justify-end space-x-1">
+      <td className="p-1 flex items-center justify-end space-x-1">
         <Button variant="ghost" size="icon" onClick={() => setIsEditing(true)} className="h-8 w-8">
           <Edit className="h-4 w-4" />
         </Button>

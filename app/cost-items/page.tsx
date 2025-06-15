@@ -3,12 +3,11 @@ import { Suspense } from "react"
 import { costItemService } from "@/lib/cost-items"
 import { CostItemsList } from "./cost-items-list"
 import { CostItemGroupsList } from "./cost-item-groups-list" // New component for groups
-import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Plus } from "lucide-react"
-import Link from "next/link"
+import Link from "next/link" // Keep Link for TabsTrigger
 import { CostItemType } from "@/types/cost-items" // Import CostItemType
 import { CostItemSearchInput } from "./cost-item-search-input" // Import the new client component
+import { CostItemActions } from "./components/CostItemActions" // Import the new client component
 
 export const metadata: Metadata = {
   title: "Cost Items | PROActive ONE",
@@ -28,7 +27,7 @@ export default async function CostItemsPage({
   const isActive = awaitedSearchParams.isActive === "true" ? true : awaitedSearchParams.isActive === "false" ? false : undefined
   const groupId = typeof awaitedSearchParams.groupId === "string" ? awaitedSearchParams.groupId : undefined
   const page = parseInt(typeof awaitedSearchParams.page === "string" ? awaitedSearchParams.page : "1")
-  const limit = parseInt(typeof awaitedSearchParams.limit === "string" ? awaitedSearchParams.limit : "10") // Get limit from searchParams
+  const limit = parseInt(typeof awaitedSearchParams.page === "string" ? awaitedSearchParams.page : "10") // Get limit from searchParams
 
   // Fetch all cost items and groups for the respective tabs
   const [{ costItems, totalCount }, costItemGroups] = await Promise.all([
@@ -57,15 +56,8 @@ export default async function CostItemsPage({
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Cost Items Catalog</h1>
-        <div className="flex gap-2">
-          <Button asChild>
-            <Link href="/cost-items/new">
-              <Plus className="mr-2 h-4 w-4" />
-              New Cost Item
-            </Link>
-          </Button>
-        </div>
+        <h1 className="text-2xl font-bold">Cost Items Library</h1>
+        <CostItemActions /> {/* Use the new client component here */}
       </div>
 
       <Tabs defaultValue={currentTab} className="space-y-4">

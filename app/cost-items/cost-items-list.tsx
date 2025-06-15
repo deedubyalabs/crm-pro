@@ -183,58 +183,58 @@ export function CostItemsList({ costItems, costItemGroups, totalCount }: CostIte
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[40px] text-center">
+                  <TableHead className="w-[40px] text-center text-xs">
                     <Checkbox
                       checked={selectedItems.length === costItems.length && costItems.length > 0}
                       onCheckedChange={handleSelectAllItems}
                       aria-label="Select all"
                     />
                   </TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Unit</TableHead>
-                  <TableHead className="text-right">Unit Cost</TableHead>
-                  <TableHead className="text-right">Markup</TableHead>
-                  <TableHead>Cost Code</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="text-xs">Name</TableHead>
+                  <TableHead className="text-xs">Type</TableHead>
+                  <TableHead className="text-xs">Unit</TableHead>
+                  <TableHead className="text-right text-xs">Unit Cost</TableHead>
+                  <TableHead className="text-right text-xs">Markup</TableHead>
+                  <TableHead className="text-xs">Cost Code</TableHead>
+                  <TableHead className="text-xs">Status</TableHead>
+                  <TableHead className="text-right text-xs">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {costItems.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="h-24 text-center">
+                    <TableCell colSpan={10} className="h-24 text-center text-xs">
                       No cost items found.
                     </TableCell>
                   </TableRow>
                 ) : (
                   costItems.map((item) => (
                     <TableRow key={item.id}>
-                      <TableCell className="w-[40px] text-center">
+                      <TableCell className="w-[40px] text-center text-xs">
                         <Checkbox
                           checked={selectedItems.includes(item.id)}
                           onCheckedChange={(checked) => handleSelectItem(item.id, checked === true)}
                           aria-label={`Select item ${item.name}`}
                         />
                       </TableCell>
-                      <TableCell>{item.name}</TableCell>
-                      <TableCell>{getTypeBadge(item.type)}</TableCell>
-                      <TableCell>{item.unit}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(item.unit_cost)}</TableCell>
-                      <TableCell className="text-right">{item.default_markup}%</TableCell>
-                      <TableCell className="font-medium">{item.item_code}</TableCell>
-                      <TableCell>
+                      <TableCell className="text-xs">{item.name}</TableCell>
+                      <TableCell className="text-xs">{getTypeBadge(item.type)}</TableCell>
+                      <TableCell className="text-xs">{item.unit}</TableCell>
+                      <TableCell className="text-right text-xs">{formatCurrency(item.unit_cost)}</TableCell>
+                      <TableCell className="text-right text-xs">{item.default_markup}%</TableCell>
+                      <TableCell className="font-medium text-xs">{item.item_code}</TableCell>
+                      <TableCell className="text-xs">
                         {item.is_active ? (
-                          <Badge variant="outline" className="bg-green-50 text-green-700">
+                          <Badge variant="outline" className="bg-green-50 text-green-700 text-xs">
                             Active
                           </Badge>
                         ) : (
-                          <Badge variant="outline" className="bg-red-50 text-red-700">
+                          <Badge variant="outline" className="bg-red-50 text-red-700 text-xs">
                             Inactive
                           </Badge>
                         )}
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right text-xs">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" className="h-8 w-8 p-0">
@@ -259,13 +259,13 @@ export function CostItemsList({ costItems, costItemGroups, totalCount }: CostIte
             </Table>
           </div>
 
-          <div className="flex items-center justify-between space-x-2 py-4">
+          <div className="flex items-center justify-between space-x-2 py-4 text-xs">
             {selectedItems.length > 0 ? (
-              <div className="flex-1 text-sm text-muted-foreground">
+              <div className="flex-1 text-muted-foreground">
                 {selectedItems.length} of {costItems.length} row(s) selected.
               </div>
             ) : (
-              <div className="flex-1 text-sm text-muted-foreground">
+              <div className="flex-1 text-muted-foreground">
                 Showing {(currentPage - 1) * itemsPerPage + 1}-
                 {Math.min(currentPage * itemsPerPage, totalCount)} of {totalCount} items.
               </div>
@@ -273,7 +273,7 @@ export function CostItemsList({ costItems, costItemGroups, totalCount }: CostIte
 
             <div className="flex items-center space-x-2">
               <Select value={itemsPerPage.toString()} onValueChange={handleItemsPerPageChange}>
-                <SelectTrigger className="h-8 w-[130px]">
+                <SelectTrigger className="h-8 w-[130px] text-xs">
                   <SelectValue placeholder="Items per page" />
                 </SelectTrigger>
                 <SelectContent>
@@ -286,7 +286,7 @@ export function CostItemsList({ costItems, costItemGroups, totalCount }: CostIte
               {selectedItems.length > 0 && (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button variant="destructive" size="sm">
+                    <Button variant="destructive" size="sm" className="text-xs">
                       <Trash2 className="h-4 w-4 mr-2" /> Delete Selected ({selectedItems.length})
                     </Button>
                   </AlertDialogTrigger>
@@ -309,6 +309,7 @@ export function CostItemsList({ costItems, costItemGroups, totalCount }: CostIte
                 size="sm"
                 onClick={() => handlePageChange(currentPage - 1)}
                 disabled={currentPage === 1}
+                className="text-xs"
               >
                 Previous
               </Button>
@@ -317,6 +318,7 @@ export function CostItemsList({ costItems, costItemGroups, totalCount }: CostIte
                 size="sm"
                 onClick={() => handlePageChange(currentPage + 1)}
                 disabled={currentPage === totalPages}
+                className="text-xs"
               >
                 Next
               </Button>
