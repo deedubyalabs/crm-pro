@@ -6,11 +6,12 @@ from "../cost-item-form"
 import { createCostItemAction } from "../actions"
 import { toast } from "@/components/ui/use-toast"
 import { useRouter } from "next/navigation"
+import type { CostItem } from "@/types/cost-items"
 
 interface CreateCostItemDialogProps {
   isOpen: boolean
   onClose: () => void
-  onCostItemCreated?: (costItemId: string) => void // Callback to notify parent
+  onCostItemCreated?: (costItem: CostItem) => void // Callback to notify parent
 }
 
 export function CreateCostItemDialog({ isOpen, onClose, onCostItemCreated }: CreateCostItemDialogProps) {
@@ -24,8 +25,8 @@ export function CreateCostItemDialog({ isOpen, onClose, onCostItemCreated }: Cre
         description: "The new cost item has been successfully added.",
       })
       onClose() // Close the dialog on success
-      if (onCostItemCreated && createdItem.id) { // Use createdItem.id directly
-        onCostItemCreated(createdItem.id) // Notify parent with new item's ID
+      if (onCostItemCreated && createdItem) {
+        onCostItemCreated(createdItem) // Notify parent with the full cost item
       }
       // Optionally, revalidate path or refresh data in the parent component
       // router.refresh() // This might be too broad, consider more targeted revalidation
