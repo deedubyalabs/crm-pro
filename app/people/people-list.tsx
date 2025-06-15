@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { personService, PersonType } from "@/lib/people"
+import { personService } from "@/lib/people"
+import { PersonType, Person } from "@/types/people"
 import { formatPhoneNumber } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -21,7 +22,6 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { getInitials } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
-import { Person } from "@/lib/people" // Assuming Person type is exported from here
 
 interface PeopleListProps {
   people: Person[] // Add the people prop
@@ -37,18 +37,16 @@ function getTypeBadge(type: string) {
   const normalizedType = type.charAt(0).toUpperCase() + type.slice(1).toLowerCase()
 
   switch (normalizedType) {
-    case PersonType.CUSTOMER:
+    case "Customer":
       return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Customer</Badge>
-    case PersonType.LEAD:
-      return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Lead</Badge>
-    case PersonType.BUSINESS:
+    case "Lead":
+      return <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-100">Lead</Badge>
+    case "Business":
       return <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-100">Business</Badge>
-    case PersonType.SUBCONTRACTOR:
-      return <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">Subcontractor</Badge>
-    case PersonType.EMPLOYEE:
-      return <Badge className="bg-pink-100 text-pink-800 hover:bg-pink-100">Employee</Badge>
-    case PersonType.OTHER:
-      return <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-100">Other</Badge>
+    case "Subcontractor":
+      return <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-100">Subcontractor</Badge>
+    case "Employee":
+      return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Employee</Badge>
     default:
       return <Badge variant="outline">{personService.getDisplayType(type)}</Badge>
   }
@@ -133,7 +131,7 @@ export default function PeopleList({
           <TableHead className="w-[80px]"></TableHead>
         </TableRow>
       </TableHeader>
-      <TableBody>
+      <TableBody className="text-12px font-medium">
         {people.map((person) => (
           <TableRow key={person.id}>
             <TableCell>
@@ -167,7 +165,7 @@ export default function PeopleList({
                   </a>
                 </div>
               ) : (
-                <span className="text-muted-foreground">No email</span>
+                <span className="text-muted-foreground">-</span>
               )}
             </TableCell>
             <TableCell>
@@ -179,7 +177,7 @@ export default function PeopleList({
                   </a>
                 </div>
               ) : (
-                <span className="text-muted-foreground">No phone</span>
+                <span className="text-muted-foreground">-</span>
               )}
             </TableCell>
             <TableCell>
@@ -191,7 +189,7 @@ export default function PeopleList({
                   </span>
                 </div>
               ) : (
-                <span className="text-muted-foreground">No location</span>
+                <span className="text-muted-foreground">-</span>
               )}
             </TableCell>
             <TableCell>
@@ -212,7 +210,7 @@ export default function PeopleList({
                   </div>
                 </div>
               ) : (
-                <span className="text-muted-foreground">No tags</span>
+                <span className="text-muted-foreground">-</span>
               )}
             </TableCell>
             <TableCell>
@@ -225,23 +223,18 @@ export default function PeopleList({
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                  <DropdownMenuItem asChild>
+                  <DropdownMenuItem className="text-12px" asChild>
                     <Link href={`/people/${person.id}`}>View Details</Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link href={`/people/${person.id}/edit`}>Edit Contact</Link>
+                    <Link className="text-12px" href={`/people/${person.id}/edit`}>Edit Contact</Link>
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator />
                   {person.person_type.toLowerCase() === "lead" && (
                     <DropdownMenuItem asChild>
-                      <Link href={`/people/${person.id}/convert`}>Convert to Customer</Link>
+                      <Link className="text-12px" href={`/people/${person.id}/convert`}>Convert to Customer</Link>
                     </DropdownMenuItem>
                   )}
-                  <DropdownMenuItem asChild>
-                    <Link href={`/people/${person.id}/projects`}>View Projects</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem className="text-red-600" onClick={() => handleDeletePerson(person.id)}>Delete Contact</DropdownMenuItem>
+                  <DropdownMenuItem className="text-12px" onClick={() => handleDeletePerson(person.id)}>Delete Contact</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </TableCell>

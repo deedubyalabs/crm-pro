@@ -76,34 +76,34 @@ export function EstimateSummary({
         <div className="space-y-2">
           <div className="flex justify-between">
             <span className="font-medium">Subtotal:</span>
-            <span>{formatCurrency(subtotalAmount)}</span>
+            <span className="font-medium">{formatCurrency(subtotalAmount)}</span>
           </div>
           <div className="flex justify-between">
             <span className="font-medium">Discounted Subtotal:</span>
-            <span>{formatCurrency(discountedSubtotal)}</span>
+            <span className="font-medium">{formatCurrency(discountedSubtotal)}</span>
           </div>
           <div className="flex justify-between">
             <span className="font-medium">Tax Amount:</span>
-            <span>{formatCurrency(taxAmount)}</span>
+            <span className="font-medium">{formatCurrency(taxAmount)}</span>
           </div>
         </div>
 
         <div className="space-y-2">
           <div className="flex justify-between">
             <span className="font-medium">Estimated Cost:</span>
-            <span>{formatCurrency(estimatedCost)}</span>
+            <span className="font-medium">{formatCurrency(estimatedCost)}</span>
           </div>
           <div className="flex justify-between">
             <span className="font-medium">Total Markup Amount:</span>
-            <span>{formatCurrency(totalMarkupAmount)}</span>
+            <span className="font-medium">{formatCurrency(totalMarkupAmount)}</span>
           </div>
           <div className="flex justify-between">
             <span className="font-medium">Profit Margin:</span>
-            <span>{profitMargin.toFixed(2)}%</span>
+            <span className="font-medium">{profitMargin.toFixed(2)}%</span>
           </div>
           <div className="flex justify-between">
             <span className="font-medium">Total Hours Needed:</span>
-            <span>{totalHoursNeeded.toFixed(2)} hours</span>
+            <span className="font-medium">{totalHoursNeeded.toFixed(2)} hours</span>
           </div>
         </div>
 

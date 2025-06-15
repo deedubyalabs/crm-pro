@@ -14,7 +14,7 @@ export function CostItemActions() {
       <Button asChild>
         <Link href="/cost-items/new">
           <Globe className="h-4 w-4" />
-          Search Web
+          Price Finder
         </Link>
       </Button>
       <Button onClick={() => setIsCreateDialogOpen(true)}>

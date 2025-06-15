@@ -13,7 +13,7 @@ import { CreateProjectButton } from "./create-bid-button"
 import { EstimateStatusActions } from "./estimate-status-actions"
 
 export const metadata: Metadata = {
-  title: "Estimate Details | PROActive ONE",
+  title: "Estimate Details | PROActive OS",
   description: "View estimate details",
 }
 

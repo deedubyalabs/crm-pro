@@ -1,26 +1,26 @@
-# Architecture & Tech Stack: PROActive ONE - AI-Powered Operations Hub
+# Architecture & Tech Stack: PROActive OS - AI-Powered Operations Hub
 
 **Version:** 1.0
 **Date:** May 26, 2025
 
 ## 1. Overall Architecture: AI-Powered Operations Hub (Hub & Spoke Model)
 
-*   **Hub:** The core PROActive ONE application (Next.js frontend, Next.js backend/API routes/Server Actions, Supabase database). This is the single source of truth for the contractor's business data and the primary user interface.
+*   **Hub:** The core PROActive OS application (Next.js frontend, Next.js backend/API routes/Server Actions, Supabase database). This is the single source of truth for the contractor's business data and the primary user interface.
 *   **Agent Data Fabric (ADF):** A robust data layer built on Supabase, leveraging Zep for advanced active memory and knowledge graph capabilities to provide agents with context, memory, and access to relevant information (Vector Database, Knowledge Graph).
 *   **Spokes (Internal):**
     *   **Next.js API Routes/TypeScript Modules:** Specialized LangGraph.js agents (e.g., `EstimatorPro`, communication drafting agents, project description agents, lead qualifier agent, project planner agent, daily log agent, expense agent, invoicing agent, job costing agent, communication agent, document agent, rewards agent, reporting agent) are hosted directly within Next.js API routes or imported TypeScript modules. These handle the complexities of running LangGraph.js workflows, managing agent sessions, and orchestrating agent tool calls.
-    *   **Module-Specific Services:** Backend logic organized by PROActive ONE modules (e.g., `EstimationService`, `ProjectService`, `ClientService`) handling business rules and Supabase interactions. These services are called by LangGraph.js agents via internal TypeScript tools.
-*   **Spokes (External):** Essential third-party APIs (Square, Cal.com, Google Calendar, BigBox API, Accounting API, Sendbird) are accessed via dedicated API clients within the PROActive ONE backend. These API clients are called by LangGraph.js agents via custom TypeScript tools.
+    *   **Module-Specific Services:** Backend logic organized by PROActive OS modules (e.g., `EstimationService`, `ProjectService`, `ClientService`) handling business rules and Supabase interactions. These services are called by LangGraph.js agents via internal TypeScript tools.
+*   **Spokes (External):** Essential third-party APIs (Square, Cal.com, Google Calendar, BigBox API, Accounting API, Sendbird) are accessed via dedicated API clients within the PROActive OS backend. These API clients are called by LangGraph.js agents via custom TypeScript tools.
 
 ## 2. Key Technical Decisions & Patterns
 
 *   **AI-Powered Conversational Interfaces:** Prioritize conversational interfaces powered by LangGraph.js agents for data-intensive workflows (estimation, scheduling, communication), embedded within relevant modules for intuitive user interaction. This includes an embedded chat interface within the Estimate view for direct interaction with the AI Estimator agent, an embedded chat interface within the Project details view for project updates, task management, and information retrieval, an embedded chat interface within the Jobs module for direct interaction with AI agents for task management and updates, embedded chat interfaces within Work Orders and Service Tickets modules for AI assistance, an embedded chat interface within the Change Orders module for AI assistance, an embedded chat interface within the Daily Logs module for AI assistance, an embedded chat interface within the Expenses module for AI assistance, and an embedded chat interface within the Purchase Orders module for AI assistance.
-*   **Agent Data Fabric (ADF) Implementation:** Build a robust data layer on Supabase, with LangGraph.js's checkpointer mechanism configured to use Supabase Postgres for persisting conversation state, and TypeScript tools interacting with Supabase (via `supabase-js`) for knowledge retrieval and access to core PROActive ONE data.
-*   **Component-Based Frontend:** Leverage React components (from PROActive ONE, adapted from EstiMATE Pro & FloorPlan Pro, and new ones) with shadcn/ui for a modular and maintainable UI.
+*   **Agent Data Fabric (ADF) Implementation:** Build a robust data layer on Supabase, with LangGraph.js's checkpointer mechanism configured to use Supabase Postgres for persisting conversation state, and TypeScript tools interacting with Supabase (via `supabase-js`) for knowledge retrieval and access to core PROActive OS data.
+*   **Component-Based Frontend:** Leverage React components (from PROActive OS, adapted from EstiMATE Pro & FloorPlan Pro, and new ones) with shadcn/ui for a modular and maintainable UI.
 *   **Server Components & Client Components (Next.js App Router):** Implement a pattern where Server Components handle data fetching and initial rendering, passing data to Client Components that manage state and interactivity. Utilize Server Actions for mutations.
-*   **Direct Supabase Interaction:** Backend services and LangGraph.js agents (via internal TypeScript tools) will interact directly with the PROActive ONE Supabase instance for all CRUD operations.
+*   **Direct Supabase Interaction:** Backend services and LangGraph.js agents (via internal TypeScript tools) will interact directly with the PROActive OS Supabase instance for all CRUD operations.
 *   **API Abstraction Layer for External Services:** Create dedicated service files in `HomeProOS/lib/` to encapsulate logic for interacting with third-party APIs (Square, Cal.com, BigBox, Google Calendar, Accounting API, Sendbird). These services will be called by LangGraph.js agents via custom TypeScript tools.
-*   **Modular Codebase:** Organize PROActive ONE code by feature/module for maintainability.
+*   **Modular Codebase:** Organize PROActive OS code by feature/module for maintainability.
 *   **State Management:** Utilize React Context for global UI state, React hooks for local client state, and SWR or React Query for server-side data caching and synchronization.
 *   **Asynchronous Operations:** Extensive use of `async/await` throughout the application and agent workflows.
 *   **Data Linking:** Maintain and leverage foreign key relationships in Supabase to ensure deep relational linking between entities, including Contacts, Opportunities, the new "Jobs" feature (and its checklist items), estimate-related entities (sections, optional items, tax marking, assignments, markup details, item groups within the Cost Items database), bidding-related entities (Estimates, Bid Packages, Contractors, Documents, Estimate Items), post-estimate approval entities (Blueprint of Values, Invoice, Project, Schedule), project-related entities (Estimates, Invoices, Expenses, Time Entries, Documents, Jobs, Contacts, Schedule, etc.), Work Orders/Service Tickets (Clients, Projects, Membership Plans), Change Orders (Projects, Customers, Estimate/Blueprint of Values items), Daily Logs (Projects, People, Time Entries, Materials, Equipment, Files, and Incidents), Expenses (Projects), and Purchase Orders (Projects, Suppliers, Cost Items, Blueprint of Values), accessible via backend API routes/Server Actions and AI agents.
@@ -30,56 +30,56 @@
 
 ## 3. Integration Patterns
 
-*   **LangGraph.js Agent Orchestration:** LangGraph.js agents will orchestrate interactions with both internal PROActive ONE services and external third-party APIs via custom TypeScript tools.
-*   **Backend-to-Backend API Calls:** PROActive ONE backend API routes will directly host and invoke LangGraph.js agents for AI tasks and handle responses.
+*   **LangGraph.js Agent Orchestration:** LangGraph.js agents will orchestrate interactions with both internal PROActive OS services and external third-party APIs via custom TypeScript tools.
+*   **Backend-to-Backend API Calls:** PROActive OS backend API routes will directly host and invoke LangGraph.js agents for AI tasks and handle responses.
 *   **Custom Tools for External APIs:** Develop custom TypeScript tools within the Next.js backend to interact with essential third-party APIs (Square, Cal.com, Google Calendar, BigBox API, Accounting API, Sendbird).
 *   **Model Context Protocol (MCP):** Leverage MCP for standardized integration with external services where applicable (e.g., custom MCP servers for specific services).
 *   **Real-time/Webhook-Driven:** For services like Square, utilize webhooks for real-time updates (e.g., payment status).
 *   **API Polling (Fallback/Scheduled):** For less critical updates from external services, use scheduled API polling.
 *   **Client-Side SDKs (where appropriate):** For UI-heavy integrations or features, use client-side SDKs.
-*   **Agent Activity Logging:** LangGraph.js agents within the Next.js backend will call a dedicated PROActive ONE backend endpoint (`/api/system/log-agent-activity`) to log agent actions and decisions for observability and evaluation.
+*   **Agent Activity Logging:** LangGraph.js agents within the Next.js backend will call a dedicated PROActive OS backend endpoint (`/api/system/log-agent-activity`) to log agent actions and decisions for observability and evaluation.
 *   **"Add as you go" Categories:** Implement functionality for dynamic categories (Source, Stage, Type, and line item/cost item categories) via separate Supabase tables and associated UI/API, ensuring these categories are accessible to AI agents via the ADF.
 *   **External API Integration (BigBoxAPI):** Integrate with the BigBoxAPI for bulk searching and adding material items to the Cost Items database, likely via an agent tool.
 *   **AI-Assisted Workflows:** Implement AI suggestions for markup percentages based on project context, AI assistance for review and finalization of estimate packages, AI assistance in drafting bid emails and AI analysis of bids, AI assistance in initiating processes after estimate approval, AI-powered insights/action item suggestions for the Projects dashboard, AI assistance for data entry/task creation within project sections, proactive AI assistance for project management (e.g., identifying potential delays, suggesting resource reallocations), AI assistance in generating checklists, task prioritization, and suggestions for Jobs, proactive AI assistance for task management (e.g., reminding users of upcoming deadlines, suggesting task breakdowns), AI assistance in managing work orders and service tickets, proactive AI assistance for scheduling, dispatching, and status updates for work orders and service tickets, AI assistance in identifying relevant items for change orders, drafting submission emails, and AI verification of updates, proactive AI assistance for tracking change order approvals and identifying potential delays, AI assistance in data entry or summarizing information for Daily Logs, proactive AI assistance for daily logs (e.g., identifying potential issues based on reported conditions, suggesting follow-up actions), AI analysis of spending patterns, identifying potential cost savings, suggesting expense categorization, AI assistance in identifying needed materials for POs, and proactive AI assistance for purchase order management (e.g., reminding users of upcoming deliveries, suggesting reordering).
-*   **Event-Driven Triggers:** Implement event listeners within PROActive ONE that trigger LangGraph agent workflows based on changes in the Supabase database.
+*   **Event-Driven Triggers:** Implement event listeners within PROActive OS that trigger LangGraph agent workflows based on changes in the Supabase database.
 
 ## 4. Data Flow Examples
 
 ### 4.1. New AI-Powered Estimate (via Next.js API Route/LangGraph.js Agent)
 
-1.  **User (Contractor)** interacts with **Conversational UI** in PROActive ONE frontend (e.g., `UnifiedEstimateClientPage.tsx`). Context like `personId` or `opportunityId` may be passed via URL.
-2.  Frontend sends user utterance, session ID (if exists), and any pre-filled context (from Person/Opportunity) to **PROActive ONE Backend API Route** (`/api/ai/estimate-chat`).
-3.  PROActive ONE Backend API Route fetches additional context from Supabase (e.g., client name, zip code based on IDs), constructs request payload (including `conversationHistory`, `projectContext`), and directly invokes the **`EstimatorPro` LangGraph.js Agent** within the API route.
+1.  **User (Contractor)** interacts with **Conversational UI** in PROActive OS frontend (e.g., `UnifiedEstimateClientPage.tsx`). Context like `personId` or `opportunityId` may be passed via URL.
+2.  Frontend sends user utterance, session ID (if exists), and any pre-filled context (from Person/Opportunity) to **PROActive OS Backend API Route** (`/api/ai/estimate-chat`).
+3.  PROActive OS Backend API Route fetches additional context from Supabase (e.g., client name, zip code based on IDs), constructs request payload (including `conversationHistory`, `projectContext`), and directly invokes the **`EstimatorPro` LangGraph.js Agent** within the API route.
 4.  **`EstimatorPro` LangGraph.js Agent** executes its workflow, using TypeScript tools as needed.
 5.  `EstimatorPro` Agent returns response (conversational text + tool outputs, including structured estimate via a tool) to the invoking API route.
-6.  PROActive ONE Backend API Route formats the final response payload (`conversationalReply`, `structuredEstimate`, `materialsToAddToLibrary`, `sessionId`).
-7.  PROActive ONE Backend API Route returns data to Frontend.
+6.  PROActive OS Backend API Route formats the final response payload (`conversationalReply`, `structuredEstimate`, `materialsToAddToLibrary`, `sessionId`).
+7.  PROActive OS Backend API Route returns data to Frontend.
 8.  Frontend updates estimate state, displays conversational reply, and populates line items.
-9.  User confirms/saves; Frontend calls PROActive ONE Server Action to save data to **Supabase**.
+9.  User confirms/saves; Frontend calls PROActive OS Server Action to save data to **Supabase**.
 
 ### 4.2. AI Communication Drafting (Opportunity Follow-Up)
 
-1.  **User** clicks "Draft Follow-Up Email" on Opportunity Detail Page in PROActive ONE.
-2.  Frontend calls **PROActive ONE Backend API Route** (`/api/ai/draft-communication`) with `opportunityId` and `communicationType`.
-3.  PROActive ONE Backend API Route fetches opportunity and linked estimate details from **Supabase**.
+1.  **User** clicks "Draft Follow-Up Email" on Opportunity Detail Page in PROActive OS.
+2.  Frontend calls **PROActive OS Backend API Route** (`/api/ai/draft-communication`) with `opportunityId` and `communicationType`.
+3.  PROActive OS Backend API Route fetches opportunity and linked estimate details from **Supabase**.
 4.  Constructs payload (client name, opportunity name, status, estimate details) and directly invokes a communication drafting **LangGraph.js agent** within the API route.
 5.  Agent generates email text.
-6.  PROActive ONE Backend returns `{ draftedEmailText: "..." }` to Frontend.
+6.  PROActive OS Backend returns `{ draftedEmailText: "..." }` to Frontend.
 7.  Frontend displays drafted text in a modal.
 
 ### 4.3. AI Project Description Generation (Estimate to Project)
 
-1.  **User** clicks "Create Project from this Estimate" on an "Accepted" Estimate page in PROActive ONE.
+1.  **User** clicks "Create Project from this Estimate" on an "Accepted" Estimate page in PROActive OS.
 2.  User is navigated to New Project page (`/app/projects/new/page.tsx`) with `estimateId` in query params.
-3.  **PROActive ONE Server Component** (`NewProjectPage`) fetches estimate details from **Supabase**.
+3.  **PROActive OS Server Component** (`NewProjectPage`) fetches estimate details from **Supabase**.
 4.  If estimate is valid, constructs payload (estimate title, line items) and directly invokes a project description generation **LangGraph.js agent** within the Server Component or an associated API route.
 5.  Agent generates project description.
-6.  The LangGraph.js agent returns `{ suggestedProjectDescription: "..." }` to PROActive ONE Server Component.
-7.  PROActive ONE Server Component passes fetched estimate data and `suggestedProjectDescription` as props to `ProjectForm`.
+6.  The LangGraph.js agent returns `{ suggestedProjectDescription: "..." }` to PROActive OS Server Component.
+7.  PROActive OS Server Component passes fetched estimate data and `suggestedProjectDescription` as props to `ProjectForm`.
 8.  `ProjectForm` pre-fills relevant fields.
-9.  User reviews and saves; Frontend calls PROActive ONE Server Action to save project to **Supabase`.
+9.  User reviews and saves; Frontend calls PROActive OS Server Action to save project to **Supabase`.
 
-## 5. Core Platform: PROActive ONE
+## 5. Core Platform: PROActive OS
 
 *   **Frontend:** Next.js (App Router), React, TypeScript, Tailwind CSS
 *   **Backend:** Next.js API Routes, Server Actions
@@ -95,16 +95,16 @@
 ### 6.1. Integrated AI Agent Architecture (Next.js & LangGraph.js)
 
 *   **Technology Stack:** Next.js API Routes, LangGraph.js, TypeScript, Zod, `@langchain/core`, `@langchain/openai` (or other LLM providers like `@langchain/google-genai`), `supabase-js`, `@vercel/ai`.
-*   **Purpose:** AI agent logic (e.g., Lia Lead Assistant, EstimatorPro for generating, refining, and editing estimate line items, lead qualification agent, communication drafting agent, bid analysis agent, project/schedule initiation agent, invoicing agent, project planning agent, project update agent, task management agent, information retrieval agent, checklist generation agent, task prioritization agent, work order management agent, service ticket management agent, scheduling agent, dispatching agent, change order management agent, change order item identification agent, change order submission drafting agent, change order update verification agent, daily log creation/review agent, daily log issue identification agent, expense management agent, spending pattern analysis agent, cost savings identification agent) is directly integrated into the PROActive ONE Next.js backend within API routes. These API routes define and execute agentic workflows using LangGraph.js. Zod is used for data validation and structuring inputs/outputs for LLMs and tools.
-*   **Agent Data Fabric (ADF) Interaction:** TypeScript tools within the Next.js backend interact with the ADF (Supabase) using `supabase-js` for agent memory, knowledge retrieval, and tool access to core PROActive ONE data. LangGraph.js's checkpointer mechanism will persist conversation state in Supabase Postgres (or other chosen persistence layer like Vercel KV).
-*   **Key Interaction Flow:** PROActive ONE Frontend -> PROActive ONE Next.js Backend API (`/app/api/ai/assistant-chat` containing LangGraph.js agent) -> `supabase-js`/External APIs -> Response back through the chain (via Vercel AI SDK).
+*   **Purpose:** AI agent logic (e.g., Lia Lead Assistant, EstimatorPro for generating, refining, and editing estimate line items, lead qualification agent, communication drafting agent, bid analysis agent, project/schedule initiation agent, invoicing agent, project planning agent, project update agent, task management agent, information retrieval agent, checklist generation agent, task prioritization agent, work order management agent, service ticket management agent, scheduling agent, dispatching agent, change order management agent, change order item identification agent, change order submission drafting agent, change order update verification agent, daily log creation/review agent, daily log issue identification agent, expense management agent, spending pattern analysis agent, cost savings identification agent) is directly integrated into the PROActive OS Next.js backend within API routes. These API routes define and execute agentic workflows using LangGraph.js. Zod is used for data validation and structuring inputs/outputs for LLMs and tools.
+*   **Agent Data Fabric (ADF) Interaction:** TypeScript tools within the Next.js backend interact with the ADF (Supabase) using `supabase-js` for agent memory, knowledge retrieval, and tool access to core PROActive OS data. LangGraph.js's checkpointer mechanism will persist conversation state in Supabase Postgres (or other chosen persistence layer like Vercel KV).
+*   **Key Interaction Flow:** PROActive OS Frontend -> PROActive OS Next.js Backend API (`/app/api/ai/assistant-chat` containing LangGraph.js agent) -> `supabase-js`/External APIs -> Response back through the chain (via Vercel AI SDK).
 
-### 6.2. EstiMATE Pro (Integrated Functionality within PROActive ONE)
+### 6.2. EstiMATE Pro (Integrated Functionality within PROActive OS)
 
-*   **Frontend (within PROActive ONE):** Utilizes components adapted from the original EstiMATE Pro prototype for the conversational UI and estimate display (`UnifiedEstimateClientPage.tsx`, `EstimateForm.tsx`).
-*   **Backend (within PROActive ONE):** The `/api/ai/estimate-chat` Next.js API route will now directly host and invoke the `EstimatorPro` LangGraph.js agent logic.
+*   **Frontend (within PROActive OS):** Utilizes components adapted from the original EstiMATE Pro prototype for the conversational UI and estimate display (`UnifiedEstimateClientPage.tsx`, `EstimateForm.tsx`).
+*   **Backend (within PROActive OS):** The `/api/ai/estimate-chat` Next.js API route will now directly host and invoke the `EstimatorPro` LangGraph.js agent logic.
 
-### 6.3. FloorPlan Pro (Takeoff Prototype - to be integrated into PROActive ONE)
+### 6.3. FloorPlan Pro (Takeoff Prototype - to be integrated into PROActive OS)
 
 *   **Frontend:** Vite, React, TypeScript, Tailwind CSS
 *   **Core Drawing Technology:** Konva.js
@@ -114,7 +114,7 @@
     *   `src/components/CommandPanel.tsx` & `CommandHistory.tsx` (Conversational interface for drawing commands - may also be adapted to use Gemini API for NLU).
 *   **Data Output (Target):** Structured JSON representing the layout and takeoff quantities.
 
-## 7. Key Third-Party API Integrations (for PROActive ONE)
+## 7. Key Third-Party API Integrations (for PROActive OS)
 
 1.  **AI - Large Language Models (LLMs):**
     *   **Service:** Google Gemini API
@@ -136,7 +136,7 @@
         *   **Alternative:** n8n (or similar) as an intermediary.
 6.  **Communication (In-App Chat, Voice, Video):**
     *   **Service:** Sendbird SDK/API
-    *   **Purpose:** Embedding real-time communication features within the PROActive ONE UI.
+    *   **Purpose:** Embedding real-time communication features within the PROActive OS UI.
 7.  **AI - Communication Drafting:**
     *   **Service:** Google Gemini API
     *   **Purpose:** Generating draft text for various communications (emails, messages, etc.).
@@ -145,7 +145,7 @@
 
 ## 8. Architectural Goal
 
-The primary goal is to evolve the existing **PROActive ONE (Next.js/Supabase)** into the central, intelligent hub with embedded AI capabilities. Functionality and UI concepts from **EstiMATE Pro** and **FloorPlan Pro** will be refactored and integrated *into* PROActive ONE. All data will reside in the PROActive ONE Supabase instance, forming the **Agent Data Fabric (ADF)**. Backend logic for AI and third-party integrations will be built directly within the PROActive ONE Next.js backend, leveraging LangGraph.js for complex AI tasks and utilizing the ADF for context and memory. The focus is on creating a proactive system with embedded chat interfaces and a decluttered UI, where modules and access points are only present where needed, supported by a robust agent data layer.
+The primary goal is to evolve the existing **PROActive OS (Next.js/Supabase)** into the central, intelligent hub with embedded AI capabilities. Functionality and UI concepts from **EstiMATE Pro** and **FloorPlan Pro** will be refactored and integrated *into* PROActive OS. All data will reside in the PROActive OS Supabase instance, forming the **Agent Data Fabric (ADF)**. Backend logic for AI and third-party integrations will be built directly within the PROActive OS Next.js backend, leveraging LangGraph.js for complex AI tasks and utilizing the ADF for context and memory. The focus is on creating a proactive system with embedded chat interfaces and a decluttered UI, where modules and access points are only present where needed, supported by a robust agent data layer.
 
 ## 9. Critical Implementation Paths
 

@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { getVoiceNotes } from "@/lib/voice-note-service"
 
 export const metadata: Metadata = {
-  title: "Voice Notes | PROActive ONE",
+  title: "Voice Notes | PROActive OS",
   description: "Record, transcribe, and manage voice notes",
 }
 

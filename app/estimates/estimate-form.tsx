@@ -111,6 +111,9 @@ export function EstimateForm({
   const activeTab = onTabChange ? initialActiveTab : internalActiveTab;
   const setActiveTab = onTabChange || setInternalActiveTab;
 
+  useEffect(() => {
+    console.log("EstimateForm: sections prop changed:", JSON.stringify(sections, null, 2));
+  }, [sections]);
 
   const [selectedOpportunityId, setSelectedOpportunityId] = useState(estimate?.opportunity_id || "");
   const [newSectionName, setNewSectionName] = useState("");
@@ -196,18 +199,21 @@ export function EstimateForm({
   }, [form.watch("opportunity_id"), opportunities, form]); // Added dependencies
 
   // Calculate subtotal, tax, and total amount when line items, discount, or tax change
-  const subtotalAmount = sections.reduce((sum, section) => {
-    if (section.is_optional) {
-      return sum; // If the section is optional, none of its items contribute to the sum
+  // Add a defensive check for sections before calling reduce
+  const subtotalAmount = (Array.isArray(sections) ? sections : []).reduce((sum, section) => {
+    // Ensure section and section.line_items are valid before accessing properties
+    if (!section || section.is_optional || !Array.isArray(section.line_items)) {
+      return sum;
     }
-    const lineItems = section.line_items || [];
-    return sum + lineItems.reduce((sectionSum, item) => {
+    return sum + section.line_items.reduce((sectionSum, item) => {
       if (item.is_optional) {
-        return sectionSum; // If the item is optional, it doesn't contribute to the section sum
+        return sectionSum;
       }
       return sectionSum + (item.total || 0);
     }, 0);
   }, 0);
+
+  console.log("EstimateForm: subtotalAmount calculated with sections:", JSON.stringify(sections, null, 2)); // Debugging line
 
   const discountType = form.watch("discount_type");
   const discountValue = form.watch("discount_value") || 0;
@@ -547,14 +553,7 @@ export function EstimateForm({
 
   // Handle form submission
   const handleSubmit = async (values: FormValues) => {
-    if (sections.every(section => section.line_items.length === 0)) {
-      toast({
-        title: "Error",
-        description: "Please add at least one line item to the estimate",
-        variant: "destructive",
-      });
-      return;
-    }
+    // Validation for line items moved to parent component (UnifiedEstimateClientPage)
 
     setIsSubmitting(true);
     try {
@@ -586,7 +585,15 @@ export function EstimateForm({
   // Function to confirm submission from the review dialog
   const handleConfirmSubmit = async () => {
     setIsReviewDialogOpen(false); // Close the review dialog
-    await form.handleSubmit(handleSubmit)(); // Trigger the actual form submission
+    // Explicitly call handleSubmit with error handling
+    await form.handleSubmit(handleSubmit, (errors) => {
+      console.error("Form validation errors (Review and Submit):", errors);
+      toast({
+        title: "Validation Error",
+        description: "Please check the form for errors.",
+        variant: "destructive",
+      });
+    })(); // Trigger the actual form submission
   };
 
   return (
@@ -1025,7 +1032,22 @@ export function EstimateForm({
             <Button type="button" variant="outline" onClick={() => router.push("/estimates")}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting}> {/* New Save button */}
+            <Button
+              type="submit" // Keep type="submit" for native form submission
+              disabled={isSubmitting}
+              onClick={() => {
+                // Fallback to ensure handleSubmit is called
+                form.handleSubmit(handleSubmit, (errors) => {
+                  console.error("Form validation errors (fallback onClick):", errors);
+                  toast({
+                    title: "Validation Error",
+                    description: "Please check the form for errors.",
+                    variant: "destructive",
+                  });
+                })();
+                console.log("Save button clicked (fallback)!");
+              }}
+            >
               Save
             </Button>
             <Button type="button" onClick={handleReviewAndSubmit} disabled={isSubmitting}>

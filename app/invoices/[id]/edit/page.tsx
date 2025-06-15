@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import EditInvoiceClientPage from "./EditInvoiceClientPage"
 
 export const metadata: Metadata = {
-  title: "Edit Invoice | PROActive ONE",
+  title: "Edit Invoice | PROActive OS",
   description: "Edit an existing invoice",
 }
 

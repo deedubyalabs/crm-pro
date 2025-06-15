@@ -228,8 +228,7 @@ export default function Sidebar({ className }: SidebarProps) {
         <div className="flex items-center justify-between h-16 px-4 border-b">
           {!isCollapsed && (
             <Link href="/" className="flex items-center space-x-2">
-              <Home className="h-5 w-5" />
-              <span className="font-bold text-xl">PROActive ONE</span>
+              <span className="font-bold text-xl">PROActive OS</span>
             </Link>
           )}
           {isCollapsed && (

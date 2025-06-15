@@ -1,18 +1,8 @@
 import { supabase, handleSupabaseError } from "./supabase"
 import type { Database } from "@/types/supabase"
+import { Person, NewPerson, UpdatePerson, PersonType } from "@/types/people"; // Import types from types/people
 
-export type Person = Database["public"]["Tables"]["people"]["Row"]
-export type NewPerson = Database["public"]["Tables"]["people"]["Insert"]
-export type UpdatePerson = Database["public"]["Tables"]["people"]["Update"]
-
-// Define the person type values based on the actual database schema
-export enum PersonType {
-  LEAD = "Lead",
-  CUSTOMER = "Customer",
-  BUSINESS = "Business",
-  SUBCONTRACTOR = "Subcontractor",
-  EMPLOYEE = "Employee",
-}
+export type { PersonType }; // Export PersonType
 
 export type PersonFilters = {
   type?: string
@@ -35,8 +25,7 @@ export const personService = {
       // Apply filters
       if (filters?.type && filters.type !== "all") {
         // Convert to proper case to match database values (e.g., "lead" -> "Lead")
-        const dbType = (filters.type.charAt(0).toUpperCase() + filters.type.slice(1).toLowerCase()) as PersonType;
-        query = query.eq("person_type", dbType)
+        query = query.eq("person_type", filters.type.charAt(0).toUpperCase() + filters.type.slice(1).toLowerCase() as PersonType)
       }
 
       if (filters?.leadSource) {
@@ -58,16 +47,16 @@ export const personService = {
       const { data, error } = await query
 
       if (error) throw error
-      return data || [] // Ensure data is always an array
+      // Explicitly cast the data to Person[] to match the expected return type
+      return data as Person[] || []
     } catch (error) {
-      console.error("Error fetching people from Supabase:", error); // More specific log
+      console.error("Error fetching people from Supabase:", error);
       throw new Error(handleSupabaseError(error));
     }
   },
 
   async getPersonById(id: string, supabaseClient = supabase): Promise<Person | null> {
     try {
-      // Validate UUID format before querying the database
       if (!isValidUUID(id)) {
         throw new Error(`Invalid UUID format: ${id}`)
       }
@@ -75,7 +64,8 @@ export const personService = {
       const { data, error } = await supabaseClient.from("people").select("*").eq("id", id).single()
 
       if (error) throw error
-      return data
+      // Explicitly cast the data to Person | null
+      return data as Person | null
     } catch (error) {
       throw new Error(handleSupabaseError(error))
     }
@@ -83,16 +73,17 @@ export const personService = {
 
   async createPerson(person: NewPerson): Promise<Person> {
     try {
-      // Convert person_type to proper case to match database enum values and cast to PersonType
       const personData = {
         ...person,
+        // Ensure person_type is a valid PersonType value
         person_type: (person.person_type.charAt(0).toUpperCase() + person.person_type.slice(1).toLowerCase()) as PersonType,
       }
 
       const { data, error } = await supabase.from("people").insert(personData).select().single()
 
       if (error) throw error
-      return data
+      // Explicitly cast the data to Person
+      return data as Person
     } catch (error) {
       console.error("Create person error:", error)
       throw new Error(handleSupabaseError(error))
@@ -101,27 +92,25 @@ export const personService = {
 
   async updatePerson(id: string, updates: UpdatePerson): Promise<Person> {
     try {
-      // Validate UUID format before updating
       if (!isValidUUID(id)) {
         throw new Error(`Invalid UUID format: ${id}`)
       }
 
-      // Create a sanitized version of the updates object
-      const updateData = {
+      const updateData: any = {
         ...updates,
         updated_at: new Date().toISOString(),
       }
 
-      // Convert person_type to proper case if it's being updated and cast to PersonType
       if (updates.person_type) {
-        updateData.person_type =
-          (updates.person_type.charAt(0).toUpperCase() + updates.person_type.slice(1).toLowerCase()) as PersonType
+        // Ensure person_type is a string value for the database
+        updateData.person_type = updates.person_type.charAt(0).toUpperCase() + updates.person_type.slice(1).toLowerCase()
       }
 
       const { data, error } = await supabase.from("people").update(updateData).eq("id", id).select().single()
 
       if (error) throw error
-      return data
+      // Explicitly cast the data to Person
+      return data as Person
     } catch (error) {
       throw new Error(handleSupabaseError(error))
     }

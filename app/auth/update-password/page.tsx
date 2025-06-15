@@ -2,8 +2,8 @@ import type { Metadata } from "next"
 import { UpdatePasswordForm } from "./update-password-form"
 
 export const metadata: Metadata = {
-  title: "Update Password | PROActive ONE",
-  description: "Update your PROActive ONE account password",
+  title: "Update Password | PROActive OS",
+  description: "Update your PROActive OS account password",
 }
 
 export default function UpdatePasswordPage() {

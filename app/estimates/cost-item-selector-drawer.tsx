@@ -68,24 +68,30 @@ export function CostItemSelectorDrawer({ isOpen, onClose, onSelectCostItems }: C
     setIsLoading(false)
   }, [searchTerm, filterType, itemsPerPage])
 
-  // Effect for initial load and filter changes
+  // Effect for initial dialog open: clear selected items and reset pagination
   useEffect(() => {
     if (isOpen) {
-      setCurrentPage(1)
-      setHasMore(true)
-      fetchCostItems(1)
-      setSelectedCostItems([])
+      setSelectedCostItems([]); // Clear selected items only when dialog opens
+      setCurrentPage(1); // Reset page for new session
+      setHasMore(true); // Assume more items initially
     }
-  }, [isOpen, searchTerm, filterType]) // Removed fetchCostItems from here to avoid re-triggering
+  }, [isOpen]);
+
+  // Effect for fetching cost items based on search/filter changes or initial load
+  useEffect(() => {
+    if (isOpen) { // Only fetch if dialog is open
+      fetchCostItems(1); // Always fetch first page on search/filter change
+    }
+  }, [isOpen, searchTerm, filterType, fetchCostItems]);
 
   // Effect for infinite scrolling
   useEffect(() => {
-    if (inView && hasMore && !isLoading) {
+    if (inView && hasMore && !isLoading && isOpen) { // Added isOpen check
       const nextPage = currentPage + 1
       setCurrentPage(nextPage)
       fetchCostItems(nextPage)
     }
-  }, [inView, hasMore, isLoading, currentPage])
+  }, [inView, hasMore, isLoading, currentPage, isOpen, fetchCostItems]) // Added isOpen and fetchCostItems to dependencies
 
   const handleCostItemCreated = (newCostItem: CostItem) => {
     setCostItems(prev => [newCostItem, ...prev]);

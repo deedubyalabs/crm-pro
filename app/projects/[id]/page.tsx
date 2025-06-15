@@ -22,17 +22,17 @@ export async function generateMetadata({ params }: ProjectPageProps): Promise<Me
     const project = await projectService.getProjectById(projectId)
     if (!project) {
       return {
-        title: "Project Not Found | PROActive ONE",
+        title: "Project Not Found | PROActive OS",
         description: "The requested project could not be found",
       }
     }
     return {
-      title: `${project.project_name} | PROActive ONE`,
+      title: `${project.project_name} | PROActive OS`,
       description: `View details for project ${project.project_name}`,
     }
   } catch (error) {
     return {
-      title: "Project Not Found | PROActive ONE",
+      title: "Project Not Found | PROActive OS",
       description: "The requested project could not be found",
     }
   }

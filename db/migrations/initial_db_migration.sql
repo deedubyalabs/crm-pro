@@ -1,5 +1,5 @@
 -- =============================================
--- PROActive ONE Complete Database Schema
+-- PROActive OS Complete Database Schema
 -- =============================================
 
 -- Enable UUID extension

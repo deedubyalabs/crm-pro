@@ -40,3 +40,25 @@ ALTER TABLE public.estimate_line_items
 ADD CONSTRAINT fk_assigned_to_user
 FOREIGN KEY (assigned_to_user_id) REFERENCES public.users(id)
 ON DELETE SET NULL;
+
+-- Create user_role enum
+CREATE TYPE public.user_role AS ENUM ('Admin', 'Employee', 'Subcontractor');
+
+-- Create users table
+CREATE TABLE public.users (
+  id uuid NOT NULL DEFAULT extensions.uuid_generate_v4(),
+  email character varying(255) NOT NULL,
+  hashed_password character varying(255) NOT NULL,
+  first_name character varying(100) NULL,
+  last_name character varying(100) NULL,
+  is_active boolean NOT NULL DEFAULT TRUE,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  role public.user_role NULL DEFAULT 'Admin'::user_role,
+  CONSTRAINT users_pkey PRIMARY KEY (id),
+  CONSTRAINT users_email_key UNIQUE (email)
+);
+
+CREATE INDEX IF NOT EXISTS idx_users_email ON public.users USING btree (email);
+
+CREATE TRIGGER set_timestamp BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();

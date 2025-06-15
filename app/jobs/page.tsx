@@ -6,7 +6,7 @@ import { jobService } from "@/lib/jobs" // Import jobService
 import { Database, Constants } from "@/types/supabase" // Import Database and Constants
 
 export const metadata: Metadata = {
-  title: "Jobs | PROActive ONE",
+  title: "Jobs | PROActive OS",
   description: "Manage and track all jobs across your projects",
 }
 

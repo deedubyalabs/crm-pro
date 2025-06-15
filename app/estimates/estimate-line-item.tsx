@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Trash, Sparkles, Edit, Check, X } from "lucide-react"
 import { formatCurrency } from "@/lib/utils"
 import type { EstimateLineItem } from "@/types/estimates"
-import type { User } from "@/types/auth"
+import type { Person } from "@/types/people" // Changed from User to Person
 import { cn } from "@/lib/utils"
 import { supabase } from "@/lib/supabase"
 import {
@@ -58,7 +58,7 @@ export function EstimateLineItemRow({
 }: EstimateLineItemProps) {
   const [isEditing, setIsEditing] = useState(isNew)
   const [editedLineItem, setEditedLineItem] = useState(lineItem)
-  const [users, setUsers] = useState<User[]>([])
+  const [people, setPeople] = useState<Person[]>([]) // Changed users to people, User[] to Person[]
   const [liveTotal, setLiveTotal] = useState(lineItem.total || 0)
 
   useEffect(() => {
@@ -66,15 +66,18 @@ export function EstimateLineItemRow({
   }, [lineItem])
 
   useEffect(() => {
-    const fetchUsers = async () => {
-      const { data, error } = await supabase.from("users").select("id, first_name, last_name")
+    const fetchPeople = async () => { // Changed fetchUsers to fetchPeople
+      const { data, error } = await supabase
+        .from("people") // Changed from "users" to "people"
+        .select("id, first_name, last_name, person_type") // Added person_type
+        .in("person_type", ["Employee", "Subcontractor"]) // Filter by Employee or Subcontractor
       if (error) {
-        console.error("Error fetching users:", error)
+        console.error("Error fetching people:", error) // Changed users to people
       } else {
-        setUsers(data as User[])
+        setPeople(data as Person[]) // Changed setUsers to setPeople, User[] to Person[]
       }
     }
-    fetchUsers()
+    fetchPeople() // Changed fetchUsers to fetchPeople
   }, [])
 
   useEffect(() => {
@@ -123,7 +126,7 @@ export function EstimateLineItemRow({
     }
   }
 
-  const assignedUser = users.find(u => u.id === lineItem.assigned_to_user_id)
+  const assignedPerson = people.find(p => p.id === lineItem.assigned_to_user_id) // Changed assignedUser to assignedPerson, users to people, u to p
 
   if (isEditing) {
     return (
@@ -207,9 +210,9 @@ export function EstimateLineItemRow({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="none">Unassigned</SelectItem>
-              {users.map((user) => (
-                <SelectItem key={user.id} value={user.id}>
-                  {user.first_name} {user.last_name}
+              {people.map((person) => ( // Changed users to people, user to person
+                <SelectItem key={person.id} value={person.id}>
+                  {person.first_name} {person.last_name}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -269,7 +272,7 @@ export function EstimateLineItemRow({
       </td>
       <td className="p-1 text-right font-medium" style={{ fontSize: '10px' }}>{formatCurrency(lineItem.total || 0)}</td>
       <td className="p-1 text-[10px] text-center truncate">
-        {assignedUser ? `${assignedUser.first_name} ${assignedUser.last_name}` : 'Unassigned'}
+        {assignedPerson ? `${assignedPerson.first_name} ${assignedPerson.last_name}` : 'Unassigned'}
       </td>
       <td className="p-1 text-center">
         <Checkbox checked={lineItem.is_optional} disabled />

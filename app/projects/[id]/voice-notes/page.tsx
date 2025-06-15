@@ -18,12 +18,12 @@ export async function generateMetadata({ params }: ProjectVoiceNotesPageProps): 
   try {
     const project = await getProjectById(params.id)
     return {
-      title: `Voice Notes - ${project.name} | PROActive ONE`,
+      title: `Voice Notes - ${project.name} | PROActive OS`,
       description: `Record and manage voice notes for ${project.name}`,
     }
   } catch (error) {
     return {
-      title: "Voice Notes | PROActive ONE",
+      title: "Voice Notes | PROActive OS",
       description: "Record and manage voice notes",
     }
   }

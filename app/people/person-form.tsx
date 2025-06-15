@@ -12,13 +12,13 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area" // Import ScrollArea and ScrollBar
 import { toast } from "@/components/ui/use-toast"
-import { personService, PersonType } from "@/lib/people" // Import PersonType
-import type { NewPerson, Person, UpdatePerson } from "@/lib/people"
+import { personService } from "@/lib/people"
+import { PersonType, NewPerson, Person, UpdatePerson } from "@/types/people" // Import types from types/people
 import { TagInput } from "@/components/tag-input"
 
 const personSchema = z
   .object({
-    person_type: z.enum(["lead", "customer", "business", "subcontractor", "employee"]),
+    person_type: z.enum(["Customer", "Lead", "Business", "Subcontractor", "Employee"]), // Use capitalized values from PersonType
     first_name: z.string().optional(),
     last_name: z.string().optional(),
     business_name: z.string().optional(),
@@ -38,15 +38,15 @@ const personSchema = z
     (data) => {
       // For businesses and subcontractors, business_name is required
       if (
-        (data.person_type === "business" || data.person_type === "subcontractor") &&
+        (data.person_type === "Business" || data.person_type === "Subcontractor") &&
         !data.business_name
       ) {
         return false
       }
       // For individuals, at least first_name or last_name is required
       if (
-        data.person_type !== "business" &&
-        data.person_type !== "subcontractor" &&
+        data.person_type !== "Business" &&
+        data.person_type !== "Subcontractor" &&
         !data.first_name &&
         !data.last_name
       ) {
@@ -84,7 +84,7 @@ export default function PersonForm({ initialData, isEdit = false }: PersonFormPr
     defaultValues: initialData
       ? {
           // Convert to lowercase for UI display
-          person_type: initialData.person_type.toLowerCase() as PersonFormValues["person_type"],
+          person_type: initialData.person_type as PersonFormValues["person_type"],
           first_name: initialData.first_name || "",
           last_name: initialData.last_name || "",
           business_name: initialData.business_name || "",
@@ -101,7 +101,7 @@ export default function PersonForm({ initialData, isEdit = false }: PersonFormPr
           tags: initialData.tags || [],
         }
       : {
-          person_type: "lead", // Default to "lead" in lowercase
+          person_type: "Lead", // Default to "Lead" (capitalized)
           first_name: "",
           last_name: "",
           business_name: "",
@@ -157,21 +157,17 @@ export default function PersonForm({ initialData, isEdit = false }: PersonFormPr
 
 
   const personType = form.watch("person_type")
-  const isBusinessOrSubcontractor = personType === "business" || personType === "subcontractor"
+  const isBusinessOrSubcontractor = personType === "Business" || personType === "Subcontractor"
 
   async function onSubmit(values: PersonFormValues) {
     setIsSubmitting(true)
     try {
       console.log("Submitting form with values:", values)
 
-      // Convert person_type back to capitalized enum value for the service
-      const personTypeForService = Object.values(PersonType).find(
-        (type) => type.toLowerCase() === values.person_type,
-      ) as PersonType;
-
+      // Ensure person_type is capitalized for the service
       const submissionValues = {
         ...values,
-        person_type: personTypeForService,
+        person_type: values.person_type.charAt(0).toUpperCase() + values.person_type.slice(1),
       };
 
       if (isEdit && initialData) {
@@ -259,10 +255,19 @@ export default function PersonForm({ initialData, isEdit = false }: PersonFormPr
     }
   }
 
+  console.log("Form errors:", form.formState.errors); // Debugging line
+
   return (
     <Form {...form}>
       <ScrollArea className="h-[calc(100vh-8rem)] px-4"> {/* Adjust height as needed */}
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-4">
+        <form onSubmit={form.handleSubmit(onSubmit, (errors) => {
+          console.error("Form validation errors:", errors);
+          toast({
+            title: "Validation Error",
+            description: "Please check the form for errors.",
+            variant: "destructive",
+          });
+        })} className="space-y-6 py-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <FormField
               control={form.control}
@@ -342,7 +347,7 @@ export default function PersonForm({ initialData, isEdit = false }: PersonFormPr
             />
 
             {/* Add Lead Stage field */}
-            {personType === "lead" && (
+            {personType === "Lead" && (
               <FormField
                 control={form.control}
                 name="lead_stage"
@@ -589,7 +594,24 @@ export default function PersonForm({ initialData, isEdit = false }: PersonFormPr
         <Button type="button" variant="outline" onClick={() => router.back()} disabled={isSubmitting}>
           Cancel
         </Button>
-        <Button type="submit" disabled={isSubmitting}>
+        <Button
+          type="submit" // Keep type="submit" for native form submission
+          disabled={isSubmitting}
+          onClick={() => {
+            // This onClick is a fallback to ensure handleSubmit is called,
+            // in case the native form submission doesn't trigger it for some reason.
+            // It will also trigger validation.
+            form.handleSubmit(onSubmit, (errors) => {
+              console.error("Form validation errors (fallback onClick):", errors);
+              toast({
+                title: "Validation Error",
+                description: "Please check the form for errors.",
+                variant: "destructive",
+              });
+            })(); // Immediately invoke the returned function
+            console.log("Submit button clicked (fallback)!");
+          }}
+        >
           {isSubmitting ? "Saving..." : isEdit ? "Update Contact" : "Create Contact"}
         </Button>
       </div>

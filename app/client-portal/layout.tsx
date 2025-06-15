@@ -13,7 +13,7 @@ import "@/app/globals.css"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Client Portal | PROActive ONE",
+  title: "Client Portal | PROActive OS",
   description: "Access your project information, invoices, and more",
 }
 

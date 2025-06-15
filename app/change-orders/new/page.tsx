@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import NewChangeOrderClientPage from "./NewChangeOrderClientPage"
 
 export const metadata: Metadata = {
-  title: "Create Change Order | PROActive ONE",
+  title: "Create Change Order | PROActive OS",
   description: "Create a new change order",
 }
 

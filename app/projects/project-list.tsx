@@ -48,7 +48,7 @@ export default async function ProjectList({
             <TableHead className="w-[80px]"></TableHead>
           </TableRow>
         </TableHeader>
-        <TableBody>
+        <TableBody className="text-12px font-medium">
           {projects.map((project) => (
             <TableRow key={project.id}>
               <TableCell>

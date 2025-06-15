@@ -4,7 +4,7 @@ import { EstimatesList } from "./estimates-list"
 import { EstimateStatus } from "@/types/estimates"
 
 export const metadata: Metadata = {
-  title: "Estimates | PROActive ONE",
+  title: "Estimates | PROActive OS",
   description: "Manage your estimates",
 }
 

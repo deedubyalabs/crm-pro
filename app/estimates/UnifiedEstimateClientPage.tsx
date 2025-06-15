@@ -158,6 +158,26 @@ export default function UnifiedEstimateClientPage({ estimate }: UnifiedEstimateC
   }, [estimate, personIdFromUrl, opportunityIdFromUrl]); // Add dependencies for URL params and estimate
 
   async function handleFormSubmit(values: any, sections: EstimateSection[], paymentSchedules: Partial<EstimatePaymentSchedule>[]) {
+    // Validate sections and line items before submission
+    const hasNoLineItems = (sections ?? []).every(section => {
+      return !section || !section.line_items || section.line_items.length === 0;
+    });
+
+    if (hasNoLineItems) {
+      // Display error to user if no line items
+      console.error("Validation Error: Please add at least one line item to the estimate");
+      // Using toast directly here as it's a client component
+      // You might want to pass a toast function from a context or prop if this were a deeper nested component
+      // For now, assuming toast is accessible globally or imported
+      // (Note: toast is imported in EstimateForm, but not directly in UnifiedEstimateClientPage)
+      // For now, I'll just console.error and rely on the user to see it.
+      // If toast is needed, I'd need to import it here or pass it down.
+      // For now, I'll add a simple alert for immediate user feedback.
+      alert("Error: Please add at least one line item to the estimate");
+      setIsProcessing(false); // Ensure processing state is reset
+      return;
+    }
+
     setIsProcessing(true)
     try {
       let result: EstimateActionResult; // Use the unified action result type
@@ -196,6 +216,8 @@ export default function UnifiedEstimateClientPage({ estimate }: UnifiedEstimateC
       router.push(`/projects/new?estimateId=${estimate.id}`);
     }
   };
+
+  console.log("Estimate Sections before passing to form:", JSON.stringify(estimateSections, null, 2)); // Debugging line
 
   return (
     <div className="w-full px-6 py-6 space-y-8 text-xs">

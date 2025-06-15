@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/sheet" // Import Shadcn Sheet
 
 export const metadata: Metadata = {
-  title: "People | PROActive ONE",
+  title: "People | PROActive OS",
   description: "Manage your contacts, leads, customers, and subcontractors",
 }
 

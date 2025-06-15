@@ -13,7 +13,7 @@ import LayoutContent from "@/components/layout-content" // Import the new client
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata = {
-  title: "PROActive ONE",
+  title: "PROActive OS",
   description: "Agent-optimized business operations platform",
     generator: 'v0.dev'
 }
