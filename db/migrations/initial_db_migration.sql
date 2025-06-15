@@ -25,7 +25,7 @@ CREATE TYPE opportunity_status AS ENUM (
     'Contact Attempted',
     'Contacted',
     'Needs Scheduling',
-    'Appointment Scheduled',
+    'Task Scheduled',
     'Needs Estimate',
     'Estimate Sent',
     'Estimate Accepted',
@@ -34,7 +34,7 @@ CREATE TYPE opportunity_status AS ENUM (
     'Lost'
 );
 
--- Appointment Statuses
+-- Task Statuses
 CREATE TYPE appointment_status AS ENUM (
     'Scheduled',
     'Completed',
@@ -299,7 +299,7 @@ BEFORE UPDATE ON opportunities
 FOR EACH ROW
 EXECUTE FUNCTION trigger_set_timestamp();
 
--- Appointments
+-- Tasks
 CREATE TABLE appointments (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     person_id UUID REFERENCES people(id) ON DELETE SET NULL,

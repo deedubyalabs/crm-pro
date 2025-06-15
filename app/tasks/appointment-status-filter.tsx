@@ -3,11 +3,11 @@
 import { useRouter, usePathname } from "next/navigation"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
-interface AppointmentStatusFilterProps {
+interface TaskStatusFilterProps {
   activeStatus?: string
 }
 
-export default function AppointmentStatusFilter({ activeStatus }: AppointmentStatusFilterProps) {
+export default function TaskStatusFilter({ activeStatus }: TaskStatusFilterProps) {
   const router = useRouter()
   const pathname = usePathname()
 

@@ -72,7 +72,7 @@ export interface OpportunityWithPerson {
 
 // Update the OpportunityWithRelations type to include estimates
 export type OpportunityWithRelations = OpportunityWithPerson & {
-  appointments?: AppointmentSummary[]
+  appointments?: TaskSummary[]
   projects?: ProjectSummary[]
   estimates?: EstimateSummary[]
 }
@@ -88,7 +88,7 @@ export type EstimateSummary = {
   total_amount: number
 }
 
-export type AppointmentSummary = {
+export type TaskSummary = {
   id: string
   title: string // This will be mapped from appointment_type or a combination of fields
   status: string
@@ -106,7 +106,7 @@ export type ProjectSummary = {
   budget_amount: number | null
 }
 
-export type OpportunityStatus = "New Lead" | "Contact Attempted" | "Contacted" | "Needs Scheduling" | "Appointment Scheduled" | "Needs Estimate" | "Estimate Sent" | "Estimate Accepted" | "Estimate Rejected" | "On Hold" | "Lost"
+export type OpportunityStatus = "New Lead" | "Contact Attempted" | "Contacted" | "Needs Scheduling" | "Task Scheduled" | "Needs Estimate" | "Estimate Sent" | "Estimate Accepted" | "Estimate Rejected" | "On Hold" | "Lost"
 
 export type OpportunityFilters = {
   status?: OpportunityStatus | "all"
@@ -297,16 +297,16 @@ export const opportunityService = {
         opportunity.appointments = []; // Set to empty array on error
       } else {
          // Format appointments for display
-        opportunity.appointments = appointmentsData.map((appointment) => {
-          const startDate = new Date(appointment.start_time);
-          const endDate = new Date(appointment.end_time);
+        opportunity.appointments = appointmentsData.map((task) => {
+          const startDate = new Date(task.start_time);
+          const endDate = new Date(task.end_time);
 
           return {
-            id: appointment.id,
-            title: appointment.appointment_type, // Use appointment_type as the title
-            status: appointment.status,
-            start_time: appointment.start_time,
-            end_time: appointment.end_time,
+            id: task.id,
+            title: task.appointment_type, // Use appointment_type as the title
+            status: task.status,
+            start_time: task.start_time,
+            end_time: task.end_time,
             formatted_date: formatDateUtil(startDate.toISOString()),
             formatted_time: `${startDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} - ${endDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`,
           };

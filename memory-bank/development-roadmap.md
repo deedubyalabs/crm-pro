@@ -23,7 +23,7 @@ The immediate focus is on completing the foundational manual modules and ensurin
 *   **Status:** In Progress
 *   **Description:** Customizable overview of key business metrics, upcoming tasks, project statuses, and financial summaries.
 *   **Tasks:**
-    *   [TO DO] Develop customizable widgets for key metrics (Open Estimates, Unpaid Invoices, Current Projects, Leads by Stage, Upcoming Tasks & Appointments, Recent Activity Feed, Key Financial KPIs).
+    *   [TO DO] Develop customizable widgets for key metrics (Open Estimates, Unpaid Invoices, Current Projects, Leads by Stage, Upcoming Tasks & Tasks, Recent Activity Feed, Key Financial KPIs).
     *   [TO DO] Implement data fetching and display logic for all dashboard widgets.
     *   [TO DO] Ensure dashboard data is reflective of the manual system's current state.
 

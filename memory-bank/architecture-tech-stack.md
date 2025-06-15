@@ -121,7 +121,7 @@
     *   **Purpose:** Powering conversational interfaces, AI reasoning, and content generation.
 2.  **Scheduling & Calendar:**
     *   **Service 1:** Cal.com API
-        *   **Purpose:** Embedding booking pages, receiving new appointment data.
+        *   **Purpose:** Embedding booking pages, receiving new task data.
     *   **Service 2:** Google Calendar API
         *   **Purpose:** Two-way sync for contractor's primary calendar.
 3.  **Material Pricing Lookup:**

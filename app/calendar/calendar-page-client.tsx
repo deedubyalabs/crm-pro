@@ -9,7 +9,7 @@ import { format, startOfMonth, endOfMonth } from "date-fns"
 import CalendarView from "./calendar-view"
 import CalendarViewSkeleton from "./calendar-view-skeleton"
 import { useRouter } from "next/navigation"
-import { appointmentService, type AppointmentWithRelations } from "@/lib/appointments" // Import appointmentService and type
+import { taskService, type TaskWithRelations } from "@/lib/tasks" // Import taskService and type
 import { toast } from "@/components/ui/use-toast" // Import toast
 
 export default function CalendarPageClient({
@@ -32,33 +32,33 @@ export default function CalendarPageClient({
   const endDate = endOfMonth(selectedDate)
   const router = useRouter()
 
-  const [appointments, setAppointments] = useState<AppointmentWithRelations[]>([]); // State for appointments
+  const [tasks, setTasks] = useState<TaskWithRelations[]>([]); // State for tasks
   const [isLoading, setIsLoading] = useState(true); // State for loading
 
   useEffect(() => {
-    async function fetchAppointments() {
+    async function fetchTasks() {
       setIsLoading(true);
       try {
-        const fetchedAppointments = await appointmentService.getAppointmentsByDateRange(
+        const fetchedTasks = await taskService.getTasksByDateRange(
           format(startDate, "yyyy-MM-dd"),
           format(endDate, "yyyy-MM-dd")
         );
-        setAppointments(fetchedAppointments);
+        setTasks(fetchedTasks);
       } catch (error) {
-        console.error("Error fetching appointments:", error);
+        console.error("Error fetching tasks:", error);
         toast({
           title: "Error",
-          description: "Failed to load appointments. Please try again.",
+          description: "Failed to load tasks. Please try again.",
           variant: "destructive",
         });
-        setAppointments([]); // Set to empty array on error
+        setTasks([]); // Set to empty array on error
       } finally {
         setIsLoading(false);
       }
     }
 
-    fetchAppointments();
-  }, [year, month]); // Refetch appointments when year or month changes
+    fetchTasks();
+  }, [year, month]); // Refetch tasks when year or month changes
 
   return (
     <div className="space-y-6">
@@ -69,13 +69,13 @@ export default function CalendarPageClient({
         </div>
         <div className="flex space-x-2">
           <Button variant="outline" asChild>
-            <Link href="/appointments">
+            <Link href="/tasks">
               <CalendarIcon className="mr-2 h-4 w-4" /> List View
             </Link>
           </Button>
           <Button asChild>
-            <Link href="/appointments/new">
-              <Plus className="mr-2 h-4 w-4" /> New Appointment
+            <Link href="/tasks/new">
+              <Plus className="mr-2 h-4 w-4" /> New Task
             </Link>
           </Button>
         </div>
@@ -86,7 +86,7 @@ export default function CalendarPageClient({
           <div className="flex justify-between items-center">
             <div>
               <CardTitle>{format(selectedDate, "MMMM yyyy")}</CardTitle>
-              <CardDescription>View and manage your appointments</CardDescription>
+              <CardDescription>View and manage your tasks</CardDescription>
             </div>
             <div className="flex items-center space-x-2">
               <Button variant="outline" size="sm" asChild>
@@ -119,7 +119,7 @@ export default function CalendarPageClient({
             <CalendarView
               year={year}
               month={month}
-              appointments={appointments} // Pass appointments as prop
+              tasks={tasks} // Pass tasks as prop
             />
           )}
         </CardContent>

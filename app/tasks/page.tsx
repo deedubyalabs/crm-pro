@@ -5,17 +5,17 @@ import { addDays, format, startOfWeek } from "date-fns"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Plus, Search } from "lucide-react"
-import AppointmentList from "./appointment-list"
-import AppointmentListSkeleton from "./appointment-list-skeleton"
-import AppointmentStatusFilter from "./appointment-status-filter"
+import TaskList from "./task-list"
+import TaskListSkeleton from "./task-list-skeleton"
+import TaskStatusFilter from "./task-status-filter"
 import { DateRangePicker } from "./date-range-picker"
 
 export const metadata: Metadata = {
-  title: "Appointments | PROActive OS",
-  description: "Manage your appointments and meetings",
+  title: "Tasks | PROActive OS",
+  description: "Manage your tasks and meetings",
 }
 
-export default async function AppointmentsPage({
+export default async function TasksPage({
   searchParams,
 }: {
   searchParams: { [key: string]: string | string[] | undefined }
@@ -42,29 +42,29 @@ export default async function AppointmentsPage({
     <div className="flex flex-col space-y-4 p-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Appointments</h1>
-          <p className="text-muted-foreground">Manage your appointments and meetings</p>
+          <h1 className="text-3xl font-bold tracking-tight">Tasks</h1>
+          <p className="text-muted-foreground">Manage your tasks and meetings</p>
         </div>
         <div className="flex space-x-2">
           <Button variant="outline" asChild>
             <Link href="/calendar">View Calendar</Link>
           </Button>
           <Button asChild>
-            <Link href="/appointments/new">
+            <Link href="/tasks/new">
               <Plus className="mr-2 h-4 w-4" />
-              New Appointment
+              New Task
             </Link>
           </Button>
         </div>
       </div>
 
       <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
-        <AppointmentStatusFilter activeStatus={status} />
+        <TaskStatusFilter activeStatus={status} />
         <div className="flex flex-col space-y-2 sm:flex-row sm:space-x-2 sm:space-y-0">
           <DateRangePicker from={from} to={to} />
           <div className="relative w-full sm:w-64">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <form action="/appointments" method="GET">
+            <form action="/tasks" method="GET">
               {/* Preserve existing query parameters */}
               {status && <input type="hidden" name="status" value={status} />}
               {personId && <input type="hidden" name="personId" value={personId} />}
@@ -76,7 +76,7 @@ export default async function AppointmentsPage({
               <Input
                 type="search"
                 name="search"
-                placeholder="Search appointments..."
+                placeholder="Search tasks..."
                 className="pl-8"
                 defaultValue={search}
               />
@@ -85,8 +85,8 @@ export default async function AppointmentsPage({
         </div>
       </div>
 
-      <Suspense fallback={<AppointmentListSkeleton />}>
-        <AppointmentList
+      <Suspense fallback={<TaskListSkeleton />}>
+        <TaskList
           status={status}
           search={search}
           personId={personId}

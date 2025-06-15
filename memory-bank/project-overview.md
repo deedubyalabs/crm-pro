@@ -105,7 +105,7 @@ PROActive OS is a web-based application built with a modern tech stack (Next.js,
         * Unpaid Invoices (chart, list)
         * Current Projects (list, progress summary)
         * Leads by Stage
-        * Upcoming Tasks & Appointments
+        * Upcoming Tasks & Tasks
         * Recent Activity Feed
         * Key Financial KPIs (e.g., Revenue YTD, Profit Margin Average)
 
@@ -117,7 +117,7 @@ PROActive OS is a web-based application built with a modern tech stack (Next.js,
             *   Contact Information (multiple phones, emails, addresses).
             *   Key Information (status, source, dates).
             *   Notes, Tags.
-            *   Related entities tabs: Opportunities, Projects, Estimates, Invoices, Jobs, Appointments, Documents, Activity Log, AI Insights (placeholder).
+            *   Related entities tabs: Opportunities, Projects, Estimates, Invoices, Jobs, Tasks, Documents, Activity Log, AI Insights (placeholder).
         *   "Add as you go" for Lead Source, Lead Stage, Contact Tags, etc.
         *   Manual conversion of Lead to Customer.
         *   Bulk actions (delete, assign tags).
@@ -174,7 +174,7 @@ PROActive OS is a web-based application built with a modern tech stack (Next.js,
         *   "Show on Calendar" option.
     *   **Schedule (Calendar) Module:**
         *   Day, Week, Month views.
-        *   Displays Appointments and Jobs/Tasks marked "Show on Calendar."
+        *   Displays Tasks and Jobs/Tasks marked "Show on Calendar."
         *   Drag-and-drop rescheduling.
         *   Integration with external calendars (e.g., Google Calendar via API).
     *   **Daily Logs Module:**
@@ -289,7 +289,7 @@ PROActive OS is a web-based application built with a modern tech stack (Next.js,
         * Unpaid Invoices (chart, list)
         * Current Projects (list, progress summary)
         * Leads by Stage
-        * Upcoming Tasks & Appointments
+        * Upcoming Tasks & Tasks
         * Recent Activity Feed
         * Key Financial KPIs (e.g., Revenue YTD, Profit Margin Average)
 
@@ -301,7 +301,7 @@ PROActive OS is a web-based application built with a modern tech stack (Next.js,
             *   Contact Information (multiple phones, emails, addresses).
             *   Key Information (status, source, dates).
             *   Notes, Tags.
-            *   Related entities tabs: Opportunities, Projects, Estimates, Invoices, Jobs, Appointments, Documents, Activity Log, AI Insights (placeholder).
+            *   Related entities tabs: Opportunities, Projects, Estimates, Invoices, Jobs, Tasks, Documents, Activity Log, AI Insights (placeholder).
         *   "Add as you go" for Lead Source, Lead Stage, Contact Tags, etc.
         *   Manual conversion of Lead to Customer.
         *   Bulk actions (delete, assign tags).
@@ -358,7 +358,7 @@ PROActive OS is a web-based application built with a modern tech stack (Next.js,
         *   "Show on Calendar" option.
     *   **Schedule (Calendar) Module:**
         *   Day, Week, Month views.
-        *   Displays Appointments and Jobs/Tasks marked "Show on Calendar."
+        *   Displays Tasks and Jobs/Tasks marked "Show on Calendar."
         *   Drag-and-drop rescheduling.
         *   Integration with external calendars (e.g., Google Calendar via API).
     *   **Daily Logs Module:**
@@ -443,7 +443,7 @@ PROActive OS is a web-based application built with a modern tech stack (Next.js,
         * Unpaid Invoices (chart, list)
         * Current Projects (list, progress summary)
         * Leads by Stage
-        * Upcoming Tasks & Appointments
+        * Upcoming Tasks & Tasks
         * Recent Activity Feed
         * Key Financial KPIs (e.g., Revenue YTD, Profit Margin Average)
 
@@ -455,7 +455,7 @@ PROActive OS is a web-based application built with a modern tech stack (Next.js,
             *   Contact Information (multiple phones, emails, addresses).
             *   Key Information (status, source, dates).
             *   Notes, Tags.
-            *   Related entities tabs: Opportunities, Projects, Estimates, Invoices, Jobs, Appointments, Documents, Activity Log, AI Insights (placeholder).
+            *   Related entities tabs: Opportunities, Projects, Estimates, Invoices, Jobs, Tasks, Documents, Activity Log, AI Insights (placeholder).
         *   "Add as you go" for Lead Source, Lead Stage, Contact Tags, etc.
         *   Manual conversion of Lead to Customer.
         *   Bulk actions (delete, assign tags).
@@ -512,7 +512,7 @@ PROActive OS is a web-based application built with a modern tech stack (Next.js,
         *   "Show on Calendar" option.
     *   **Schedule (Calendar) Module:**
         *   Day, Week, Month views.
-        *   Displays Appointments and Jobs/Tasks marked "Show on Calendar."
+        *   Displays Tasks and Jobs/Tasks marked "Show on Calendar."
         *   Drag-and-drop rescheduling.
         *   Integration with external calendars (e.g., Google Calendar via API).
     *   **Daily Logs Module:**

@@ -2,10 +2,10 @@ import { notFound, redirect } from "next/navigation"
 import { personService } from "@/lib/people"
 import { opportunityService } from "@/lib/opportunities";
 import { projectService } from "@/lib/projects";
-import { appointmentService } from "@/lib/appointments";
+import { appointmentService } from "@/lib/tasks";
 import { documentService } from "@/lib/documents";
 import { authService } from "@/lib/auth-service";
-import { AppointmentSummary } from "@/lib/opportunities";
+import { TaskSummary } from "@/lib/opportunities";
 import { DocumentWithRelations } from "@/types/documents";
 import PersonDetailsClient from "./PersonDetailsClient"; // Import the new client component
 
@@ -23,7 +23,7 @@ export default async function PersonPage({ params }: { params: { id: string } })
 
   const opportunities = await opportunityService.getOpportunities({ personId: person.id });
   const projects = await projectService.getProjects({ customerId: person.id });
-  const appointments = await appointmentService.getAppointments({ personId: person.id }) as unknown as AppointmentSummary[];
+  const tasks = await appointmentService.getTasks({ personId: person.id }) as unknown as TaskSummary[];
   const documents = await documentService.getDocuments({ personId: person.id });
   const assignedUser = person.id ? await authService.getUserById(person.id) : null;
 
@@ -32,7 +32,7 @@ export default async function PersonPage({ params }: { params: { id: string } })
       person={person}
       opportunities={opportunities}
       projects={projects}
-      appointments={appointments}
+      tasks={tasks}
       documents={documents}
       assignedUser={assignedUser}
     />

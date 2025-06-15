@@ -15,7 +15,7 @@ import { format, addHours } from "date-fns"
 import { CalendarIcon, Clock } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Calendar } from "@/components/ui/calendar"
-import { type NewAppointment, appointmentService } from "@/lib/appointments"
+import { type NewTask, appointmentService } from "@/lib/tasks"
 import { toast } from "@/components/ui/use-toast"
 import { personService } from "@/lib/people"
 
@@ -37,14 +37,14 @@ const appointmentFormSchema = z.object({
   // Removed assigned_to as it's not in the Supabase schema
 })
 
-type AppointmentFormValues = z.infer<typeof appointmentFormSchema>
+type TaskFormValues = z.infer<typeof appointmentFormSchema>
 
-interface AppointmentFormProps {
-  initialData?: NewAppointment
+interface TaskFormProps {
+  initialData?: NewTask
   appointmentId?: string
 }
 
-export default function AppointmentForm({ initialData, appointmentId }: AppointmentFormProps) {
+export default function TaskForm({ initialData, appointmentId }: TaskFormProps) {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [contacts, setContacts] = useState<{ id: string; name: string; type: string }[]>([])
@@ -54,7 +54,7 @@ export default function AppointmentForm({ initialData, appointmentId }: Appointm
   const now = new Date()
   const oneHourLater = addHours(now, 1)
 
-  const form = useForm<AppointmentFormValues>({
+  const form = useForm<TaskFormValues>({
     resolver: zodResolver(appointmentFormSchema),
     defaultValues: {
       appointment_type: initialData?.appointment_type || "", // Use appointment_type
@@ -99,15 +99,15 @@ export default function AppointmentForm({ initialData, appointmentId }: Appointm
     loadContacts()
   }, [])
 
-  async function onSubmit(values: AppointmentFormValues) {
+  async function onSubmit(values: TaskFormValues) {
     try {
       setIsLoading(true)
 
       // Format dates for API and map to Supabase column names
-      const supabaseAppointmentData: NewAppointment = {
+      const supabaseTaskData: NewTask = {
         person_id: values.person_id || null,
         appointment_type: values.appointment_type, // Use appointment_type
-        status: values.status as NewAppointment['status'],
+        status: values.status as NewTask['status'],
         start_time: values.start_time.toISOString(),
         end_time: values.end_time.toISOString(),
         address: values.address, // Use address
@@ -118,34 +118,34 @@ export default function AppointmentForm({ initialData, appointmentId }: Appointm
       };
 
       // Remove undefined values to allow Supabase to use defaults or nulls
-      Object.keys(supabaseAppointmentData).forEach(key => {
-        if (supabaseAppointmentData[key as keyof NewAppointment] === undefined) {
-          delete supabaseAppointmentData[key as keyof NewAppointment];
+      Object.keys(supabaseTaskData).forEach(key => {
+        if (supabaseTaskData[key as keyof NewTask] === undefined) {
+          delete supabaseTaskData[key as keyof NewTask];
         }
       });
 
 
       if (appointmentId) {
-        // Update existing appointment
-        await appointmentService.updateAppointment(appointmentId, supabaseAppointmentData as any);
+        // Update existing task
+        await appointmentService.updateTask(appointmentId, supabaseTaskData as any);
         toast({
-          title: "Appointment updated",
-          description: "Your appointment has been updated successfully.",
+          title: "Task updated",
+          description: "Your task has been updated successfully.",
         });
       } else {
-        // Create new appointment
-        const newAppointment = await appointmentService.createAppointment(supabaseAppointmentData);
+        // Create new task
+        const newTask = await appointmentService.createTask(supabaseTaskData);
         toast({
-          title: "Appointment created",
-          description: "Your new appointment has been scheduled successfully.",
+          title: "Task created",
+          description: "Your new task has been scheduled successfully.",
         });
-        router.push(`/appointments/${newAppointment.id}`);
+        router.push(`/tasks/${newTask.id}`);
       }
     } catch (error) {
-      console.error("Error saving appointment:", error);
+      console.error("Error saving task:", error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to save appointment",
+        description: error instanceof Error ? error.message : "Failed to save task",
         variant: "destructive",
       });
     } finally {
@@ -163,7 +163,7 @@ export default function AppointmentForm({ initialData, appointmentId }: Appointm
             <FormItem>
               <FormLabel>Title</FormLabel> {/* Keep label as Title for user */}
               <FormControl>
-                <Input placeholder="Enter appointment title" {...field} />
+                <Input placeholder="Enter task title" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -177,7 +177,7 @@ export default function AppointmentForm({ initialData, appointmentId }: Appointm
             <FormItem>
               <FormLabel>Description</FormLabel>
               <FormControl>
-                <Textarea placeholder="Enter appointment description" className="resize-none" {...field} />
+                <Textarea placeholder="Enter task description" className="resize-none" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -392,7 +392,7 @@ export default function AppointmentForm({ initialData, appointmentId }: Appointm
               <FormControl>
                 <Textarea placeholder="Enter any additional notes" className="resize-none" rows={4} {...field} />
               </FormControl>
-              <FormDescription>Internal notes about this appointment.</FormDescription>
+              <FormDescription>Internal notes about this task.</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -403,7 +403,7 @@ export default function AppointmentForm({ initialData, appointmentId }: Appointm
             Cancel
           </Button>
           <Button type="submit" disabled={isLoading}>
-            {isLoading ? "Saving..." : appointmentId ? "Update Appointment" : "Schedule Appointment"}
+            {isLoading ? "Saving..." : appointmentId ? "Update Task" : "Schedule Task"}
           </Button>
         </div>
       </form>

@@ -22,7 +22,7 @@ export default function Header() {
   const { isCollapsed } = useSidebar()
   const [notifications] = useState([
     { id: 1, message: "New invoice paid", time: "5 minutes ago" },
-    { id: 2, message: "New appointment scheduled", time: "1 hour ago" },
+    { id: 2, message: "New task scheduled", time: "1 hour ago" },
     { id: 3, message: "Project status updated", time: "3 hours ago" },
   ])
 
@@ -34,7 +34,7 @@ export default function Header() {
     if (path === "/dashboard") return "Dashboard"
     if (path.startsWith("/people")) return "People"
     if (path.startsWith("/opportunities")) return "Opportunities"
-    if (path.startsWith("/appointments")) return "Appointments"
+    if (path.startsWith("/tasks")) return "Tasks"
     if (path.startsWith("/projects")) return "Projects"
     if (path.startsWith("/jobs")) return "Jobs"
     if (path.startsWith("/estimates")) return "Estimates"

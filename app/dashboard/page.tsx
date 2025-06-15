@@ -3,7 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { ArrowRight, Briefcase, Users, Calendar, BarChart, FileText, DollarSign, MapPin } from "lucide-react"
-import { appointmentService } from "@/lib/appointments"
+import { appointmentService } from "@/lib/tasks"
 import { format, parseISO, isToday, isTomorrow, isThisWeek } from "date-fns"
 
 export const metadata = {
@@ -12,12 +12,12 @@ export const metadata = {
 }
 
 export default async function DashboardPage() {
-  // Get upcoming appointments
+  // Get upcoming tasks
   const today = new Date()
   const nextWeek = new Date(today)
   nextWeek.setDate(today.getDate() + 7)
 
-  const upcomingAppointments = await appointmentService.getAppointments({
+  const upcomingTasks = await appointmentService.getTasks({
     startDate: today.toISOString(),
     endDate: nextWeek.toISOString(),
     status: "scheduled", // This will be mapped to "Scheduled" in the service
@@ -53,15 +53,15 @@ export default async function DashboardPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Upcoming Appointments</CardTitle>
+            <CardTitle className="text-sm font-medium">Upcoming Tasks</CardTitle>
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{upcomingAppointments.length}</div>
+            <div className="text-2xl font-bold">{upcomingTasks.length}</div>
             <p className="text-xs text-muted-foreground">
-              {upcomingAppointments.length > 0
-                ? `Next: ${formatAppointmentTime(upcomingAppointments[0].start_time)}`
-                : "No upcoming appointments"}
+              {upcomingTasks.length > 0
+                ? `Next: ${formatTaskTime(upcomingTasks[0].start_time)}`
+                : "No upcoming tasks"}
             </p>
           </CardContent>
         </Card>
@@ -80,7 +80,7 @@ export default async function DashboardPage() {
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="appointments">Appointments</TabsTrigger>
+          <TabsTrigger value="tasks">Tasks</TabsTrigger>
           <TabsTrigger value="opportunities">Opportunities</TabsTrigger>
           <TabsTrigger value="projects">Projects</TabsTrigger>
         </TabsList>
@@ -89,39 +89,39 @@ export default async function DashboardPage() {
           <div className="grid gap-4 md:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle>Upcoming Appointments</CardTitle>
+                <CardTitle>Upcoming Tasks</CardTitle>
                 <CardDescription>Your schedule for the next 7 days</CardDescription>
               </CardHeader>
               <CardContent>
-                {upcomingAppointments.length > 0 ? (
+                {upcomingTasks.length > 0 ? (
                   <div className="space-y-4">
-                    {upcomingAppointments.slice(0, 5).map((appointment) => (
-                      <div key={appointment.id} className="flex justify-between items-start">
+                    {upcomingTasks.slice(0, 5).map((task) => (
+                      <div key={task.id} className="flex justify-between items-start">
                         <div>
-                          <Link href={`/appointments/${appointment.id}`} className="font-medium hover:underline">
-                            {appointment.title}
+                          <Link href={`/tasks/${task.id}`} className="font-medium hover:underline">
+                            {task.title}
                           </Link>
                           <div className="text-sm text-muted-foreground">
-                            {appointment.person ? appointment.person.name : "No contact"}
+                            {task.person ? task.person.name : "No contact"}
                           </div>
                         </div>
                         <div className="text-sm text-right">
-                          <div>{formatAppointmentDate(appointment.start_time)}</div>
-                          <div>{format(parseISO(appointment.start_time), "h:mm a")}</div>
+                          <div>{formatTaskDate(task.start_time)}</div>
+                          <div>{format(parseISO(task.start_time), "h:mm a")}</div>
                         </div>
                       </div>
                     ))}
-                    {upcomingAppointments.length > 5 && (
+                    {upcomingTasks.length > 5 && (
                       <Button variant="link" className="w-full" asChild>
-                        <Link href="/appointments">View all {upcomingAppointments.length} appointments</Link>
+                        <Link href="/tasks">View all {upcomingTasks.length} tasks</Link>
                       </Button>
                     )}
                   </div>
                 ) : (
                   <div className="text-center py-6">
-                    <p className="text-muted-foreground mb-4">No upcoming appointments</p>
+                    <p className="text-muted-foreground mb-4">No upcoming tasks</p>
                     <Button asChild>
-                      <Link href="/appointments/new">Schedule an appointment</Link>
+                      <Link href="/tasks/new">Schedule an task</Link>
                     </Button>
                   </div>
                 )}
@@ -140,7 +140,7 @@ export default async function DashboardPage() {
                     <p className="text-xs text-muted-foreground">Kitchen Remodel - Johnson Residence</p>
                   </div>
                   <div className="border-l-4 border-blue-500 pl-4 py-1">
-                    <p className="text-sm font-medium">Appointment scheduled</p>
+                    <p className="text-sm font-medium">Task scheduled</p>
                     <p className="text-xs text-muted-foreground">Site visit - Smith Project (Tomorrow, 10:00 AM)</p>
                   </div>
                   <div className="border-l-4 border-amber-500 pl-4 py-1">
@@ -170,8 +170,8 @@ export default async function DashboardPage() {
                     </Link>
                   </Button>
                   <Button className="w-full justify-start" variant="outline" asChild>
-                    <Link href="/appointments/new">
-                      <Calendar className="mr-2 h-4 w-4" /> Schedule Appointment
+                    <Link href="/tasks/new">
+                      <Calendar className="mr-2 h-4 w-4" /> Schedule Task
                     </Link>
                   </Button>
                   <Button className="w-full justify-start" variant="outline" asChild>
@@ -223,49 +223,49 @@ export default async function DashboardPage() {
           </div>
         </TabsContent>
 
-        <TabsContent value="appointments">
+        <TabsContent value="tasks">
           <Card>
             <CardHeader className="flex justify-between items-center">
               <div>
-                <CardTitle>Upcoming Appointments</CardTitle>
+                <CardTitle>Upcoming Tasks</CardTitle>
                 <CardDescription>Your schedule for the next 7 days</CardDescription>
               </div>
               <Button asChild>
-                <Link href="/appointments/new">
-                  <Calendar className="mr-2 h-4 w-4" /> New Appointment
+                <Link href="/tasks/new">
+                  <Calendar className="mr-2 h-4 w-4" /> New Task
                 </Link>
               </Button>
             </CardHeader>
             <CardContent>
-              {upcomingAppointments.length > 0 ? (
+              {upcomingTasks.length > 0 ? (
                 <div className="space-y-4">
-                  {upcomingAppointments.map((appointment) => (
-                    <div key={appointment.id} className="flex justify-between items-start border-b pb-4">
+                  {upcomingTasks.map((task) => (
+                    <div key={task.id} className="flex justify-between items-start border-b pb-4">
                       <div>
-                        <Link href={`/appointments/${appointment.id}`} className="font-medium hover:underline">
-                          {appointment.title}
+                        <Link href={`/tasks/${task.id}`} className="font-medium hover:underline">
+                          {task.title}
                         </Link>
                         <div className="text-sm text-muted-foreground">
-                          {appointment.person ? appointment.person.name : "No contact"}
+                          {task.person ? task.person.name : "No contact"}
                         </div>
-                        {appointment.location && (
+                        {task.location && (
                           <div className="text-sm text-muted-foreground flex items-center mt-1">
-                            <MapPin className="h-3 w-3 mr-1" /> {appointment.location}
+                            <MapPin className="h-3 w-3 mr-1" /> {task.location}
                           </div>
                         )}
                       </div>
                       <div className="text-sm text-right">
-                        <div>{formatAppointmentDate(appointment.start_time)}</div>
-                        <div>{format(parseISO(appointment.start_time), "h:mm a")}</div>
+                        <div>{formatTaskDate(task.start_time)}</div>
+                        <div>{format(parseISO(task.start_time), "h:mm a")}</div>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
                 <div className="text-center py-6">
-                  <p className="text-muted-foreground mb-4">No upcoming appointments</p>
+                  <p className="text-muted-foreground mb-4">No upcoming tasks</p>
                   <Button asChild>
-                    <Link href="/appointments/new">Schedule an appointment</Link>
+                    <Link href="/tasks/new">Schedule an task</Link>
                   </Button>
                 </div>
               )}
@@ -325,8 +325,8 @@ export default async function DashboardPage() {
   )
 }
 
-// Helper function to format appointment date in a user-friendly way
-function formatAppointmentDate(dateString: string): string {
+// Helper function to format task date in a user-friendly way
+function formatTaskDate(dateString: string): string {
   const date = parseISO(dateString)
   if (isToday(date)) {
     return "Today"
@@ -339,8 +339,8 @@ function formatAppointmentDate(dateString: string): string {
   }
 }
 
-// Helper function to format appointment time in a user-friendly way
-function formatAppointmentTime(dateString: string): string {
+// Helper function to format task time in a user-friendly way
+function formatTaskTime(dateString: string): string {
   const date = parseISO(dateString)
   if (isToday(date)) {
     return `Today at ${format(date, "h:mm a")}`

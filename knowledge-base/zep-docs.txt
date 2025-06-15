@@ -5271,7 +5271,7 @@ user: What is the capital of France?
 Zep's Session Classifier can be used to classify user emotions and store these classifications in the Session's metadata.
 
 ```Text
-AI: We're unfortunately going to reschedule your appointment.
+AI: We're unfortunately going to reschedule your task.
 user: Is that entirely necessary? I'm very busy.
 ```
 
@@ -7083,7 +7083,7 @@ You and Company agree to cooperate in good faith with the JAMS to
 implement the Batch Arbitration process including the payment of
 single filing and administrative fees for batches of Requests, as
 well as any steps to minimize the time and costs of arbitration,
-which may include: (1) the appointment of a discovery special master
+which may include: (1) the task of a discovery special master
 to assist the arbitrator in the resolution of discovery disputes;
 and (2) the adoption of an expedited calendar of the arbitration
 proceedings.

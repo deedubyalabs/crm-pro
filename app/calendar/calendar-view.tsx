@@ -1,5 +1,5 @@
 import React from "react"
-import { type AppointmentWithRelations } from "@/lib/appointments" // Import AppointmentWithRelations type
+import { type TaskWithRelations } from "@/lib/tasks" // Import TaskWithRelations type
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
@@ -9,24 +9,24 @@ import { format, parseISO, getDay, getDaysInMonth, startOfMonth } from "date-fns
 export default function CalendarView({
   year,
   month,
-  appointments, // Receive appointments as a prop
+  tasks, // Receive tasks as a prop
 }: {
   year: number
   month: number
-  appointments: AppointmentWithRelations[] // Define type for appointments prop
+  tasks: TaskWithRelations[] // Define type for tasks prop
 }) {
 
-  // Create a map of dates to appointments
-  const appointmentsByDate = appointments.reduce(
-    (acc, appointment) => {
-      const date = format(parseISO(appointment.start_time), "yyyy-MM-dd")
+  // Create a map of dates to tasks
+  const appointmentsByDate = tasks.reduce(
+    (acc, task) => {
+      const date = format(parseISO(task.start_time), "yyyy-MM-dd")
       if (!acc[date]) {
         acc[date] = []
       }
-      acc[date].push(appointment)
+      acc[date].push(task)
       return acc
     },
-    {} as Record<string, typeof appointments>,
+    {} as Record<string, typeof tasks>,
   )
 
   // Generate calendar grid
@@ -89,7 +89,7 @@ export default function CalendarView({
 
               const date = new Date(year, month, day)
               const dateString = format(date, "yyyy-MM-dd")
-              const dayAppointments = appointmentsByDate[dateString] || []
+              const dayTasks = appointmentsByDate[dateString] || []
               const isToday = format(new Date(), "yyyy-MM-dd") === dateString
 
               return (
@@ -100,22 +100,22 @@ export default function CalendarView({
                   <div className="flex justify-between items-center mb-1">
                     <span className={`text-sm font-medium ${isToday ? "text-blue-600" : ""}`}>{day}</span>
                     <Button variant="ghost" size="sm" className="h-6 w-6 p-0" asChild>
-                      <Link href={`/appointments/new?date=${dateString}`}>+</Link>
+                      <Link href={`/tasks/new?date=${dateString}`}>+</Link>
                     </Button>
                   </div>
                   <div className="space-y-1">
-                    {dayAppointments.slice(0, 3).map((appointment) => (
-                      <Link key={appointment.id} href={`/appointments/${appointment.id}`} className="block">
+                    {dayTasks.slice(0, 3).map((task) => (
+                      <Link key={task.id} href={`/tasks/${task.id}`} className="block">
                         <div className="text-xs truncate">
-                          <Badge className={getStatusColor(appointment.status)}>
-                            {format(parseISO(appointment.start_time), "h:mm a")}
+                          <Badge className={getStatusColor(task.status)}>
+                            {format(parseISO(task.start_time), "h:mm a")}
                           </Badge>{" "}
-                          {appointment.appointment_type} {/* Use appointment_type */}
+                          {task.appointment_type} {/* Use appointment_type */}
                         </div>
                       </Link>
                     ))}
-                    {dayAppointments.length > 3 && (
-                      <div className="text-xs text-muted-foreground">+{dayAppointments.length - 3} more</div>
+                    {dayTasks.length > 3 && (
+                      <div className="text-xs text-muted-foreground">+{dayTasks.length - 3} more</div>
                     )}
                   </div>
                 </div>

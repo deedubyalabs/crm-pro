@@ -45,13 +45,13 @@ import { Person } from "@/types/people";
 import { Project } from "@/types/project";
 import { DocumentWithRelations } from "@/types/documents";
 import { User } from "@/types/auth"; // Import User type
-import { Opportunity, AppointmentSummary } from "@/lib/opportunities"; // Correct import for Opportunity and AppointmentSummary
+import { Opportunity, TaskSummary } from "@/lib/opportunities"; // Correct import for Opportunity and TaskSummary
 
 interface PersonDetailsClientProps {
   person: Person;
   opportunities: Opportunity[];
   projects: Project[];
-  appointments: AppointmentSummary[];
+  tasks: TaskSummary[];
   documents: DocumentWithRelations[];
   assignedUser: User | null; // Use User type
 }
@@ -60,14 +60,14 @@ export default function PersonDetailsClient({
   person,
   opportunities,
   projects,
-  appointments,
+  tasks,
   documents,
   assignedUser,
 }: PersonDetailsClientProps) {
 
   const opportunitiesCount = opportunities.length;
   const projectsCount = projects.length;
-  const appointmentsCount = appointments.length;
+  const appointmentsCount = tasks.length;
   const documentsCount = documents.length;
   const activitiesCount = 0; // Still a placeholder
 
@@ -197,7 +197,7 @@ export default function PersonDetailsClient({
                   <Link className="text-12px" href={`/opportunities/new?personId=${person.id}`}>Create Opportunity</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link className="text-12px" href={`/appointments/new?personId=${person.id}`}>Send Meeting Link</Link>
+                  <Link className="text-12px" href={`/tasks/new?personId=${person.id}`}>Send Meeting Link</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem className="text-12px">Create Estimate</DropdownMenuItem>
                 <DropdownMenuItem className="text-12px">Log Activity</DropdownMenuItem>
@@ -431,10 +431,10 @@ export default function PersonDetailsClient({
                     Projects ({projectsCount})
                   </TabsTrigger>
                   <TabsTrigger
-                    value="appointments"
+                    value="tasks"
                     className="rounded-none border-b-2 border-transparent px-4 py-3 data-[state=active]:border-primary data-[state=active]:bg-transparent text-[12px]"
                   >
-                    Appointments ({appointmentsCount})
+                    Tasks ({appointmentsCount})
                   </TabsTrigger>
                   <TabsTrigger
                     value="documents"
@@ -538,42 +538,42 @@ export default function PersonDetailsClient({
                   </div>
                 </TabsContent>
 
-                <TabsContent value="appointments" className="p-0">
+                <TabsContent value="tasks" className="p-0">
                   <div className="p-6 text-[12px]">
-                    {appointments.length > 0 ? (
+                    {tasks.length > 0 ? (
                       <div className="space-y-4">
-                        {appointments.map((appointment) => (
-                          <div key={appointment.id} className="bg-muted/50 p-4 rounded-md flex items-center justify-between">
+                        {tasks.map((task) => (
+                          <div key={task.id} className="bg-muted/50 p-4 rounded-md flex items-center justify-between">
                             <div>
-                              <h4 className="font-medium">{appointment.title}</h4>
+                              <h4 className="font-medium">{task.title}</h4>
                               <div className="flex items-center gap-2 mt-1">
-                                <Badge variant="outline">{appointment.status}</Badge>
-                                <span className="text-sm text-muted-foreground">{appointment.formatted_date} - {appointment.formatted_time}</span>
+                                <Badge variant="outline">{task.status}</Badge>
+                                <span className="text-sm text-muted-foreground">{task.formatted_date} - {task.formatted_time}</span>
                               </div>
                             </div>
                             <Button variant="ghost" size="sm" asChild>
-                              <Link href={`/appointments/${appointment.id}`}>View</Link>
+                              <Link href={`/tasks/${task.id}`}>View</Link>
                             </Button>
                           </div>
                         ))}
                       </div>
                     ) : (
                       <div className="text-center py-8">
-                        <p className="text-muted-foreground mb-4">No appointments found for this contact.</p>
+                        <p className="text-muted-foreground mb-4">No tasks found for this contact.</p>
                       </div>
                     )}
                     <div className="mt-4 flex justify-end">
                       <Button asChild>
-                        <Link href={`/appointments/new?personId=${person.id}`}>
+                        <Link href={`/tasks/new?personId=${person.id}`}>
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <CalendarClock className="mr-2 h-4 w-4" />
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p>Schedule Appointment</p>
+                              <p>Schedule Task</p>
                             </TooltipContent>
                           </Tooltip>
-                          Schedule Appointment
+                          Schedule Task
                         </Link>
                       </Button>
                     </div>

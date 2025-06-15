@@ -22,7 +22,7 @@ import {
 import { opportunityService, NewOpportunity } from "@/lib/opportunities" // Import NewOpportunity
 import { formatCurrency, formatDate } from "@/lib/utils"
 import { Progress } from "@/components/ui/progress"
-import { RelatedAppointments } from "./related-appointments"
+import { RelatedTasks } from "./related-tasks"
 import { RelatedProjects } from "./related-projects"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { RelatedEstimates } from "./related-estimates"
@@ -100,8 +100,8 @@ export default function OpportunityDetailPage({ params: { id } }: { params: { id
           return <Badge className="bg-green-100 text-green-800 hover:bg-green-800">Contacted</Badge>
         case "needs scheduling":
           return <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-800">Needs Scheduling</Badge>
-        case "appointment scheduled":
-          return <Badge className="bg-indigo-100 text-indigo-800 hover:bg-indigo-800">Appointment Scheduled</Badge>
+        case "task scheduled":
+          return <Badge className="bg-indigo-100 text-indigo-800 hover:bg-indigo-800">Task Scheduled</Badge>
         case "needs estimate":
           return <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-800">Needs Estimate</Badge>
         case "estimate sent":
@@ -131,7 +131,7 @@ export default function OpportunityDetailPage({ params: { id } }: { params: { id
     }
 
     // Count items for tab labels
-    const appointmentsCount = opportunity.appointments?.length || 0
+    const appointmentsCount = opportunity.tasks?.length || 0
     const projectsCount = opportunity.projects?.length || 0
     const estimatesCount = opportunity.estimates?.length || 0
 
@@ -270,8 +270,8 @@ export default function OpportunityDetailPage({ params: { id } }: { params: { id
             <Tabs defaultValue="overview" className="space-y-4">
               <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="appointments" className="flex items-center justify-center">
-                  Appointments
+                <TabsTrigger value="tasks" className="flex items-center justify-center">
+                  Tasks
                   {appointmentsCount > 0 && (
                     <span className="ml-1 rounded-full bg-muted px-1.5 py-0.5 text-xs">{appointmentsCount}</span>
                   )}
@@ -357,13 +357,13 @@ export default function OpportunityDetailPage({ params: { id } }: { params: { id
                 </Card>
               </TabsContent>
 
-              <TabsContent value="appointments">
+              <TabsContent value="tasks">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Appointments</CardTitle>
+                    <CardTitle>Tasks</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <RelatedAppointments appointments={opportunity.appointments || []} opportunityId={opportunity.id} />
+                    <RelatedTasks tasks={opportunity.tasks || []} opportunityId={opportunity.id} />
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -478,9 +478,9 @@ export default function OpportunityDetailPage({ params: { id } }: { params: { id
               </CardHeader>
               <CardContent className="space-y-2">
                 <Button className="w-full justify-start" variant="outline" asChild>
-                  <Link href={`/appointments/new?opportunityId=${opportunity.id}`}>
+                  <Link href={`/tasks/new?opportunityId=${opportunity.id}`}>
                     <Calendar className="mr-2 h-4 w-4" />
-                    Schedule Appointment
+                    Schedule Task
                   </Link>
                 </Button>
                 <Button className="w-full justify-start" variant="outline" asChild>
@@ -525,7 +525,7 @@ export default function OpportunityDetailPage({ params: { id } }: { params: { id
                       <div className="flex items-start space-x-2">
                         <div className="mt-0.5 h-5 w-5 rounded-full border-2 border-muted"></div>
                         <div>
-                          <p className="font-medium">Schedule appointment</p>
+                          <p className="font-medium">Schedule task</p>
                           <p className="text-sm text-muted-foreground">Set up a meeting to discuss needs</p>
                         </div>
                       </div>
@@ -553,7 +553,7 @@ export default function OpportunityDetailPage({ params: { id } }: { params: { id
                           <span className="h-2.5 w-2.5 rounded-full bg-primary"></span>
                         </div>
                         <div>
-                          <p className="font-medium">Schedule appointment</p>
+                          <p className="font-medium">Schedule task</p>
                           <p className="text-sm text-muted-foreground">Set up a meeting to discuss needs</p>
                         </div>
                       </div>

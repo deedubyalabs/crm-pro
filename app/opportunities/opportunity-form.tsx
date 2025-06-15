@@ -32,7 +32,7 @@ import OpportunitySuggestions from "./components/opportunity-suggestions" // Imp
 const opportunityFormSchema = z.object({
   opportunity_name: z.string().min(1, "Name is required"),
   description: z.string().nullable().optional(), // Allow null and undefined
-  status: z.enum(["New Lead", "Contact Attempted", "Contacted", "Needs Scheduling", "Appointment Scheduled", "Needs Estimate", "Estimate Sent", "Estimate Accepted", "Estimate Rejected", "On Hold", "Lost"]).optional().default("New Lead"),
+  status: z.enum(["New Lead", "Contact Attempted", "Contacted", "Needs Scheduling", "Task Scheduled", "Needs Estimate", "Estimate Sent", "Estimate Accepted", "Estimate Rejected", "On Hold", "Lost"]).optional().default("New Lead"),
   person_id: z.string().min(1, "Contact is required"),
   estimated_value: z.coerce.number().optional().nullable(),
   requested_completion_date: z.date().optional().nullable(),
@@ -223,7 +223,7 @@ export default function OpportunityForm({ initialData, opportunityId, personId }
                       <SelectItem value="Contact Attempted">Contact Attempted</SelectItem>
                       <SelectItem value="Contacted">Contacted</SelectItem>
                       <SelectItem value="Needs Scheduling">Needs Scheduling</SelectItem>
-                      <SelectItem value="Appointment Scheduled">Appointment Scheduled</SelectItem>
+                      <SelectItem value="Task Scheduled">Task Scheduled</SelectItem>
                       <SelectItem value="Needs Estimate">Needs Estimate</SelectItem>
                       <SelectItem value="Estimate Sent">Estimate Sent</SelectItem>
                       <SelectItem value="Estimate Accepted">Estimate Accepted</SelectItem>

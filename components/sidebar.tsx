@@ -83,11 +83,6 @@ export default function Sidebar({ className }: SidebarProps) {
       href: "/opportunities",
       icon: Briefcase,
     },
-    {
-      title: "Activities",
-      href: "/app/activities",
-      icon: ClipboardList,
-    },
   ]
 
   const operationsNavItems = [
@@ -249,7 +244,7 @@ export default function Sidebar({ className }: SidebarProps) {
         <div className="overflow-y-auto h-[calc(100vh-4rem)]">
           {!isCollapsed && (
             <div className="px-4 py-2">
-              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Main</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wider">Main</h3>
             </div>
           )}
           {isCollapsed && <div className="py-2 border-b"></div>}
@@ -259,7 +254,7 @@ export default function Sidebar({ className }: SidebarProps) {
 
           {!isCollapsed && (
             <div className="px-4 py-2">
-              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">CRM</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wider">CRM</h3>
             </div>
           )}
           {isCollapsed && <div className="py-2 border-b"></div>}
@@ -269,7 +264,7 @@ export default function Sidebar({ className }: SidebarProps) {
 
           {!isCollapsed && (
             <div className="px-4 py-2">
-              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Operations</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wider">Operations</h3>
             </div>
           )}
           {isCollapsed && <div className="py-2 border-b"></div>}
@@ -279,7 +274,7 @@ export default function Sidebar({ className }: SidebarProps) {
 
           {!isCollapsed && (
             <div className="px-4 py-2">
-              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Finances</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wider">Finances</h3>
             </div>
           )}
           {isCollapsed && <div className="py-2 border-b"></div>}
@@ -289,7 +284,7 @@ export default function Sidebar({ className }: SidebarProps) {
 
           {!isCollapsed && (
             <div className="px-4 py-2">
-              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Admin</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wider">Admin</h3>
             </div>
           )}
           {isCollapsed && <div className="py-2 border-b"></div>}

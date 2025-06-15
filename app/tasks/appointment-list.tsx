@@ -1,4 +1,4 @@
-import { appointmentService } from "@/lib/appointments"
+import { appointmentService } from "@/lib/tasks"
 import { formatDateTime } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -32,7 +32,7 @@ function getStatusBadge(status: string) {
   }
 }
 
-export default async function AppointmentList({
+export default async function TaskList({
   status,
   search,
   personId,
@@ -59,24 +59,24 @@ export default async function AppointmentList({
     endDate: to,
   }
 
-  const appointments = await appointmentService.getAppointments(filters)
+  const tasks = await appointmentService.getTasks(filters)
 
-  if (appointments.length === 0) {
+  if (tasks.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
         <div className="rounded-full bg-muted p-3 mb-4">
           <Calendar className="h-6 w-6 text-muted-foreground" />
         </div>
-        <h3 className="text-lg font-semibold">No appointments found</h3>
+        <h3 className="text-lg font-semibold">No tasks found</h3>
         <p className="text-muted-foreground mt-2 mb-6 max-w-md">
           {search
-            ? `No appointments match your search "${search}"`
+            ? `No tasks match your search "${search}"`
             : status
-              ? `No ${status} appointments found`
-              : "Get started by creating your first appointment"}
+              ? `No ${status} tasks found`
+              : "Get started by creating your first task"}
         </p>
         <Button asChild>
-          <Link href="/appointments/new">Schedule an appointment</Link>
+          <Link href="/tasks/new">Schedule an task</Link>
         </Button>
       </div>
     )
@@ -96,27 +96,27 @@ export default async function AppointmentList({
         </TableRow>
       </TableHeader>
       <TableBody>
-        {appointments.map((appointment) => {
+        {tasks.map((task) => {
           // Calculate duration in minutes
-          const start = new Date(appointment.start_time)
-          const end = new Date(appointment.end_time)
+          const start = new Date(task.start_time)
+          const end = new Date(task.end_time)
           const durationMinutes = Math.round((end.getTime() - start.getTime()) / (1000 * 60))
 
           return (
-            <TableRow key={appointment.id}>
+            <TableRow key={task.id}>
               <TableCell>
-                <Link href={`/appointments/${appointment.id}`} className="font-medium hover:underline">
-                  {appointment.appointment_type}
+                <Link href={`/tasks/${task.id}`} className="font-medium hover:underline">
+                  {task.appointment_type}
                 </Link>
-                {appointment.notes && <p className="text-sm text-muted-foreground line-clamp-1">{appointment.notes}</p>}
+                {task.notes && <p className="text-sm text-muted-foreground line-clamp-1">{task.notes}</p>}
               </TableCell>
-              <TableCell>{getStatusBadge(appointment.status)}</TableCell>
+              <TableCell>{getStatusBadge(task.status)}</TableCell>
               <TableCell>
-                {appointment.person ? (
+                {task.person ? (
                   <div className="flex items-center">
                     <User className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <Link href={`/people/${appointment.person.id}`} className="hover:underline">
-                      {appointment.person.name}
+                    <Link href={`/people/${task.person.id}`} className="hover:underline">
+                      {task.person.name}
                     </Link>
                   </div>
                 ) : (
@@ -126,7 +126,7 @@ export default async function AppointmentList({
               <TableCell>
                 <div className="flex items-center">
                   <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                  {formatDateTime(appointment.start_time)}
+                  {formatDateTime(task.start_time)}
                 </div>
               </TableCell>
               <TableCell>
@@ -136,10 +136,10 @@ export default async function AppointmentList({
                 </div>
               </TableCell>
               <TableCell>
-                {appointment.address ? (
+                {task.address ? (
                   <div className="flex items-center">
                     <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <span>{appointment.address}</span>
+                    <span>{task.address}</span>
                   </div>
                 ) : (
                   <span className="text-muted-foreground">No location</span>
@@ -156,24 +156,24 @@ export default async function AppointmentList({
                   <DropdownMenuContent align="end">
                     <DropdownMenuLabel>Actions</DropdownMenuLabel>
                     <DropdownMenuItem asChild>
-                      <Link href={`/appointments/${appointment.id}`}>View Details</Link>
+                      <Link href={`/tasks/${task.id}`}>View Details</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link href={`/appointments/${appointment.id}/edit`}>Edit Appointment</Link>
+                      <Link href={`/tasks/${task.id}/edit`}>Edit Task</Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    {appointment.status !== "completed" && (
+                    {task.status !== "completed" && (
                       <DropdownMenuItem asChild>
-                        <Link href={`/appointments/${appointment.id}/complete`}>Mark as Completed</Link>
+                        <Link href={`/tasks/${task.id}/complete`}>Mark as Completed</Link>
                       </DropdownMenuItem>
                     )}
-                    {appointment.status !== "canceled" && (
+                    {task.status !== "canceled" && (
                       <DropdownMenuItem asChild>
-                        <Link href={`/appointments/${appointment.id}/cancel`}>Cancel Appointment</Link>
+                        <Link href={`/tasks/${task.id}/cancel`}>Cancel Task</Link>
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem className="text-red-600">Delete Appointment</DropdownMenuItem>
+                    <DropdownMenuItem className="text-red-600">Delete Task</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TableCell>

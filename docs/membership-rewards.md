@@ -155,7 +155,7 @@ Below is a comprehensive outline of modules required to effectively manage contr
 
 **Data Management:**
 
-- Recurring appointment templates
+- Recurring task templates
 - Service history records
 - Equipment/asset database
 - Technician availability and skills matrix
@@ -260,7 +260,7 @@ Below is a comprehensive outline of modules required to effectively manage contr
 
 - Self-scheduling of included services
 - Additional service requests
-- Appointment management
+- Task management
 - Technician information and ETA
 
 
@@ -356,7 +356,7 @@ Below is a comprehensive outline of modules required to effectively manage contr
 
 - Enrollment confirmations and welcome sequences
 - Renewal reminders and confirmations
-- Service appointment reminders
+- Service task reminders
 - Rewards points updates and redemption confirmations
 
 
