@@ -43,18 +43,36 @@ export function EstimateSummary({
   // Calculate Total Hours Needed (assuming 'Labor' type items have hours in quantity)
   // This is a simplification; a more robust solution might involve a dedicated 'hours' field
   const totalHoursNeeded = allLineItems.reduce((sum, item) => {
-    if (item.costItem?.type === "Labor") { // Assuming costItem is populated and has a type
+    if (item.costItem?.type === "Labor" && item.unit === "hour") {
       return sum + (item.quantity || 0);
     }
     return sum;
   }, 0);
+
+  const costTypeTotals = allLineItems.reduce((acc, item) => {
+    const type = item.costItem?.type || "Other"; // Default to "Other" if type is not defined
+    const itemTotal = item.total || 0;
+
+    if (!acc[type]) {
+      acc[type] = { amount: 0, percentage: 0 };
+    }
+    acc[type].amount += itemTotal;
+    return acc;
+  }, {} as Record<string, { amount: number; percentage: number }>);
+
+  // Calculate percentages
+  for (const type in costTypeTotals) {
+    if (costTypeTotals.hasOwnProperty(type)) {
+      costTypeTotals[type].percentage = discountedSubtotal > 0 ? (costTypeTotals[type].amount / discountedSubtotal) * 100 : 0;
+    }
+  }
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Estimate Summary</CardTitle>
       </CardHeader>
-      <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <CardContent className="grid grid-cols-1 gap-4">
         <div className="space-y-2">
           <div className="flex justify-between">
             <span className="font-medium">Subtotal:</span>
@@ -67,10 +85,6 @@ export function EstimateSummary({
           <div className="flex justify-between">
             <span className="font-medium">Tax Amount:</span>
             <span>{formatCurrency(taxAmount)}</span>
-          </div>
-          <div className="flex justify-between text-lg font-bold">
-            <span>Total Estimate:</span>
-            <span>{formatCurrency(totalAmount)}</span>
           </div>
         </div>
 
@@ -93,12 +107,20 @@ export function EstimateSummary({
           </div>
         </div>
 
-        {/* Future AI Insights Section */}
-        <div className="col-span-full border-t pt-4 mt-4">
-          <h3 className="text-md font-semibold mb-2">AI Insights (Coming Soon)</h3>
-          <p className="text-muted-foreground text-sm">
-            AI will provide insights on pricing optimization, risk assessment, and efficiency recommendations.
-          </p>
+        {/* Cost Item Type Breakdown */}
+        <div className="space-y-2 pt-4 border-t">
+          <h4 className="text-md font-semibold">Cost Breakdown by Type:</h4>
+          {Object.entries(costTypeTotals).map(([type, { amount, percentage }]) => (
+            <div key={type} className="flex justify-between font-medium">
+              <span>{type}:</span>
+              <span>{formatCurrency(amount)} ({percentage.toFixed(2)}%)</span>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex justify-between text-lg font-bold pt-4 border-t">
+          <span>Total Estimate:</span>
+          <span>{formatCurrency(totalAmount)}</span>
         </div>
       </CardContent>
     </Card>

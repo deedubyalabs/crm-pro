@@ -16,7 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "@/components/ui/use-toast"
-import { CalendarIcon, Plus, Percent, DollarSign, MoreHorizontal, MoreVertical, ListTodo, ListPlus, Database, CirclePercent, SquarePlus } from "lucide-react"
+import { CalendarIcon, Plus, Percent, DollarSign, MoreHorizontal, MoreVertical, ListTodo, ListPlus, Database, CirclePercent, SquarePlus, Tag, Calculator } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,7 +35,7 @@ import { EstimateReviewDialog } from "./estimate-review-dialog" // Import Estima
 import { EstimateBiddingSection } from "./components/EstimateBiddingSection" // Import EstimateBiddingSection
 import { EstimateDocumentsSection } from "./components/EstimateDocumentsSection" // Import EstimateDocumentsSection
 import { EstimateSectionHeader } from "./components/EstimateSectionHeader" // Import EstimateSectionHeader
-import type { EstimateLineItem, EstimateWithDetails, EstimatePaymentSchedule, EstimateSection } from "@/types/estimates"
+import type { EstimateLineItem, EstimateWithDetails, EstimatePaymentSchedule, EstimateSection, DiscountType } from "@/types/estimates"
 import type { CostItem } from "@/types/cost-items"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label" // Import Label
@@ -48,6 +48,8 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { CustomLineItemDialog } from "./custom-line-item-dialog"
+import { DiscountDialog } from "./discount-dialog"
+import { TaxRateDialog } from "./tax-rate-dialog"
 
 // Define the form schema
 const formSchema = z.object({
@@ -61,9 +63,9 @@ const formSchema = z.object({
   terms_and_conditions: z.string().optional(), // New field
   scope_of_work: z.string().optional(), // New field
   cover_sheet_details: z.string().optional(), // New field
-  discount_type: z.enum(["percentage", "fixed", ""]).optional(),
-  discount_value: z.coerce.number().min(0).optional(),
-  tax_rate_percentage: z.coerce.number().min(0).max(100).optional(),
+  discount_type: z.enum(["percentage", "fixed", ""]).nullable().optional(),
+  discount_value: z.coerce.number().min(0).nullable().optional(),
+  tax_rate_percentage: z.coerce.number().min(0).max(100).nullable().optional(),
   deposit_required: z.boolean().optional(),
   deposit_percentage: z.coerce.number().min(0).max(100).optional(),
 })
@@ -120,6 +122,8 @@ export function EstimateForm({
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
   const [isCustomLineItemDialogOpen, setIsCustomLineItemDialogOpen] = useState(false);
   const [currentSectionIdForAddItem, setCurrentSectionIdForAddItem] = useState<string | null>(null);
+  const [isDiscountDialogOpen, setIsDiscountDialogOpen] = useState(false);
+  const [isTaxRateDialogOpen, setIsTaxRateDialogOpen] = useState(false);
 
   // Initialize the form with default values or existing estimate data
   const form = useForm<FormValues>({
@@ -196,7 +200,8 @@ export function EstimateForm({
     if (section.is_optional) {
       return sum; // If the section is optional, none of its items contribute to the sum
     }
-    return sum + section.line_items.reduce((sectionSum, item) => {
+    const lineItems = section.line_items || [];
+    return sum + lineItems.reduce((sectionSum, item) => {
       if (item.is_optional) {
         return sectionSum; // If the item is optional, it doesn't contribute to the section sum
       }
@@ -272,6 +277,18 @@ export function EstimateForm({
     toast({ title: "Bulk Markup Applied", description: "Markup has been applied to selected items." });
     setIsBulkMarkupDialogOpen(false); // Close the dialog after applying
     setCurrentSectionIdForBulkMarkup(null); // Clear the section ID
+  };
+
+  // Handle applying discount from the dialog
+  const handleApplyDiscount = (type: DiscountType, value: number) => {
+    form.setValue("discount_type", type);
+    form.setValue("discount_value", value);
+    toast({ title: "Discount Applied", description: "The estimate discount has been updated." });
+  };
+
+  const handleApplyTaxRate = (taxRate: number) => {
+    form.setValue("tax_rate_percentage", taxRate);
+    toast({ title: "Tax Rate Applied", description: "The estimate tax rate has been updated." });
   };
 
   // Function to open bulk markup dialog for a specific section
@@ -581,7 +598,6 @@ export function EstimateForm({
               <TabsTrigger value="details">Details</TabsTrigger>
               <TabsTrigger value="line-items">Line Items</TabsTrigger>
               <TabsTrigger value="payment-schedule">Payment Schedule</TabsTrigger>
-              <TabsTrigger value="summary">Summary</TabsTrigger>
               <TabsTrigger value="documents">Documents</TabsTrigger> {/* Documents Tab */}
               <TabsTrigger value="bidding">Bidding</TabsTrigger> {/* New Bidding Tab */}
             </TabsList>
@@ -795,107 +811,43 @@ export function EstimateForm({
                     )}
                   />
 
-                  {/* Added Tax Rate Field */}
-                  <FormField
-                    control={form.control}
-                    name="tax_rate_percentage"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Tax Rate (%)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            min="0"
-                            max="100"
-                            step="0.01"
-                            placeholder="0.00"
-                            {...field}
-                            value={field.value ?? ""}
-                          />
-                        </FormControl>
-                        <FormDescription>The percentage of tax applied to the estimate subtotal.</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {/* Added Deposit Required Checkbox */}
-                   <FormField
-                    control={form.control}
-                    name="deposit_required"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                        <FormControl>
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                        <div className="space-y-1 leading-none">
-                          <FormLabel>
-                            Require Deposit
-                          </FormLabel>
-                          <FormDescription>
-                            Check this box if a deposit is required for this estimate.
-                          </FormDescription>
-                        </div>
-                      </FormItem>
-                    )}
-                  />
-
-                  {/* Added Deposit Percentage Field */}
-                  {form.watch("deposit_required") && ( // Only show if deposit is required
-                    <FormField
-                      control={form.control}
-                      name="deposit_percentage"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Deposit Percentage (%)</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              min="0"
-                              max="100"
-                              step="0.01"
-                              placeholder="0.00"
-                              {...field}
-                              value={field.value ?? ""}
-                            />
-                          </FormControl>
-                          <FormDescription>The percentage of the total amount required as a deposit.</FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  )}
                 </CardContent>
               </Card>
             </TabsContent>
 
             <TabsContent value="line-items">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle>Line Items</CardTitle>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" className="ml-auto">
-                        <MoreVertical className="h-4 w-4" />
-                        <span className="sr-only">Actions</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">                        
-                      <DropdownMenuItem onClick={() => handleAddExistingLineItem()}>
-                        <Database className="mr-2 h-4 w-4 text-blue-600" /> Add From Library
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setIsCustomLineItemDialogOpen(true)}>
-                        <ListPlus className="mr-2 h-4 w-4 text-orange-500" /> Add Custom Item
-                        </DropdownMenuItem>
-                      <DropdownMenuItem onClick={handleAddSection}>
-                        <SquarePlus className="mr-2 h-4 w-4 text--500" /> Add Section
-                      </DropdownMenuItem> 
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
+                {/* Left Column for Line Items */}
+                <div className="md:col-span-4">
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                      <CardTitle>Line Items</CardTitle>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" className="ml-auto">
+                            <MoreVertical className="h-4 w-4" />
+                            <span className="sr-only">Actions</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">                        
+                          <DropdownMenuItem onClick={() => handleAddExistingLineItem()}>
+                            <Database className="mr-2 h-4 w-4 text-blue-600" /> Add From Library
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setIsCustomLineItemDialogOpen(true)}>
+                            <ListPlus className="mr-2 h-4 w-4 text-orange-500" /> Add Custom Item
+                            </DropdownMenuItem>
+                          <DropdownMenuItem onClick={handleAddSection}>
+                            <SquarePlus className="mr-2 h-4 w-4 text--500" /> Add Section
+                          </DropdownMenuItem> 
                       <DropdownMenuItem onClick={() => setIsBulkMarkupDialogOpen(true)}>
-                        <CirclePercent className="mr-2 h-4 w-4 text-green-700" /> Add Markup
-                      </DropdownMenuItem>                     
+                        <Calculator className="mr-2 h-4 w-4 text-green-700" /> Add Markup
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setIsDiscountDialogOpen(true)}>
+                        <Tag className="mr-2 h-4 w-4 text-purple-600" /> Apply Discount
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setIsTaxRateDialogOpen(true)}>
+                        <CirclePercent className="mr-2 h-4 w-4 text-blue-600" /> Set Tax Rate
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </CardHeader>
@@ -921,181 +873,125 @@ export function EstimateForm({
                             onToggleSectionOptionality={handleToggleSectionOptionality}
                             onApplySectionBulkMarkup={handleOpenSectionBulkMarkup} // Pass new prop
                           />
-                          <div className="grid grid-cols-12 gap-2 text-sm font-medium text-muted-foreground mt-4 mb-2">
-                            <div className="col-span-3">Item Name</div>
-                            <div className="col-span-1 text-right">Qty</div>
-                            <div className="col-span-1 text-right">Unit</div>
-                            <div className="col-span-1 text-right">Cost</div>
-                            <div className="col-span-1 text-right">MU %</div>
-                            <div className="col-span-1 text-center">Tax</div>
-                            <div className="col-span-1 text-right">Total</div>
-                            <div className="col-span-1 text-right">Assigned To</div>
-                            <div className="col-span-1 text-center">Optional</div>
-                            <div className="col-span-1"></div>
-                          </div>
-                          <div className="space-y-4">
-                            {section.line_items.map((item, index) => (
-                              <EstimateLineItemRow
-                                key={item.id || `new-${index}`}
-                                lineItem={item}
-                                onUpdate={(updatedItem) => handleUpdateLineItem(item.id!, updatedItem)}
-                                onDelete={() => handleDeleteLineItem(item.id!)}
-                                isNew={!item.id}
-                              />
-                            ))}
-                          </div>
+                          <table className="w-full">
+                            <thead>
+                              <tr className="text-sm font-medium text-muted-foreground">
+                                <th className="w-1/12 px-2 py-2 text-left">Type</th>
+                                <th className="w-2/12 px-2 py-2 text-left">Item Name</th>
+                                <th className="w-1/12 px-2 py-2 text-center">Qty</th>
+                                <th className="w-1/12 px-2 py-2 text-center">Unit</th>
+                                <th className="w-1/12 px-2 py-2 text-right">Cost</th>
+                                <th className="w-1/12 px-2 py-2 text-right">MU %</th>
+                                <th className="w-1/12 px-2 py-2 text-center">Tax</th>
+                                <th className="w-1/12 px-2 py-2 text-right">Total</th>
+                                <th className="w-1/12 px-2 py-2 text-center">Assigned</th>
+                                <th className="w-1/12 px-2 py-2 text-center">Optional</th>
+                                <th className="w-1/12 px-2 py-2"></th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {section.line_items.map((item, index) => (
+                                <EstimateLineItemRow
+                                  key={item.id || `new-${index}`}
+                                  lineItem={item}
+                                  onUpdate={(updatedItem) => handleUpdateLineItem(item.id!, updatedItem)}
+                                  onDelete={() => handleDeleteLineItem(item.id!)}
+                                  isNew={!item.id}
+                                  index={index}
+                                />
+                              ))}
+                            </tbody>
+                          </table>
                         </div>
                       ))}
 
-                      <div className="flex justify-end pt-4 border-t">
-                        <div className="w-1/3 space-y-2">
-                          <div className="flex justify-between">
-                            <span className="font-medium">Subtotal:</span>
-                            <span>{formatCurrency(subtotalAmount)}</span>
-                          </div>
-
-                          <div className="flex items-center justify-between">
-                            <span className="font-medium">Discount:</span>
-                            <div className="flex items-center space-x-2">
-                              <FormField
-                                control={form.control}
-                                name="discount_type"
-                                render={({ field }) => (
-                                  <Select
-                                    onValueChange={field.onChange}
-                                    value={field.value || ""}
-                                  >
-                                    <SelectTrigger className="w-[100px]">
-                                      <SelectValue placeholder="Type" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="percentage">
-                                        <div className="flex items-center">
-                                          <Percent className="mr-2 h-4 w-4" />
-                                          Percentage
-                                        </div>
-                                      </SelectItem>
-                                      <SelectItem value="fixed">
-                                        <div className="flex items-center">
-                                          <DollarSign className="mr-2 h-4 w-4" />
-                                          Fixed
-                                        </div>
-                                      </SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                )}
-                              />
-
-                              <FormField
-                                control={form.control}
-                                name="discount_value"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormControl>
-                                      <Input
-                                        type="number"
-                                        min="0"
-                                        step="0.01"
-                                        {...field}
-                                        disabled={!form.watch("discount_type")}
-                                        className="w-[80px] text-right"
-                                        value={field.value ?? ""}
-                                      />
-                                    </FormControl>
-                                  </FormItem>
-                                )}
-                              />
-
-                              {form.watch("discount_type") === "percentage" && (
-                                <span>%</span>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="flex justify-between text-lg font-bold">
-                            <span>Total:</span>
-                            <span>{formatCurrency(totalAmount)}</span>
-                          </div>
-                        </div>
-                      </div>
                     </div>
                   )}
                 </CardContent>
               </Card>
-            </TabsContent>
-
-            <TabsContent value="payment-schedule">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle>Payment Schedule</CardTitle>
-                  <Button type="button" onClick={handleAddPaymentSchedule} variant="outline">
-                    <Plus className="mr-2 h-4 w-4" /> Add Payment
-                  </Button>
-                </CardHeader>
-                <CardContent>
-                  {paymentSchedules.length === 0 ? (
-                    <div className="text-center py-4">
-                      <p className="text-muted-foreground">No payment schedule defined. Click "Add Payment" to get started.</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-12 gap-4 text-sm font-medium text-muted-foreground mb-2">
-                        <div className="col-span-4">Description</div>
-                        <div className="col-span-2 text-right">Amount</div>
-                        <div className="col-span-5">Due</div>
-                        <div className="col-span-1"></div>
-                      </div>
-
-                      {paymentSchedules.map((schedule, index) => (
-                        <PaymentScheduleItem
-                          key={schedule.id || `new-${index}`}
-                          schedule={schedule}
-                          totalAmount={totalAmount}
-                          onUpdate={(updatedSchedule) => handleUpdatePaymentSchedule(index, updatedSchedule)}
-                          onDelete={() => handleDeletePaymentSchedule(index)}
-                        />
-                      ))}
-
-                      <div className="flex justify-end pt-4 border-t">
-                        <div className="w-1/3 space-y-2">
-                          <div className="flex justify-between">
-                            <span className="font-medium">Total Scheduled:</span>
-                            <span>
-                              {formatCurrency(paymentSchedules.reduce((sum, schedule) => sum + (schedule.amount || 0), 0))}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="font-medium">Estimate Total:</span>
-                            <span>{formatCurrency(totalAmount)}</span>
-                          </div>
-                          <div className="flex justify-between text-lg font-bold">
-                            <span>Difference:</span>
-                            <span className={cn(
-                              Math.abs(totalAmount - paymentSchedules.reduce((sum, schedule) => sum + (schedule.amount || 0), 0)) < 0.01
-                                ? "text-green-600"
-                                : "text-amber-600"
-                            )}>
-                              {formatCurrency(totalAmount - paymentSchedules.reduce((sum, schedule) => sum + (schedule.amount || 0), 0))}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* New Summary Tab Content */}
-            <TabsContent value="summary">
+            </div>
+            {/* Right Column for Estimate Summary */}
+            <div className="md:col-span-1 sticky top-0 h-fit">
               <EstimateSummary
                 estimate={estimate}
-                sections={sections} // Pass sections instead of lineItems
+                sections={sections}
                 subtotalAmount={subtotalAmount}
                 discountedSubtotal={discountedSubtotal}
                 taxAmount={taxAmount}
                 totalAmount={totalAmount}
               />
+            </div>
+          </div>
+        </TabsContent>
+
+            <TabsContent value="payment-schedule">
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-8"> {/* Changed to md:grid-cols-12 */}
+                {/* Left Column: Payment Schedule Items */}
+                <Card className="md:col-span-8"> {/* Changed to md:col-span-8 */}
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <CardTitle>Payment Schedule</CardTitle>
+                    <Button type="button" onClick={handleAddPaymentSchedule} variant="outline">
+                      <Plus className="mr-2 h-4 w-4" /> Add Payment
+                    </Button>
+                  </CardHeader>
+                  <CardContent>
+                    {paymentSchedules.length === 0 ? (
+                      <div className="text-center py-4">
+                        <p className="text-muted-foreground">No payment schedule defined. Click "Add Payment" to get started.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-12 gap-4 text-sm font-medium text-muted-foreground mb-2">
+                          <div className="col-span-4">Description</div>
+                          <div className="col-span-2 text-right">Amount</div>
+                          <div className="col-span-4">Due</div>
+                          <div className="col-span-1 text-right">Percentage</div> {/* New header */}
+                          <div className="col-span-1"></div> {/* For delete button */}
+                        </div>
+
+                        {paymentSchedules.map((schedule, index) => (
+                          <PaymentScheduleItem
+                            key={schedule.id || `new-${index}`}
+                            schedule={schedule}
+                            totalAmount={totalAmount}
+                            onUpdate={(updatedSchedule) => handleUpdatePaymentSchedule(index, updatedSchedule)}
+                            onDelete={() => handleDeletePaymentSchedule(index)}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Right Column: Payment Summary */}
+                <Card className="md:col-span-4"> {/* Changed to md:col-span-4 */}
+                  <CardHeader>
+                    <CardTitle>Payment Schedule Summary</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex justify-between">
+                      <span className="font-medium">Payments Scheduled:</span>
+                      <span>
+                        {formatCurrency(paymentSchedules.reduce((sum, schedule) => sum + (schedule.amount || 0), 0))}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium">Estimate Total:</span>
+                      <span>{formatCurrency(totalAmount)}</span>
+                    </div>
+                    <div className="flex justify-between text-lg font-bold">
+                      <span>Remaining Balance:</span>
+                      <span className={cn(
+                        Math.abs(totalAmount - paymentSchedules.reduce((sum, schedule) => sum + (schedule.amount || 0), 0)) < 0.01
+                          ? "text-green-600"
+                          : "text-amber-600"
+                      )}>
+                        {formatCurrency(totalAmount - paymentSchedules.reduce((sum, schedule) => sum + (schedule.amount || 0), 0))}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
 
             {/* Documents Tab Content */}
@@ -1129,6 +1025,9 @@ export function EstimateForm({
             <Button type="button" variant="outline" onClick={() => router.push("/estimates")}>
               Cancel
             </Button>
+            <Button type="submit" disabled={isSubmitting}> {/* New Save button */}
+              Save
+            </Button>
             <Button type="button" onClick={handleReviewAndSubmit} disabled={isSubmitting}>
               Review and Submit
             </Button>
@@ -1159,6 +1058,21 @@ export function EstimateForm({
         onClose={() => setIsCustomLineItemDialogOpen(false)}
         onAddCustomItem={handleAddCustomLineItem}
         sections={sections.map(s => s.name)}
+      />
+
+      <DiscountDialog
+        isOpen={isDiscountDialogOpen}
+        onClose={() => setIsDiscountDialogOpen(false)}
+        onApplyDiscount={handleApplyDiscount}
+        initialDiscountType={form.watch("discount_type") || ""}
+        initialDiscountValue={form.watch("discount_value") || 0}
+      />
+
+      <TaxRateDialog
+        isOpen={isTaxRateDialogOpen}
+        onClose={() => setIsTaxRateDialogOpen(false)}
+        onApplyTaxRate={handleApplyTaxRate}
+        initialTaxRate={form.watch("tax_rate_percentage") || 0}
       />
 
       {/* Add Section Dialog */}

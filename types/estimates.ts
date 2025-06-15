@@ -182,7 +182,8 @@ export interface EstimatePaymentSchedule {
   estimate_id: string
   description: string
   amount: number
-  due_type: PaymentScheduleDueType | null // Added due_type
+  due_type: PaymentScheduleDueType | null
+  due_days: number | null // Added due_days
   due_date: string | null
   sort_order: number
   created_at: string
@@ -194,7 +195,8 @@ export interface NewEstimatePaymentSchedule {
   estimate_id: string
   description: string
   amount: number
-  due_type?: PaymentScheduleDueType | null // Allow null for due_type
+  due_type?: PaymentScheduleDueType | null
+  due_days?: number | null // Added due_days
   due_date?: string | null
   sort_order?: number
 }
@@ -202,7 +204,8 @@ export interface NewEstimatePaymentSchedule {
 export interface UpdateEstimatePaymentSchedule {
   description?: string
   amount?: number
-  due_type?: PaymentScheduleDueType // Added due_type
+  due_type?: PaymentScheduleDueType
+  due_days?: number | null // Added due_days
   due_date?: string | null
   sort_order?: number
 }

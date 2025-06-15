@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
-import { Trash, Sparkles, ChevronDown, ChevronUp } from "lucide-react"
+import { Trash, Sparkles, Edit, Check, X } from "lucide-react"
 import { formatCurrency } from "@/lib/utils"
 import type { EstimateLineItem } from "@/types/estimates"
 import type { User } from "@/types/auth"
@@ -18,7 +18,9 @@ import {
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip" // Import Tooltip components
+} from "@/components/ui/tooltip"
+import { Badge } from "@/components/ui/badge"
+import { CostItemType } from "@/types/cost-items"
 
 interface EstimateLineItemProps {
   lineItem: Partial<EstimateLineItem>
@@ -26,6 +28,24 @@ interface EstimateLineItemProps {
   onDelete: () => void
   isNew?: boolean
   isAISuggested?: boolean
+  index: number
+}
+
+const getBadgeVariant = (type: CostItemType) => {
+  switch (type) {
+    case "Material":
+      return "secondary"
+    case "Labor":
+      return "secondary"
+    case "Equipment":
+      return "outline"
+    case "Subcontractor":
+      return "destructive"
+    case "Other":
+      return "outline"
+    default:
+      return "default"
+  }
 }
 
 export function EstimateLineItemRow({
@@ -34,91 +54,102 @@ export function EstimateLineItemRow({
   onDelete,
   isNew = false,
   isAISuggested = false,
+  index,
 }: EstimateLineItemProps) {
-  const [quantity, setQuantity] = useState(lineItem.quantity?.toString() || "1")
-  const [unitCost, setUnitCost] = useState(lineItem.unit_cost?.toString() || "0")
-  const [markup, setMarkup] = useState(lineItem.markup?.toString() || "0")
-  const [total, setTotal] = useState(lineItem.total || 0)
-  const [description, setDescription] = useState(lineItem.description || "") // Keep internal description state for editing
-  const [unit, setUnit] = useState(lineItem.unit || "EA")
-  const [isOptional, setIsOptional] = useState(lineItem.is_optional || false)
-  const [isTaxable, setIsTaxable] = useState<boolean>(lineItem.is_taxable || true)
-  const [assignedToUserId, setAssignedToUserId] = useState(lineItem.assigned_to_user_id || "none")
-  const [users, setUsers] = useState<User[]>([]);
+  const [isEditing, setIsEditing] = useState(isNew)
+  const [editedLineItem, setEditedLineItem] = useState(lineItem)
+  const [users, setUsers] = useState<User[]>([])
+  const [liveTotal, setLiveTotal] = useState(lineItem.total || 0)
 
-  // Synchronize internal isOptional state with prop changes
   useEffect(() => {
-    setIsOptional(lineItem.is_optional || false);
-  }, [lineItem.is_optional]);
+    setEditedLineItem(lineItem)
+  }, [lineItem])
 
-  // Fetch users on component mount
   useEffect(() => {
     const fetchUsers = async () => {
-      const { data, error } = await supabase.from("users").select("id, first_name, last_name");
+      const { data, error } = await supabase.from("users").select("id, first_name, last_name")
       if (error) {
-        console.error("Error fetching users:", error);
+        console.error("Error fetching users:", error)
       } else {
-        setUsers(data as User[]);
+        setUsers(data as User[])
       }
-    };
-    fetchUsers();
-  }, []);
+    }
+    fetchUsers()
+  }, [])
 
-  // Calculate total and update parent when relevant states change
   useEffect(() => {
-    const qty = Number.parseFloat(quantity) || 0
-    const cost = Number.parseFloat(unitCost) || 0
-    const mkp = Number.parseFloat(markup) || 0
+    if (isEditing) {
+      const qty = Number.parseFloat(String(editedLineItem.quantity)) || 0
+      const cost = Number.parseFloat(String(editedLineItem.unit_cost)) || 0
+      const mkp = Number.parseFloat(String(editedLineItem.markup)) || 0
+
+      const subtotal = qty * cost
+      const markupAmount = subtotal * (mkp / 100)
+      const newTotal = subtotal + markupAmount
+
+      setLiveTotal(newTotal)
+    }
+  }, [isEditing, editedLineItem.quantity, editedLineItem.unit_cost, editedLineItem.markup])
+
+  const handleFieldChange = (updates: Partial<EstimateLineItem>) => {
+    setEditedLineItem((prev: Partial<EstimateLineItem>) => ({ ...prev, ...updates }))
+  }
+
+  const handleSave = () => {
+    const qty = Number.parseFloat(String(editedLineItem.quantity)) || 0
+    const cost = Number.parseFloat(String(editedLineItem.unit_cost)) || 0
+    const mkp = Number.parseFloat(String(editedLineItem.markup)) || 0
 
     const subtotal = qty * cost
     const markupAmount = subtotal * (mkp / 100)
     const newTotal = subtotal + markupAmount
 
-    setTotal(newTotal)
-
     onUpdate({
-      ...lineItem,
+      ...editedLineItem,
       quantity: qty,
       unit_cost: cost,
       markup: mkp,
       total: newTotal,
-      description,
-      unit,
-      is_optional: isOptional,
-      is_taxable: isTaxable,
-      assigned_to_user_id: assignedToUserId === "none" ? null : assignedToUserId,
-      cost_item_id: lineItem.cost_item_id, // Keep existing cost_item_id if any
+      assigned_to_user_id: editedLineItem.assigned_to_user_id === "none" ? null : editedLineItem.assigned_to_user_id,
     })
-  }, [quantity, unitCost, markup, description, unit, isOptional, isTaxable, assignedToUserId, lineItem.cost_item_id])
+    setIsEditing(false)
+  }
 
-  return (
-    <div className="mb-2 p-2 rounded-md border">
-      <div className={cn("grid grid-cols-12 gap-2 items-center")}>
-        <div className="col-span-3 flex items-center space-x-2">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Input
-                  placeholder="Description"
-                  value={lineItem.costItem?.name || description} // Display cost item name or description
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="flex-1"
-                />
-              </TooltipTrigger>
-              {lineItem.description && lineItem.description !== (lineItem.costItem?.name || '') && (
-                <TooltipContent className="max-w-xs p-2 text-sm">
-                  {lineItem.description}
-                </TooltipContent>
-              )}
-            </Tooltip>
-          </TooltipProvider>
-        </div>
-        <div className="col-span-1">
-          <Input type="number" min="0" step="0.01" value={quantity} onChange={(e) => setQuantity(e.target.value)} />
-        </div>
-        <div className="col-span-1">
-          <Select value={unit} onValueChange={setUnit}>
-            <SelectTrigger>
+  const handleCancel = () => {
+    setEditedLineItem(lineItem)
+    setIsEditing(false)
+    if (isNew) {
+      onDelete()
+    }
+  }
+
+  const assignedUser = users.find(u => u.id === lineItem.assigned_to_user_id)
+
+  if (isEditing) {
+    return (
+      <tr className={cn("items-center", index % 2 === 0 ? "bg-blue-50" : "bg-white")}>
+        <td className="p-2">
+          {lineItem.costItem?.type ? (
+            <Badge variant={getBadgeVariant(lineItem.costItem.type as CostItemType)} className="text-[10px]">{lineItem.costItem.type}</Badge>
+          ) : (
+            <span className="text-[10px] text-muted-foreground">N/A</span>
+          )}
+        </td>
+        <td className="p-2">
+          <Input
+            placeholder="Description"
+            value={editedLineItem.costItem?.name || editedLineItem.description}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFieldChange({ description: e.target.value })}
+            className="flex-1"
+            style={{ fontSize: '10px' }}
+          />
+        </td>
+        <td className="p-2">
+          <Input type="number" min="0" step="0.01" value={editedLineItem.quantity?.toString() || "1"} onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFieldChange({ quantity: parseFloat(e.target.value) || 0 })} style={{ fontSize: '10px' }} />
+        </td>
+        <td className="p-2">
+          <Select value={editedLineItem.unit || "EA"} onValueChange={(value: string) => handleFieldChange({ unit: value })}>
+            <SelectTrigger style={{ fontSize: '10px' }}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -135,42 +166,44 @@ export function EstimateLineItemRow({
               <SelectItem value="LOT">lot</SelectItem>
               <SelectItem value="CUBIC YD">cubic yd</SelectItem>
               <SelectItem value="CUBIC FT">cubic ft</SelectItem>
-              <SelectItem value="CU IN">cu in</SelectItem>              
+              <SelectItem value="CU IN">cu in</SelectItem>
             </SelectContent>
           </Select>
-        </div>
-        <div className="col-span-1">
+        </td>
+        <td className="p-2">
           <Input
             type="number"
             min="0"
             step="0.01"
-            value={unitCost}
-            onChange={(e) => setUnitCost(e.target.value)}
+            value={editedLineItem.unit_cost?.toString() || "0"}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFieldChange({ unit_cost: parseFloat(e.target.value) || 0 })}
             className="text-right"
+            style={{ fontSize: '10px' }}
           />
-        </div>
-        <div className="col-span-1">
+        </td>
+        <td className="p-2">
           <Input
             type="number"
             min="0"
             step="0.01"
-            value={markup}
-            onChange={(e) => setMarkup(e.target.value)}
+            value={editedLineItem.markup?.toString() || "0"}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFieldChange({ markup: parseFloat(e.target.value) || 0 })}
             className="text-right"
+            style={{ fontSize: '10px' }}
           />
-        </div>
-        <div className="col-span-1 flex items-center justify-center">
+        </td>
+        <td className="p-2 text-center">
           <Checkbox
             id={`taxable-${lineItem.id}`}
-            checked={isTaxable}
-            onCheckedChange={(checked) => setIsTaxable(!!checked)}
+            checked={editedLineItem.is_taxable}
+            onCheckedChange={(checked: boolean) => handleFieldChange({ is_taxable: !!checked })}
           />
-        </div>
-        <div className="col-span-1 text-right font-medium">{formatCurrency(total)}</div>
-        <div className="col-span-1">
-          <Select value={assignedToUserId} onValueChange={setAssignedToUserId}>
-            <SelectTrigger>
-              <SelectValue placeholder="Assign to user (optional)" />
+        </td>
+        <td className="p-2 text-right font-medium" style={{ fontSize: '10px' }}>{formatCurrency(liveTotal)}</td>
+        <td className="p-2">
+          <Select value={editedLineItem.assigned_to_user_id || "none"} onValueChange={(value: string) => handleFieldChange({ assigned_to_user_id: value })}>
+            <SelectTrigger style={{ fontSize: '10px' }}>
+              <SelectValue placeholder="Assign..." />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="none">Unassigned</SelectItem>
@@ -181,21 +214,74 @@ export function EstimateLineItemRow({
               ))}
             </SelectContent>
           </Select>
-        </div>
-        <div className="col-span-1 flex items-center justify-center">
+        </td>
+        <td className="p-2 text-center">
           <Checkbox
             id={`optional-${lineItem.id}`}
-            checked={isOptional}
-            onCheckedChange={(checked) => setIsOptional(!!checked)}
+            checked={editedLineItem.is_optional}
+            onCheckedChange={(checked: boolean) => handleFieldChange({ is_optional: !!checked })}
           />
-        </div>
-        <div className="col-span-1 text-right">
+        </td>
+        <td className="p-2 flex items-center justify-end space-x-1">
+          <Button variant="ghost" size="icon" onClick={handleSave} className="h-8 w-8">
+            <Check className="h-4 w-4 text-green-500" />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={handleCancel} className="h-8 w-8">
+            <X className="h-4 w-4 text-gray-500" />
+          </Button>
           <Button variant="ghost" size="icon" onClick={onDelete} className="h-8 w-8">
             <Trash className="h-4 w-4 text-red-500" />
-            <span className="sr-only">Delete</span>
           </Button>
-        </div>
-      </div>
-    </div>
+        </td>
+      </tr>
+    )
+  }
+
+  return (
+    <tr className={cn("items-center", index % 2 === 0 ? "bg-gray-50" : "bg-white")}>
+      <td className="p-2">
+        {lineItem.costItem?.type ? (
+          <Badge variant={getBadgeVariant(lineItem.costItem.type as CostItemType)} className="text-[10px]">{lineItem.costItem.type}</Badge>
+        ) : (
+          <span className="text-[10px] text-muted-foreground">N/A</span>
+        )}
+      </td>
+      <td className="p-2 text-[10px] font-medium">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger>
+              <p className="truncate text-left">{lineItem.costItem?.name || lineItem.description}</p>
+            </TooltipTrigger>
+            {lineItem.description && lineItem.description !== (lineItem.costItem?.name || '') && (
+              <TooltipContent className="max-w-xs p-2" style={{ fontSize: '10px' }}>
+                {lineItem.description}
+              </TooltipContent>
+            )}
+          </Tooltip>
+        </TooltipProvider>
+      </td>
+      <td className="p-2 text-[10px] text-center">{lineItem.quantity}</td>
+      <td className="p-2 text-[10px] text-center">{lineItem.unit}</td>
+      <td className="p-2 text-[10px] text-right">{formatCurrency(lineItem.unit_cost || 0)}</td>
+      <td className="p-2 text-[10px] text-right">{lineItem.markup || 0}%</td>
+      <td className="p-2 text-center">
+        <Checkbox checked={lineItem.is_taxable} disabled />
+      </td>
+      <td className="p-2 text-right font-medium" style={{ fontSize: '10px' }}>{formatCurrency(lineItem.total || 0)}</td>
+      <td className="p-2 text-[10px] text-center truncate">
+        {assignedUser ? `${assignedUser.first_name} ${assignedUser.last_name}` : 'Unassigned'}
+      </td>
+      <td className="p-2 text-center">
+        <Checkbox checked={lineItem.is_optional} disabled />
+      </td>
+      <td className="p-2 flex items-center justify-end space-x-1">
+        <Button variant="ghost" size="icon" onClick={() => setIsEditing(true)} className="h-8 w-8">
+          <Edit className="h-4 w-4" />
+        </Button>
+        <Button variant="ghost" size="icon" onClick={onDelete} className="h-8 w-8">
+          <Trash className="h-4 w-4 text-red-500" />
+        </Button>
+      </td>
+    </tr>
   )
 }

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
-import { Menu, Plus, Trash2, Edit, Check, X, Percent } from "lucide-react"
+import { Menu, Plus, Trash2, Edit, Check, X, Percent, ListPlus, Database, CirclePercent, ListTodo } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -87,21 +87,6 @@ export function EstimateSectionHeader({
       <div className="flex items-center space-x-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button type="button" size="sm">
-              <Plus className="h-4 w-4" /> Add Item
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => onAddExistingLineItem(section.id)}>
-              Add from Cost Items Library
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onAddCustomLineItem(section.id)}>
-              Create Custom Cost Item(s)
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon">
               <Menu className="h-4 w-4" />
             </Button>
@@ -111,19 +96,36 @@ export function EstimateSectionHeader({
               <Edit className="mr-2 h-4 w-4" /> Rename Section
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => onApplySectionBulkMarkup(section.id)}>
-              <Percent className="mr-2 h-4 w-4" /> Apply Bulk Markup
+              <CirclePercent className="mr-2 h-4 w-4 text-green-700" /> Add Markup
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleToggleOptional(!section.is_optional)}>
-              <Checkbox
-                id={`optional-menu-${section.id}`}
-                checked={section.is_optional}
-                onCheckedChange={handleToggleOptional}
-                className="mr-2"
-              />
-              <Label htmlFor={`optional-menu-${section.id}`}>Make Section Optional</Label>
+            <DropdownMenuItem>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id={`optional-menu-${section.id}`}
+                  checked={section.is_optional}
+                  onCheckedChange={handleToggleOptional}
+                  className="mr-2"
+                />
+                <Label htmlFor={`optional-menu-${section.id}`}>Make Optional</Label>
+              </div>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => onDeleteSection(section.id)} className="text-red-600">
               <Trash2 className="mr-2 h-4 w-4" /> Delete Section
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button type="button" size="sm">
+              <Plus className="h-4 w-4" /> Add Item
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => onAddExistingLineItem(section.id)}>
+              <Database className="mr-2 h-4 w-4 text-blue-600" /> Add From Library
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onAddCustomLineItem(section.id)}>
+              <ListPlus className="mr-2 h-4 w-4 text-orange-500" /> Add Custom Item
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
