@@ -3,7 +3,7 @@
 import { notFound, useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { projectService } from "@/lib/projects" // This will be a client-side fetch or passed as prop
-import JobForm from "@/components/job-form" // Corrected import path
+import JobForm from "@/components/jobs/job-form" // Corrected import path
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 
 export default function NewJobPage({ params }: { params: { id: string } }) {

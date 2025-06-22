@@ -25,7 +25,12 @@ export const personService = {
       // Apply filters
       if (filters?.type && filters.type !== "all") {
         // Convert to proper case to match database values (e.g., "lead" -> "Lead")
-        query = query.eq("person_type", filters.type.charAt(0).toUpperCase() + filters.type.slice(1).toLowerCase() as PersonType)
+        // Only allow valid types for filtering
+        const allowedTypes = ["Lead", "Individual", "Business"] as const;
+        const dbType = filters.type.charAt(0).toUpperCase() + filters.type.slice(1).toLowerCase();
+        if (allowedTypes.includes(dbType as any)) {
+          query = query.eq("person_type", dbType as typeof allowedTypes[number]);
+        }
       }
 
       if (filters?.leadSource) {
@@ -73,10 +78,16 @@ export const personService = {
 
   async createPerson(person: NewPerson): Promise<Person> {
     try {
+      // Only allow valid person_type values for insertion
+      const allowedTypes = ["Lead", "Individual", "Business"] as const;
+      const formattedType = person.person_type.charAt(0).toUpperCase() + person.person_type.slice(1).toLowerCase();
+      const safePersonType = allowedTypes.includes(formattedType as typeof allowedTypes[number])
+        ? formattedType
+        : "Lead"; // fallback to "Lead" or handle as needed
+
       const personData = {
         ...person,
-        // Ensure person_type is a valid PersonType value
-        person_type: (person.person_type.charAt(0).toUpperCase() + person.person_type.slice(1).toLowerCase()) as PersonType,
+        person_type: safePersonType as "Lead" | "Individual" | "Business" | null | undefined,
       }
 
       const { data, error } = await supabase.from("people").insert(personData).select().single()
@@ -152,3 +163,5 @@ export const personService = {
     return personType.charAt(0).toUpperCase() + personType.slice(1).toLowerCase()
   },
 }
+
+export type { Person };

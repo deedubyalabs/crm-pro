@@ -14,8 +14,6 @@ export type CostItem = {
   is_active: boolean;
   created_at: string;
   updated_at: string;
-  sync_with_bigbox: boolean | null;
-  last_price_sync: string | null;
   cost_item_group_id: string | null;
 } & {
   cost_item_group?: CostItemGroup | null; // Include related group data

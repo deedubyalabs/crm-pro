@@ -17,7 +17,11 @@ export async function getTimeEntries(): Promise<TimeEntryWithDetails[]> {
     return (data || []).map(entry => ({
       ...entry,
       created_at: entry.created_at || new Date().toISOString(),
-      updated_at: entry.updated_at || new Date().toISOString()
+      updated_at: entry.updated_at || new Date().toISOString(),
+      job: {
+        ...entry.job,
+        hourly_rate: entry.job?.hourly_rate ?? 0,
+      }
     }))
   } catch (error) {
     console.error("Error fetching time entries:", error)
@@ -39,7 +43,15 @@ export async function getTimeEntriesByProject(projectId: string): Promise<TimeEn
       .order("date", { ascending: false })
 
     if (error) throw error
-    return data || []
+    return (data || []).map(entry => ({
+      ...entry,
+      created_at: entry.created_at || new Date().toISOString(),
+      updated_at: entry.updated_at || new Date().toISOString(),
+      job: {
+        ...entry.job,
+        hourly_rate: entry.job?.hourly_rate ?? 0,
+      }
+    }))
   } catch (error) {
     console.error("Error fetching time entries by project:", error)
     throw new Error(handleSupabaseError(error))
@@ -64,6 +76,16 @@ export async function getTimeEntryById(id: string): Promise<TimeEntryWithDetails
       throw error
     }
     return data
+      ? {
+          ...data,
+          created_at: data.created_at || new Date().toISOString(),
+          updated_at: data.updated_at || new Date().toISOString(),
+          job: {
+            ...data.job,
+            hourly_rate: data.job?.hourly_rate ?? 0,
+          }
+        }
+      : null
   } catch (error) {
     console.error("Error fetching time entry by ID:", error)
     throw new Error(handleSupabaseError(error))
@@ -144,7 +166,11 @@ export async function getBillableTimeEntriesByProject(
     return (data || []).map(entry => ({
       ...entry,
       created_at: entry.created_at || new Date().toISOString(),
-      updated_at: entry.updated_at || new Date().toISOString()
+      updated_at: entry.updated_at || new Date().toISOString(),
+      job: {
+        ...entry.job,
+        hourly_rate: entry.job?.hourly_rate ?? 0,
+      }
     }))
   } catch (error) {
     console.error("Error fetching billable time entries:", error)

@@ -211,6 +211,7 @@ export interface UpdateEstimatePaymentSchedule {
 }
 
 export interface EstimateWithDetails extends Estimate {
+  lineItems: any
   title: string; // Added title property
   person: {
     id: string

@@ -2,22 +2,15 @@
 
 import { useEffect, useState } from "react"
 import apiClient from "@/lib/api-client"
-import { Job } from "@/types/job" // Assuming Job type is defined
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "@/components/ui/use-toast"
-import JobDetailDrawer from "@/components/job-detail-drawer"
 
 interface ProjectJobsListProps {
   projectId: string
 }
 
-interface JobWithId extends Job {
-  id: string;
-}
-
 export default function ProjectJobsList({ projectId }: ProjectJobsListProps) {
-  const [jobs, setJobs] = useState<JobWithId[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null)
   const [isJobDetailDrawerOpen, setIsJobDetailDrawerOpen] = useState(false)

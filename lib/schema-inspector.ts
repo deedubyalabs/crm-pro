@@ -3,7 +3,7 @@ import { supabase } from "./supabase"
 export async function inspectTable(tableName: string) {
   try {
     // Get the table definition
-    const { data: tableInfo, error: tableError } = await supabase.rpc("inspect_table", {
+    const { data: tableInfo, error: tableError } = await (supabase.rpc as any)("inspect_table", {
       table_name: tableName,
     })
 
@@ -22,7 +22,7 @@ export async function inspectTable(tableName: string) {
 
 export async function listTables() {
   try {
-    const { data, error } = await supabase.rpc('get_tables')
+    const { data, error } = await (supabase.rpc as any)('get_tables')
 
     if (error) {
       console.error("Error listing tables:", error)

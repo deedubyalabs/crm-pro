@@ -1,6 +1,5 @@
 import { supabase, handleSupabaseError } from "./supabase"
 import type { Project, NewProject, UpdateProject, ProjectWithCustomer, ProjectFilters } from "../types/project";
-import type { Job, NewJob, UpdateJob } from "../types/job";
 import type { Database } from "../types/supabase"; // Import Database to access enums
 
 export type ProjectStatus = Database["public"]["Enums"]["project_status"];

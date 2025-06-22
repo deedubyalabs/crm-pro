@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { formatDate } from "@/lib/utils"
 import { ArrowLeft, Calendar, Clock, Edit, FileText, PlayCircle, User } from "lucide-react"
-import JobForm from "@/components/job-form"
+import JobForm from "@/components/jobs/job-form"
 
 export default async function JobPage({ params }: { params: { id: string; jobId: string } }) {
   // Special case: if the jobId is "new", redirect to the new job page

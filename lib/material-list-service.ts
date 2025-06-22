@@ -100,7 +100,17 @@ export const materialListService = {
       return {
         ...materialList,
         project: materialList.project!,
-        items: items || [],
+        items: (items || []).map((item) => ({
+          ...item,
+          costItem: item.costItem
+            ? {
+                sync_with_bigbox: null,
+                last_price_sync: null,
+                ...item.costItem,
+              }
+            : null,
+          supplier: item.supplier ?? null,
+        })),
         estimate: materialList.estimate ? {
           ...materialList.estimate,
           estimate_number: materialList.estimate.estimate_number || ''

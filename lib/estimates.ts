@@ -11,10 +11,12 @@ import type {
   EstimatePaymentSchedule,
   NewEstimatePaymentSchedule,
   UpdateEstimatePaymentSchedule,
-  LineItemsBySection,
 } from "@/types/estimates"
-import { blueprintOfValuesService } from "./blueprint-of-values";
-import { invoiceService, Invoice } from "./invoices"; // Import Invoice type from lib/invoices
+
+// Define LineItemsBySection type locally
+type LineItemsBySection = {
+  [sectionName: string]: EstimateLineItem[];
+};
 
 export const estimateService = {
   // Helper to handle actions when an estimate is accepted
@@ -31,68 +33,8 @@ export const estimateService = {
         return { bovGenerated, initialInvoiceGenerated, bovId: null, invoiceId: null };
       }
 
-      // 1. Generate Blueprint of Values (BOV) if not already converted
-      if (!estimate.is_converted_to_bov) {
-        try {
-          const newBov = await blueprintOfValuesService.convertEstimateToBlueprintOfValues(estimateId, userId);
-          bovGenerated = true;
-          bovId = newBov.id;
-          console.log(`BOV generated for estimate ${estimateId} with ID ${bovId}`);
-        } catch (error) {
-          console.error(`Failed to generate BOV for estimate ${estimateId}:`, error);
-          // Continue even if BOV generation fails
-        }
-      }
 
-      // 2. Generate Initial Invoice if not already generated
-      if (!estimate.is_initial_invoice_generated && estimate.deposit_required && estimate.deposit_amount) {
-        try {
-          const newInvoice: Invoice = {
-            project_id: estimate.project_id!, // Assuming project_id is not null if estimate is accepted
-            person_id: estimate.person_id,
-            invoice_number: await invoiceService.getNextInvoiceNumber(),
-            status: "Draft", // Or "Sent" depending on desired flow
-            issue_date: new Date().toISOString().split('T')[0],
-            due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 7 days from now
-            total_amount: estimate.deposit_amount,
-            amount_paid: 0,
-            notes: `Deposit invoice for Estimate ${estimate.estimate_number}`,
-            created_by_user_id: userId,
-            line_items: [{
-              description: `Deposit for Estimate ${estimate.estimate_number}`,
-              quantity: 1,
-              unit: "each",
-              unit_price: estimate.deposit_amount,
-              total: estimate.deposit_amount,
-              sort_order: 0,
-            }],
-            id: ""
-          };
-          const createdInvoiceId = await invoiceService.createInvoice(newInvoice);
-          initialInvoiceGenerated = true;
-          invoiceId = createdInvoiceId;
-          console.log(`Initial deposit invoice generated for estimate ${estimateId} with ID ${invoiceId}`);
 
-          // Update the estimate to mark it as initial invoice generated and link the invoice
-          await supabase.from("estimates").update({
-            is_initial_invoice_generated: true,
-            initial_invoice_id: invoiceId,
-            updated_at: new Date().toISOString(),
-          }).eq("id", estimateId);
-
-        } catch (error) {
-          console.error(`Failed to generate initial invoice for estimate ${estimateId}:`, error);
-          // Continue even if invoice generation fails
-        }
-      }
-
-      // Update the estimate with BOV ID if generated
-      if (bovId) {
-        await supabase.from("estimates").update({
-          blueprint_of_values_id: bovId,
-          updated_at: new Date().toISOString(),
-        }).eq("id", estimateId);
-      }
 
     } catch (error) {
       console.error("Error in handleEstimateAccepted:", error);

@@ -1,45 +1,45 @@
-import { supabase, handleSupabaseError } from "./supabase"
-import type { CostItem, NewCostItem, UpdateCostItem, CostItemFilters, CostItemGroup, NewCostItemGroup, UpdateCostItemGroup, CostItemType } from "@/types/cost-items"
+import { supabase, handleSupabaseError } from "./supabase";
+import type { CostItem, NewCostItem, UpdateCostItem, CostItemFilters, CostItemGroup, NewCostItemGroup, UpdateCostItemGroup, CostItemType } from "@/types/cost-items";
 
 export const costItemService = {
   async getCostItems(
     filters?: CostItemFilters,
   ): Promise<{ costItems: CostItem[]; totalCount: number }> {
     try {
-      let query = supabase.from("cost_items").select("*, cost_item_groups(*)", { count: "exact" }).order("name")
+      let query = supabase.from("cost_items").select("*, cost_item_groups(*)", { count: "exact" }).order("name");
 
       // Apply filters
       if (filters?.type) {
-        query = query.eq("type", filters.type)
+        query = query.eq("type", filters.type);
       }
 
       if (filters?.isActive !== undefined) {
-        query = query.eq("is_active", filters.isActive)
+        query = query.eq("is_active", filters.isActive);
       }
 
       if (filters?.search) {
-        const searchTerm = `%${filters.search}%`
-        query = query.or(`name.ilike.${searchTerm},item_code.ilike.${searchTerm},description.ilike.${searchTerm}`)
+        const searchTerm = `%${filters.search}%`;
+        query = query.or(`name.ilike.${searchTerm},item_code.ilike.${searchTerm},description.ilike.${searchTerm}`);
       }
 
       let queryForCount = supabase.from("cost_items").select("id", { count: "exact" });
 
       // Apply filters to the count query
       if (filters?.type) {
-        queryForCount = queryForCount.eq("type", filters.type)
+        queryForCount = queryForCount.eq("type", filters.type);
       }
 
       if (filters?.isActive !== undefined) {
-        queryForCount = queryForCount.eq("is_active", filters.isActive)
+        queryForCount = queryForCount.eq("is_active", filters.isActive);
       }
 
       if (filters?.search) {
-        const searchTerm = `%${filters.search}%`
-        queryForCount = queryForCount.or(`name.ilike.${searchTerm},item_code.ilike.${searchTerm},description.ilike.${searchTerm}`)
+        const searchTerm = `%${filters.search}%`;
+        queryForCount = queryForCount.or(`name.ilike.${searchTerm},item_code.ilike.${searchTerm},description.ilike.${searchTerm}`);
       }
 
       if (filters?.groupId) {
-        queryForCount = queryForCount.eq("cost_item_group_id", filters.groupId)
+        queryForCount = queryForCount.eq("cost_item_group_id", filters.groupId);
       }
 
       const { count: totalCount, error: countError } = await queryForCount;
@@ -65,20 +65,20 @@ export const costItemService = {
 
       // Apply filters to the data query
       if (filters?.type) {
-        queryForData = queryForData.eq("type", filters.type)
+        queryForData = queryForData.eq("type", filters.type);
       }
 
       if (filters?.isActive !== undefined) {
-        queryForData = queryForData.eq("is_active", filters.isActive)
+        queryForData = queryForData.eq("is_active", filters.isActive);
       }
 
       if (filters?.search) {
-        const searchTerm = `%${filters.search}%`
-        queryForData = queryForData.or(`name.ilike.${searchTerm},item_code.ilike.${searchTerm},description.ilike.${searchTerm}`)
+        const searchTerm = `%${filters.search}%`;
+        queryForData = queryForData.or(`name.ilike.${searchTerm},item_code.ilike.${searchTerm},description.ilike.${searchTerm}`);
       }
 
       if (filters?.groupId) {
-        queryForData = queryForData.eq("cost_item_group_id", filters.groupId)
+        queryForData = queryForData.eq("cost_item_group_id", filters.groupId);
       }
 
       const { data, error } = await queryForData.range(from, to);
@@ -86,9 +86,18 @@ export const costItemService = {
       if (error) throw error;
       // Explicitly cast data to CostItem[] and ensure 'type' is CostItemType
       const typedCostItems: CostItem[] = (data || []).map(item => ({
-        ...item,
-        type: item.type as CostItemType, // Cast 'type' to CostItemType
-        sync_with_bigbox: item.sync_with_bigbox as boolean | null, // Ensure nullable boolean
+        id: item.id,
+        item_code: item.item_code,
+        name: item.name,
+        description: item.description,
+        type: item.type as CostItemType,
+        unit: item.unit,
+        unit_cost: item.unit_cost,
+        default_markup: item.default_markup,
+        is_active: item.is_active,
+        created_at: item.created_at,
+        updated_at: item.updated_at,
+        cost_item_group_id: item.cost_item_group_id,
       }));
       return { costItems: typedCostItems, totalCount: totalCount || 0 };
     } catch (error) {
@@ -98,10 +107,29 @@ export const costItemService = {
 
   async getCostItemById(id: string): Promise<CostItem | null> {
     try {
-      const { data, error } = await supabase.from("cost_items").select("*, cost_item_groups(*)").eq("id", id).single()
+      const { data, error } = await supabase.from("cost_items").select("*, cost_item_groups(*)").eq("id", id).single();
 
       if (error) throw error
-      return data
+      
+      if (data) {
+        const typedData = {
+          id: data.id,
+          item_code: data.item_code,
+          name: data.name,
+          description: data.description,
+          type: data.type as CostItemType,
+          unit: data.unit,
+          unit_cost: data.unit_cost,
+          default_markup: data.default_markup,
+          is_active: data.is_active,
+          created_at: data.created_at,
+          updated_at: data.updated_at,
+          cost_item_group_id: data.cost_item_group_id,
+        } as CostItem;
+        return typedData;
+      }
+
+      return null;
     } catch (error) {
       throw new Error(handleSupabaseError(error))
     }
@@ -109,12 +137,31 @@ export const costItemService = {
 
   async createCostItem(costItem: NewCostItem): Promise<CostItem> {
     try {
-      const { data, error } = await supabase.from("cost_items").insert(costItem).select("*, cost_item_groups(*)").single()
+      const { data, error } = await supabase.from("cost_items").insert(costItem).select("*, cost_item_groups(*)").single();
 
       if (error) throw error
-      return data
+      
+      if (data) {
+        const typedData = {
+          id: data.id,
+          item_code: data.item_code,
+          name: data.name,
+          description: data.description,
+          type: data.type as CostItemType,
+          unit: data.unit,
+          unit_cost: data.unit_cost,
+          default_markup: data.default_markup,
+          is_active: data.is_active,
+          created_at: data.created_at,
+          updated_at: data.updated_at,
+          cost_item_group_id: data.cost_item_group_id,
+        } as CostItem;
+
+      return typedData;
+      }
+      throw new Error('Failed to create cost item: No data returned');
     } catch (error) {
-      throw new Error(handleSupabaseError(error))
+      throw new Error(handleSupabaseError(error));
     }
   },
 
@@ -125,22 +172,39 @@ export const costItemService = {
         .update({ ...updates, updated_at: new Date().toISOString() })
         .eq("id", id)
         .select("*, cost_item_groups(*)")
-        .single()
+        .single();
 
       if (error) throw error
-      return data
+
+      if (data) {
+        const typedData = {
+          id: data.id,
+          item_code: data.item_code,
+          name: data.name,
+          description: data.description,
+          type: data.type as CostItemType,
+          unit: data.unit,
+          unit_cost: data.unit_cost,
+          default_markup: data.default_markup,
+          is_active: data.is_active,
+          created_at: data.created_at,
+          updated_at: data.updated_at,
+        } as CostItem;
+        return typedData;
+      }
+      return data;
     } catch (error) {
-      throw new Error(handleSupabaseError(error))
+      throw new Error(handleSupabaseError(error));
     }
   },
 
   async deleteCostItem(id: string): Promise<void> {
     try {
-      const { error } = await supabase.from("cost_items").delete().eq("id", id)
+      const { error } = await supabase.from("cost_items").delete().eq("id", id);
 
       if (error) throw error
     } catch (error) {
-      throw new Error(handleSupabaseError(error))
+      throw new Error(handleSupabaseError(error));
     }
   },
 
@@ -149,7 +213,7 @@ export const costItemService = {
       const { error } = await supabase.from("cost_items").delete().in("id", ids)
       if (error) throw error
     } catch (error) {
-      throw new Error(handleSupabaseError(error))
+      throw new Error(handleSupabaseError(error));
     }
   },
 

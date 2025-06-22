@@ -1,6 +1,5 @@
 import type { Database } from "./supabase"
 import type { CostItem } from "./cost-items"
-import type { Supplier } from "./suppliers"
 
 export type MaterialList = Database["public"]["Tables"]["material_lists"]["Row"]
 export type NewMaterialList = Database["public"]["Tables"]["material_lists"]["Insert"]
@@ -16,7 +15,6 @@ export type MaterialListItemStatus = "pending" | "ordered" | "received" | "backo
 export interface MaterialListWithDetails extends MaterialList {
   items: (MaterialListItem & {
     costItem?: CostItem | null
-    supplier?: Supplier | null
   })[]
   project: {
     id: string
@@ -36,7 +34,6 @@ export interface MaterialListFilters {
 
 export interface MaterialListItemWithDetails extends MaterialListItem {
   costItem?: CostItem | null
-  supplier?: Supplier | null
 }
 
 export interface WasteFactor {

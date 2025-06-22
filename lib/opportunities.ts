@@ -157,7 +157,9 @@ export const opportunityService = {
 
       // Apply filters
       if (filters?.status && filters.status !== "all") {
-        query = query.eq("status", filters.status)
+        // Map "Task Scheduled" to "Appointment Scheduled" for database compatibility
+        const dbStatus = filters.status === "Task Scheduled" ? "Appointment Scheduled" : filters.status;
+        query = query.eq("status", dbStatus)
       }
 
       if (filters?.personId) {
@@ -252,6 +254,8 @@ export const opportunityService = {
       // Transform the data to match OpportunityWithRelations type
       const opportunity: OpportunityWithRelations = {
         ...data,
+        // Map status "Appointment Scheduled" from DB to "Task Scheduled" for type compatibility
+        status: data.status === "Appointment Scheduled" ? "Task Scheduled" : data.status,
         expected_close_date: data.requested_completion_date, // Map requested_completion_date to expected_close_date
         person: data.person
           ? {
@@ -261,10 +265,10 @@ export const opportunityService = {
               business_name: data.person.business_name,
               email: data.person.email,
               phone: data.person.phone,
-              person_type: data.person.person_type,
+              person_type: data.person.person_type ?? "unknown",
               name:
                 data.person.business_name || `${data.person.first_name || ""} ${data.person.last_name || ""}`.trim(),
-              type: data.person.person_type,
+              type: data.person.person_type ?? "unknown",
             }
           : {
               id: "",
@@ -278,39 +282,6 @@ export const opportunityService = {
               type: "unknown",
             },
         estimates: data.estimates || [], // Include fetched estimates
-      }
-
-      // Fetch related appointments (if not already fetched by the main query)
-      // Note: The main query above now fetches estimates directly.
-      // If appointments/projects are also needed, they should be added to the main select or fetched separately.
-      // For now, assuming appointments/projects are fetched elsewhere or not strictly needed in this specific service call context.
-
-      // If appointments are needed, fetch them here:
-      const { data: appointmentsData, error: appointmentsError } = await supabaseClient
-        .from("appointments")
-        .select("*")
-        .eq("opportunity_id", id)
-        .order("start_time", { ascending: true });
-
-      if (appointmentsError) {
-        console.error("Error fetching related appointments:", appointmentsError);
-        opportunity.appointments = []; // Set to empty array on error
-      } else {
-         // Format appointments for display
-        opportunity.appointments = appointmentsData.map((task) => {
-          const startDate = new Date(task.start_time);
-          const endDate = new Date(task.end_time);
-
-          return {
-            id: task.id,
-            title: task.appointment_type, // Use appointment_type as the title
-            status: task.status,
-            start_time: task.start_time,
-            end_time: task.end_time,
-            formatted_date: formatDateUtil(startDate.toISOString()),
-            formatted_time: `${startDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} - ${endDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`,
-          };
-        });
       }
 
        // Fetch related projects (if not already fetched by the main query)

@@ -65,24 +65,49 @@ export default function Sidebar({ className }: SidebarProps) {
       href: "/calendar",
       icon: Calendar,
     },
+    {
+      title: "Inbox",
+      href: "/inbox",
+      icon: MessageSquare,
+    },    
+    {
+      title: "Tasks",
+      href: "/tasks",
+      icon: FileCheck,
+    },
+    {
+      title: "Agent Logs",
+      href: "/agent-logs",
+      icon: Bot,
+    }
   ]
 
-  const crmNavItems = [
+  const salesNavItems = [
     {
       title: "People",
       href: "/people",
       icon: Users,
     },
     {
-      title: "Inbox",
-      href: "/inbox",
-      icon: MessageSquare,
-    },
-    {
       title: "Opportunities",
       href: "/opportunities",
       icon: Briefcase,
     },
+    {
+      title: "Estimates",
+      href: "/estimates",
+      icon: FileText,
+    },
+    {
+      title: "Cost Items",
+      href: "/cost-items",
+      icon: FileSpreadsheet,
+    },
+    {
+      title: "Subcontractors",
+      href: "/subcontractors",
+      icon: Users,
+    }
   ]
 
   const operationsNavItems = [
@@ -100,63 +125,24 @@ export default function Sidebar({ className }: SidebarProps) {
       title: "Documents",
       href: "/documents",
       icon: FileText,
-    },
+    },    
     {
-      title: "Bids",
-      href: "/bids",
-      icon: ClipboardList, // Using ClipboardList for now, can be changed later
-    },
+      title: "Time Tracking",
+      href: "/time-tracking",
+      icon: Clock,
+    }
   ]
 
-  const financialNavItems = [
+  const proworkspaceNavItems = [    
     {
-      title: "Hub",
-      href: "/financial-dashboard",
-      icon: DollarSign,
-    },
+      title: "Takeoffs (Coming Soon)",
+      href: "/takeoffs",
+      icon: Mic,},
     {
-      title: "Cost Items",
-      href: "/cost-items",
-      icon: FileSpreadsheet,
-    },
-    {
-      title: "Estimates",
-      href: "/estimates",
-      icon: FileText,
-    },
-    {
-      title: "Change Orders",
-      href: "/change-orders",
-      icon: FileCheck,
-    },
-    {
-      title: "Invoices",
-      href: "/invoices",
-      icon: Receipt,
-    },
-    {
-      title: "Expenses",
-      href: "/expenses",
-      icon: DollarSign,
-    },
-    {
-      title: "Payments",
-      href: "/payments",
+      title: "Floor Plans (Coming Soon)",
+      href: "/floor-plans",
       icon: CreditCard,
-    },
-  ]
-
-  const adminNavItems = [
-    {
-      title: "Client Portal",
-      href: "/client-portal-admin",
-      icon: UserCircle,
-    },
-    {
-      title: "Settings",
-      href: "/settings/profile",
-      icon: Cog,
-    },
+    }
   ]
 
   // Render a nav item based on whether the sidebar is collapsed or not
@@ -223,7 +209,7 @@ export default function Sidebar({ className }: SidebarProps) {
         <div className="flex items-center justify-between h-16 px-4 border-b">
           {!isCollapsed && (
             <Link href="/" className="flex items-center space-x-2">
-              <span className="font-bold text-xl">PROActive OS</span>
+              <span className="font-bold text-xl">PRO CRM</span>
             </Link>
           )}
           {isCollapsed && (
@@ -254,12 +240,12 @@ export default function Sidebar({ className }: SidebarProps) {
 
           {!isCollapsed && (
             <div className="px-4 py-2">
-              <h3 className="text-xs font-semibold uppercase tracking-wider">CRM</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wider">Sales</h3>
             </div>
           )}
           {isCollapsed && <div className="py-2 border-b"></div>}
           <nav className={cn("px-2 py-2 space-y-1", isCollapsed && "flex flex-col items-center")}>
-            {crmNavItems.map((item) => renderNavItem(item))}
+            {salesNavItems.map((item) => renderNavItem(item))}
           </nav>
 
           {!isCollapsed && (
@@ -271,25 +257,18 @@ export default function Sidebar({ className }: SidebarProps) {
           <nav className={cn("px-2 py-2 space-y-1", isCollapsed && "flex flex-col items-center")}>
             {operationsNavItems.map((item) => renderNavItem(item))}
           </nav>
-
-          {!isCollapsed && (
-            <div className="px-4 py-2">
-              <h3 className="text-xs font-semibold uppercase tracking-wider">Finances</h3>
-            </div>
-          )}
           {isCollapsed && <div className="py-2 border-b"></div>}
           <nav className={cn("px-2 py-2 space-y-1", isCollapsed && "flex flex-col items-center")}>
-            {financialNavItems.map((item) => renderNavItem(item))}
           </nav>
 
           {!isCollapsed && (
             <div className="px-4 py-2">
-              <h3 className="text-xs font-semibold uppercase tracking-wider">Admin</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wider">Pro Workspace</h3>
             </div>
           )}
           {isCollapsed && <div className="py-2 border-b"></div>}
           <nav className={cn("px-2 py-2 space-y-1", isCollapsed && "flex flex-col items-center")}>
-            {adminNavItems.map((item) => renderNavItem(item))}
+            {proworkspaceNavItems.map((item) => renderNavItem(item))}
           </nav>
         </div>
       </aside>
