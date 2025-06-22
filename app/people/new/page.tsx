@@ -8,11 +8,12 @@ import PersonForm from "../person-form"
 import { useState } from "react" // Import useState
 import { useRouter } from "next/navigation" // Import useRouter
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet"
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog"
 
 // Metadata is typically handled in a separate layout.tsx or root page.tsx for client components
 // export const metadata = {
@@ -33,10 +34,10 @@ export default function NewPersonPage() {
   }
 
   return (
-    <Sheet open={isSheetOpen} onOpenChange={handleSheetClose}>
-      <SheetContent className="w-full sm:max-w-lg flex flex-col h-full">
-        <SheetHeader>
-          <SheetTitle className="flex items-center">
+    <Dialog open={isSheetOpen} onOpenChange={handleSheetClose}>
+      <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center">
             <Button variant="outline" size="icon" asChild className="mr-2">
               <Link href="/people">
                 <ArrowLeft className="h-4 w-4" />
@@ -44,17 +45,13 @@ export default function NewPersonPage() {
               </Link>
             </Button>
             New Contact
-          </SheetTitle>
-          <CardDescription>Enter the details for your new contact</CardDescription>
-        </SheetHeader>
-        <div className="flex-1 overflow-auto"> {/* Added overflow-auto for scrollability */}
-          <Card className="border-none shadow-none"> {/* Removed border and shadow */}
-            <CardContent className="p-0"> {/* Removed padding */}
-              <PersonForm />
-            </CardContent>
-          </Card>
+          </DialogTitle>
+          <DialogDescription>Enter the details for your new contact</DialogDescription>
+        </DialogHeader>
+        <div className="py-4">
+          <PersonForm />
         </div>
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   )
 }

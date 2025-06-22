@@ -1,6 +1,12 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { ArrowLeft } from "lucide-react"
 import TaskForm from "../task-form"
 
@@ -11,26 +17,29 @@ export const metadata = {
 
 export default function NewTaskPage() {
   return (
-    <div className="space-y-6">
-      <div className="flex items-center space-x-2">
-        <Button variant="outline" size="icon" asChild>
-          <Link href="/tasks">
-            <ArrowLeft className="h-4 w-4" />
-            <span className="sr-only">Back</span>
-          </Link>
-        </Button>
-        <h1 className="text-3xl font-bold tracking-tight">New Task</h1>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Task Details</CardTitle>
-          <CardDescription>Enter the details for your new task</CardDescription>
-        </CardHeader>
-        <CardContent>
+    <Dialog open={true} onOpenChange={(open) => {
+      if (!open) {
+        // Navigate back to the tasks list when the dialog is closed
+        window.location.href = "/tasks";
+      }
+    }}>
+      <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center">
+            <Button variant="outline" size="icon" asChild className="mr-2">
+              <Link href="/tasks">
+                <ArrowLeft className="h-4 w-4" />
+                <span className="sr-only">Back</span>
+              </Link>
+            </Button>
+            New Task
+          </DialogTitle>
+          <DialogDescription>Enter the details for your new task</DialogDescription>
+        </DialogHeader>
+        <div className="py-4">
           <TaskForm />
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }

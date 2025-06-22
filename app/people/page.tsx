@@ -9,13 +9,13 @@ import { personService } from "@/lib/people"
 import PeopleClient from "./people-client"
 import PersonForm from "./person-form" // Import PersonForm
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet" // Import Shadcn Sheet
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog" // Import Shadcn Dialog
 
 export const metadata: Metadata = {
   title: "People | PROActive OS",
@@ -44,25 +44,25 @@ export default async function PeoplePage({
           <h1 className="text-3xl font-bold tracking-tight">People</h1>
           <p className="text-muted-foreground">Manage your contacts, leads, customers, and subcontractors</p>
         </div>
-        <Sheet>
-          <SheetTrigger asChild>
+        <Dialog>
+          <DialogTrigger asChild>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
               New Contact
             </Button>
-          </SheetTrigger>
-          <SheetContent className="w-full sm:max-w-[500px] overflow-y-auto"> {/* Adjusted width */}
-            <SheetHeader>
-              <SheetTitle>Create New Contact</SheetTitle>
-              <SheetDescription>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Create New Contact</DialogTitle>
+              <DialogDescription>
                 Fill in the details below to create a new contact.
-              </SheetDescription>
-            </SheetHeader>
-            <div className="mt-4"> {/* Added margin-top */}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
               <PersonForm />
             </div>
-          </SheetContent>
-        </Sheet>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">

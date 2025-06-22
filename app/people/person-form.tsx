@@ -282,11 +282,11 @@ export default function PersonForm({ initialData, isEdit = false }: PersonFormPr
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="lead">Lead</SelectItem>
-                      <SelectItem value="customer">Customer</SelectItem>
-                      <SelectItem value="business">Business</SelectItem>
-                      <SelectItem value="subcontractor">Subcontractor</SelectItem>
-                      <SelectItem value="employee">Employee</SelectItem>
+                      <SelectItem value="Lead">Lead</SelectItem>
+                      <SelectItem value="Customer">Customer</SelectItem>
+                      <SelectItem value="Business">Business</SelectItem>
+                      <SelectItem value="Subcontractor">Subcontractor</SelectItem>
+                      <SelectItem value="Employee">Employee</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormDescription>The type of contact determines available actions and workflows.</FormDescription>
